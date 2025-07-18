@@ -21,7 +21,7 @@ public class InputMonitorService : IInputMonitorService
             OnKeyAction?.Invoke(args.KeyCode);
         };
     }
-
+    
     public void StartMonitoring()
     {
         _keyboardMonitor.Subscribe();

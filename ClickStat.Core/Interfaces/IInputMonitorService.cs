@@ -10,4 +10,5 @@ public interface IInputMonitorService
     void StartMonitoring();
     void StopMonitoring();
     void ResetStatistics();
+    
 }

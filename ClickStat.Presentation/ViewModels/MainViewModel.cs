@@ -8,18 +8,17 @@ namespace ClickStat.Presentation.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly IInputMonitorService _inputMonitorService;
+    private readonly ISavingClick _savingClickService;
         
-    public MainViewModel(IInputMonitorService inputMonitorService)
+    public MainViewModel(IInputMonitorService inputMonitorService, ISavingClick savingClickService)
     {
         _inputMonitorService = inputMonitorService;
         _inputMonitorService.OnKeyAction += OnKeyReceived;
         _inputMonitorService.StartMonitoring();
+        _savingClickService = savingClickService;
     }
 
-    private void OnKeyReceived(Keys key)
-    {
-        Debug.WriteLine($"Нажата клавиша: {key}");
-    }
+    private void OnKeyReceived(Keys key) { _savingClickService.SaveClick(key); }
         
     public event PropertyChangedEventHandler? PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
