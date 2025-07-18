@@ -12,16 +12,22 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly IInputMonitorService _inputMonitorService;
     private readonly ISavingClick _savingClickService;
     private readonly IGetDataClick _getDataClickService;
+    public StatisticsViewModel StatisticsVm { get; }
+    public KeyboardViewModel KeyboardVm { get; }
     
-    
-    public MainViewModel(IInputMonitorService inputMonitorService, ISavingClick savingClickService,IGetDataClick dataService)
+    public MainViewModel(IInputMonitorService inputMonitorService,
+        ISavingClick savingClickService,
+        StatisticsViewModel statisticsVm,
+        KeyboardViewModel keyboardVm,
+        IGetDataClick dataService)
     {
         _inputMonitorService = inputMonitorService;
         _inputMonitorService.OnKeyAction += OnKeyReceived;
         _inputMonitorService.StartMonitoring();
         _savingClickService = savingClickService;
         _getDataClickService = dataService;
-       
+        StatisticsVm = statisticsVm;
+        KeyboardVm = keyboardVm;
     }
 
     private void OnKeyReceived(Keys key) { _savingClickService.SaveClick(key); }

@@ -4,26 +4,62 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClickStat.Presentation"
+        xmlns:views="clr-namespace:ClickStat.Presentation.Views"
         xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="ClickStat - Статистика нажатий" Height="600" Width="900"
+        MinHeight="500" MinWidth="750"
+        WindowStartupLocation="CenterScreen"
         DataContext="{Binding Main, Source={x:Static viewModels:ViewModelLocator.Current}}">
-   
+
+    <Window.Resources>
+        <Style x:Key="CustomTabItemStyle" TargetType="TabItem">
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border" 
+                                BorderThickness="0,0,0,2" 
+                                BorderBrush="Transparent"
+                                Margin="0,0,5,0">
+                            <ContentPresenter ContentSource="Header" 
+                                              HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#007ACC"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007ACC"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#005A9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="CustomTabControlStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+    </Window.Resources>
+    
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Exit" Command="{Binding ExitCommand}"/>
-            </MenuItem>
-            <MenuItem Header="_Help">
-                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}"/>
-            </MenuItem>
-        </Menu>
-
-        <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+        <TabControl Style="{StaticResource CustomTabControlStyle}">
+            <TabItem Header="Статистика" Style="{StaticResource CustomTabItemStyle}">
+                <views:StatisticsView DataContext="{Binding StatisticsVm}"/>
+            </TabItem>
+            
+            <TabItem Header="Клавиатура" Style="{StaticResource CustomTabItemStyle}">
+                <views:KeyboardView DataContext="{Binding KeyboardVm}"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

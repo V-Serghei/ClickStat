@@ -32,6 +32,8 @@ public partial class App : Application
         services.AddSingleton<IInputMonitorService, InputMonitorService>();
         services.AddSingleton<ISavingClick, SavingClickService>();
         services.AddSingleton<IGetDataClick, GetDataClickService>();
+        services.AddTransient<StatisticsViewModel>();
+        services.AddTransient<KeyboardViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<MainWindow>();
     }

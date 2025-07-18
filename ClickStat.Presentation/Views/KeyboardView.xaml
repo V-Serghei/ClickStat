@@ -1,0 +1,113 @@
+<UserControl x:Class="ClickStat.Presentation.Views.KeyboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ClickStat.Presentation.Views"
+             xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewModels:KeyboardViewModel, IsDesignTimeCreatable=False}"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <!-- Стиль для всех клавиш -->
+        <Style x:Key="KeyStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Background" Value="#FFF"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E6F2FF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007ACC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="WideKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
+            <Setter Property="MinWidth" Value="60"/>
+        </Style>
+        <Style x:Key="ExtraWideKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+        <Style x:Key="SpacebarStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
+            <Setter Property="MinWidth" Value="260"/>
+        </Style>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+    
+    <Grid Background="#F0F2F5">
+        <ProgressBar IsIndeterminate="True" Height="5" VerticalAlignment="Top" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        
+        <!-- Обертка для центрирования клавиатуры -->
+        <Viewbox Stretch="Uniform" Margin="20">
+            <StackPanel Orientation="Vertical">
+                <!-- Ряд 1: `~, 1-0, Backspace -->
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Q" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Q], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="W" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[W], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="E" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[E], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="R" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[R], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="T" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[T], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Y" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Y], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="U" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[U], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="I" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[I], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="O" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[O], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="P" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[P], StringFormat='Нажатий: {0}'}"/>
+                </StackPanel>
+                <!-- Ряд 2: Tab, QWERTY... -->
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Tab" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[Tab], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="A" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[A], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="S" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[S], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="D" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[D], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="F" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[F], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="G" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[G], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="H" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[H], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="J" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[J], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="K" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[K], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="L" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[L], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Enter" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[Enter], StringFormat='Нажатий: {0}'}"/>
+                </StackPanel>
+                <!-- Ряд 3: Caps, ASDF... -->
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Caps" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[Capital], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Z" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Z], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="X" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[X], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="C" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[C], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="V" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[V], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="B" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[B], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="N" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[N], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="M" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[M], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="," Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Oemcomma], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="." Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[OemPeriod], StringFormat='Нажатий: {0}'}"/>
+                </StackPanel>
+                <!-- Ряд 4: Shift, ZXCV... -->
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Shift" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[LShiftKey], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Ctrl" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LControlKey], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Win" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LWin], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Alt" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LMenu], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Space" Style="{StaticResource SpacebarStyle}" ToolTip="{Binding Path=.[Space], StringFormat='Нажатий: {0}'}"/>
+                    <Button Content="Esc" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[Escape], StringFormat='Нажатий: {0}'}"/>
+                </StackPanel>
+            </StackPanel>
+        </Viewbox>
+    </Grid>
+</UserControl>

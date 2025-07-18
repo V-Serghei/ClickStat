@@ -95,6 +95,6 @@ public class KeyGetDataClick
 
 public async Task<int> GetKeyStatisticsForTheAllTime()
     {
-        return await _context.KeyStatisticsForTheDay.CountAsync();
+        return await _context.KeyStatisticsForTheDay.SumAsync(k=> k.ClickCount);
     }
 }

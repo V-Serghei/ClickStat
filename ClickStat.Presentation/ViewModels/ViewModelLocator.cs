@@ -7,4 +7,6 @@ public class ViewModelLocator
     public IServiceProvider ServiceProvider { get; set; } = null!;
 
     public MainViewModel? Main => ServiceProvider?.GetRequiredService<MainViewModel>();
+    public StatisticsViewModel? Statistics => ServiceProvider?.GetRequiredService<StatisticsViewModel>();
+    public KeyboardViewModel? Keyboard => ServiceProvider?.GetRequiredService<KeyboardViewModel>();
 }
