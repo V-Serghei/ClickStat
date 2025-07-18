@@ -3,19 +3,25 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ClickStat.Core.Interfaces;
 using System.Windows.Forms;
+using System.Windows.Input;
+
 namespace ClickStat.Presentation.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly IInputMonitorService _inputMonitorService;
     private readonly ISavingClick _savingClickService;
-        
-    public MainViewModel(IInputMonitorService inputMonitorService, ISavingClick savingClickService)
+    private readonly IGetDataClick _getDataClickService;
+    
+    
+    public MainViewModel(IInputMonitorService inputMonitorService, ISavingClick savingClickService,IGetDataClick dataService)
     {
         _inputMonitorService = inputMonitorService;
         _inputMonitorService.OnKeyAction += OnKeyReceived;
         _inputMonitorService.StartMonitoring();
         _savingClickService = savingClickService;
+        _getDataClickService = dataService;
+       
     }
 
     private void OnKeyReceived(Keys key) { _savingClickService.SaveClick(key); }

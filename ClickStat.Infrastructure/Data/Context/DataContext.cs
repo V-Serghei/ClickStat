@@ -6,6 +6,7 @@ namespace ClickStat.Infrastructure.Data.Context;
 public class DataContext : DbContext
 {
     public DbSet<KeyStatistics> KeyStatistics { get; set; }
+    public DbSet<KeyStatisticsForTheDay> KeyStatisticsForTheDay { get; set; }
     
     private readonly string _dbPath;
     
