@@ -1,38 +1,35 @@
+using System;
 using System.Windows.Forms;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Models;
-using ClickStat;
 using ClickStat.Infrastructure.InputMonitoring;
 
-namespace ClickStat.Core.Services;
-
-public class InputMonitorService : IInputMonitorService
+namespace ClickStat.Core.Services
 {
-    private readonly KeyboardMonitor _keyboardMonitor;
-        
-    public event Action<Keys> OnKeyAction;
-
-    public InputMonitorService()
+    public class InputMonitorService : IInputMonitorService
     {
-        _keyboardMonitor = new KeyboardMonitor();
-            
-        _keyboardMonitor.KeyDown += (sender, args) =>
+        private readonly KeyboardMonitor _keyboardMonitor;
+
+        public event Action<Keys>? OnKeyAction;
+
+        public InputMonitorService()
         {
-            OnKeyAction?.Invoke(args.KeyCode);
-        };
-    }
-    
-    public void StartMonitoring()
-    {
-        _keyboardMonitor.Subscribe();
-    }
+            _keyboardMonitor = new KeyboardMonitor();
+            _keyboardMonitor.KeyPressed += (key) => OnKeyAction?.Invoke(key);
+        }
 
-    public void StopMonitoring()
-    {
-        _keyboardMonitor.Unsubscribe();
-    }
-        
-    public void ResetStatistics()
-    {
+        public void StartMonitoring()
+        {
+            _keyboardMonitor.Subscribe();
+        }
+
+        public void StopMonitoring()
+        {
+            _keyboardMonitor.Unsubscribe();
+        }
+
+        public void ResetStatistics()
+        {
+        }
     }
 }

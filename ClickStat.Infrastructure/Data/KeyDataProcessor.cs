@@ -80,7 +80,7 @@ public class KeyDataProcessor
             {
                 var existingStat = await context.KeyStatistics.FindAsync(stat.Value.KeyCode);
                 if (existingStat != null)
-                    existingStat.Count = stat.Value.Count;
+                    existingStat.Count += stat.Value.Count;
                 else
                     context.KeyStatistics.Add(new KeyStatistics
                     {
@@ -89,6 +89,7 @@ public class KeyDataProcessor
                         Count = stat.Value.Count
                     });
             }
+            _keyStatistics.Clear();
 
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
