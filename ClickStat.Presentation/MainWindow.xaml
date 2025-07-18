@@ -4,9 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClickStat.Presentation"
+        xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
-        DataContext="{Binding Source={StaticResource ViewModelLocator}, Path=Main}">
+        DataContext="{Binding Main, Source={x:Static viewModels:ViewModelLocator.Current}}">
+   
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

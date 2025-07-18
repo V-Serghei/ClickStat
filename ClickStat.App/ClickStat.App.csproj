@@ -18,8 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ClickStat.Core\ClickStat.Core.csproj" />
-      <ProjectReference Include="..\ClickStat.Infrastructure\ClickStat.Infrastructure.csproj" />
+      
       <ProjectReference Include="..\ClickStat.Presentation\ClickStat.Presentation.csproj" />
     </ItemGroup>
 

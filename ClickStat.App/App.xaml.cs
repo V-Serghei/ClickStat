@@ -9,24 +9,23 @@ namespace ClickStat.App;
 
 public partial class App : Application
 {
-    public static IServiceProvider ServiceProvider { get; private set; }
-    
+    private static IServiceProvider ServiceProvider { get; set; } = null!;
+
     public App()
     {
         var services = new ServiceCollection();
         ConfigureServices(services);
-        
         ServiceProvider = services.BuildServiceProvider();
-        
+
         ViewModelLocator.Current.ServiceProvider = ServiceProvider;
     }
-    
+
     private void Application_Startup(object sender, StartupEventArgs e)
     {
         var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
     }
-    
+
     private void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<IInputMonitorService, InputMonitorService>();

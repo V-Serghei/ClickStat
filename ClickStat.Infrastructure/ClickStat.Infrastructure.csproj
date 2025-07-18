@@ -1,9 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net9.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
+        
         <Nullable>enable</Nullable>
+        <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+        <UseWPF>true</UseWPF>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,8 +15,17 @@
       <Folder Include="Platform\" />
     </ItemGroup>
 
+    
+
     <ItemGroup>
-      <ProjectReference Include="..\ClickStat.Core\ClickStat.Core.csproj" />
+      <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="MouseKeyHook" Version="5.7.1" />
+      <PackageReference Include="MouseKeyHook.InjectedEvents" Version="5.8.0" />
+      <PackageReference Include="MouseKeyHook.NetCore" Version="5.6.1.1" />
+      <PackageReference Include="MouseKeyHook.Rx" Version="5.6.0-alpha" />
     </ItemGroup>
 
 </Project>
