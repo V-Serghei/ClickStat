@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Configuration\" />
+      <Folder Include="Data\" />
+      <Folder Include="Platform\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ClickStat.Core\ClickStat.Core.csproj" />
+    </ItemGroup>
+
+</Project>

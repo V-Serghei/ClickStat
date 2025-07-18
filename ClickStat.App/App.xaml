@@ -1,0 +1,10 @@
+﻿<Application x:Class="ClickStat.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ClickStat"
+             xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels;assembly=ClickStat.Presentation"
+             Startup="Application_Startup">
+    <Application.Resources>
+        <viewModels:ViewModelLocator x:Key="ViewModelLocator" />
+    </Application.Resources>
+</Application>
