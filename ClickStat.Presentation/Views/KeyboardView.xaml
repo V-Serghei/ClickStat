@@ -3,111 +3,172 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:ClickStat.Presentation.Views"
              xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
+             xmlns:conv="clr-namespace:ClickStat.Presentation.Converters"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
-             d:DataContext="{d:DesignInstance Type=viewModels:KeyboardViewModel, IsDesignTimeCreatable=False}"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DataContext="{d:DesignInstance Type=viewModels:KeyboardViewModel, IsDesignTimeCreatable=True}"
+             Background="#1A1A1A"
+             d:DesignHeight="700" d:DesignWidth="1200">
     <UserControl.Resources>
-        <!-- Стиль для всех клавиш -->
+        <conv:IntensityToBrushConverter x:Key="IntensityToBrushConverter"/>
+        <conv:CountToBadgeConverter x:Key="CountToBadgeConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
         <Style x:Key="KeyStyle" TargetType="Button">
-            <Setter Property="MinWidth" Value="40"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="Background" Value="#FFF"/>
-            <Setter Property="BorderBrush" Value="#CCC"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="55"/>
+            <Setter Property="Width" Value="55"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="2" Color="Black" Opacity="0.4" BlurRadius="4"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
+                        <Grid>
+                            <Border x:Name="border" BorderThickness="1" CornerRadius="6">
+                                <Border.Background>
+                                    <MultiBinding Converter="{StaticResource IntensityToBrushConverter}">
+                                        <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        <Binding Path="DataContext.MaxCount" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                    </MultiBinding>
+                                </Border.Background>
+                                <Border.BorderBrush>
+                                    <MultiBinding Converter="{StaticResource IntensityToBrushConverter}">
+                                        <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        <Binding Path="DataContext.MaxCount" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                    </MultiBinding>
+                                </Border.BorderBrush>
+                            </Border>
+
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+
+                            <Border Background="White" CornerRadius="8" Padding="5,1"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Margin="0,-8,-8,0">
+                                <Border.Visibility>
+                                    <MultiBinding Converter="{StaticResource CountToBadgeConverter}" ConverterParameter="visibility">
+                                        <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                    </MultiBinding>
+                                </Border.Visibility>
+                                <TextBlock Foreground="#1A1A1A" FontSize="10" FontWeight="Bold">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource CountToBadgeConverter}">
+                                            <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#E6F2FF"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#007ACC"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect ShadowDepth="0" Color="#FFFFFF" Opacity="0.5" BlurRadius="10"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Setter Property="ToolTip">
+                <Setter.Value>
+                    <ToolTip Background="#2D2D2D" BorderBrush="#555" Foreground="White" Padding="8,5" HasDropShadow="True">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PlacementTarget.Content, RelativeSource={RelativeSource AncestorType=ToolTip}}" FontWeight="Bold" FontSize="16"/>
+                            <TextBlock>
+                                <Run Text="Нажатий: "/>
+                                <Run FontWeight="Bold" Foreground="#87CEEB">
+                                    <Run.Text>
+                                        <MultiBinding Converter="{StaticResource CountToBadgeConverter}" StringFormat="N0">
+                                            <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            <Binding Path="PlacementTarget.Content" RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
+                                        </MultiBinding>
+                                    </Run.Text>
+                                </Run>
+                            </TextBlock>
+                        </StackPanel>
+                    </ToolTip>
+                </Setter.Value>
+            </Setter>
         </Style>
-        
-        <Style x:Key="WideKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
-            <Setter Property="MinWidth" Value="60"/>
-        </Style>
-        <Style x:Key="ExtraWideKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
-            <Setter Property="MinWidth" Value="80"/>
-        </Style>
-        <Style x:Key="SpacebarStyle" TargetType="Button" BasedOn="{StaticResource KeyStyle}">
-            <Setter Property="MinWidth" Value="260"/>
-        </Style>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style x:Key="KeyStyle_Medium" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="80"/></Style>
+        <Style x:Key="KeyStyle_Large" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="100"/></Style>
+        <Style x:Key="KeyStyle_XLarge" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="125"/></Style>
+        <Style x:Key="KeyStyle_Space" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="400"/></Style>
+        <Style x:Key="LegendItem" TargetType="StackPanel"><Setter Property="Orientation" Value="Horizontal"/><Setter Property="Margin" Value="10,0"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style x:Key="LegendBox" TargetType="Border"><Setter Property="Width" Value="16"/><Setter Property="Height" Value="16"/><Setter Property="CornerRadius" Value="3"/><Setter Property="Margin" Value="0,0,8,0"/></Style>
     </UserControl.Resources>
-    
-    <Grid Background="#F0F2F5">
-        <ProgressBar IsIndeterminate="True" Height="5" VerticalAlignment="Top" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
         
-        <!-- Обертка для центрирования клавиатуры -->
-        <Viewbox Stretch="Uniform" Margin="20">
-            <StackPanel Orientation="Vertical">
-                <!-- Ряд 1: `~, 1-0, Backspace -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Q" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Q], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="W" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[W], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="E" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[E], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="R" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[R], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="T" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[T], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Y" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Y], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="U" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[U], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="I" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[I], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="O" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[O], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="P" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[P], StringFormat='Нажатий: {0}'}"/>
+        <TextBlock Text="Загрузка данных..." Foreground="White" FontSize="24"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" Grid.RowSpan="2"
+                   Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        
+        <StackPanel Grid.Row="0" Grid.RowSpan="2">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed" /> <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsLoading}" Value="False">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+             <Border Background="#2D2D2D" CornerRadius="8" Padding="15,10" Margin="0,10,0,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="Интенсивность:" Foreground="Gray" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#4299E1"/><TextBlock Text="Редко" Foreground="White"/></StackPanel>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#48BB78"/></StackPanel>
+                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#E9D52D"/></StackPanel>
+                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#ED8936"/></StackPanel>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#F56565"/><TextBlock Text="Очень часто" Foreground="White"/></StackPanel>
                 </StackPanel>
-                <!-- Ряд 2: Tab, QWERTY... -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Tab" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[Tab], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="A" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[A], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="S" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[S], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="D" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[D], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="F" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[F], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="G" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[G], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="H" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[H], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="J" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[J], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="K" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[K], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="L" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[L], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Enter" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[Enter], StringFormat='Нажатий: {0}'}"/>
+            </Border>
+        
+            <Viewbox Stretch="Uniform">
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Oemtilde" Style="{StaticResource KeyStyle}"/><Button Content="D1" Style="{StaticResource KeyStyle}"/><Button Content="D2" Style="{StaticResource KeyStyle}"/><Button Content="D3" Style="{StaticResource KeyStyle}"/><Button Content="D4" Style="{StaticResource KeyStyle}"/><Button Content="D5" Style="{StaticResource KeyStyle}"/><Button Content="D6" Style="{StaticResource KeyStyle}"/><Button Content="D7" Style="{StaticResource KeyStyle}"/><Button Content="D8" Style="{StaticResource KeyStyle}"/><Button Content="D9" Style="{StaticResource KeyStyle}"/><Button Content="D0" Style="{StaticResource KeyStyle}"/><Button Content="OemMinus" Style="{StaticResource KeyStyle}"/><Button Content="OemPlus" Style="{StaticResource KeyStyle}"/><Button Content="Back" Style="{StaticResource KeyStyle_Large}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Tab" Style="{StaticResource KeyStyle_Medium}"/><Button Content="Q" Style="{StaticResource KeyStyle}"/><Button Content="W" Style="{StaticResource KeyStyle}"/><Button Content="E" Style="{StaticResource KeyStyle}"/><Button Content="R" Style="{StaticResource KeyStyle}"/><Button Content="T" Style="{StaticResource KeyStyle}"/><Button Content="Y" Style="{StaticResource KeyStyle}"/><Button Content="U" Style="{StaticResource KeyStyle}"/><Button Content="I" Style="{StaticResource KeyStyle}"/><Button Content="O" Style="{StaticResource KeyStyle}"/><Button Content="P" Style="{StaticResource KeyStyle}"/><Button Content="OemOpenBrackets" Style="{StaticResource KeyStyle}"/><Button Content="OemCloseBrackets" Style="{StaticResource KeyStyle}"/><Button Content="OemPipe" Style="{StaticResource KeyStyle}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Capital" Style="{StaticResource KeyStyle_Large}"/><Button Content="A" Style="{StaticResource KeyStyle}"/><Button Content="S" Style="{StaticResource KeyStyle}"/><Button Content="D" Style="{StaticResource KeyStyle}"/><Button Content="F" Style="{StaticResource KeyStyle}"/><Button Content="G" Style="{StaticResource KeyStyle}"/><Button Content="H" Style="{StaticResource KeyStyle}"/><Button Content="J" Style="{StaticResource KeyStyle}"/><Button Content="K" Style="{StaticResource KeyStyle}"/><Button Content="L" Style="{StaticResource KeyStyle}"/><Button Content="OemSemicolon" Style="{StaticResource KeyStyle}"/><Button Content="OemQuotes" Style="{StaticResource KeyStyle}"/><Button Content="Enter" Style="{StaticResource KeyStyle_XLarge}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="LShiftKey" Style="{StaticResource KeyStyle_XLarge}"/><Button Content="Z" Style="{StaticResource KeyStyle}"/><Button Content="X" Style="{StaticResource KeyStyle}"/><Button Content="C" Style="{StaticResource KeyStyle}"/><Button Content="V" Style="{StaticResource KeyStyle}"/><Button Content="B" Style="{StaticResource KeyStyle}"/><Button Content="N" Style="{StaticResource KeyStyle}"/><Button Content="M" Style="{StaticResource KeyStyle}"/><Button Content="Oemcomma" Style="{StaticResource KeyStyle}"/><Button Content="OemPeriod" Style="{StaticResource KeyStyle}"/><Button Content="OemQuestion" Style="{StaticResource KeyStyle}"/><Button Content="RShiftKey" Style="{StaticResource KeyStyle_XLarge}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="LControlKey" Style="{StaticResource KeyStyle_Medium}"/><Button Content="LWin" Style="{StaticResource KeyStyle_Medium}"/><Button Content="LMenu" Style="{StaticResource KeyStyle_Medium}"/><Button Content="Space" Style="{StaticResource KeyStyle_Space}"/><Button Content="RMenu" Style="{StaticResource KeyStyle_Medium}"/><Button Content="RControlKey" Style="{StaticResource KeyStyle_Medium}"/>
+                    </StackPanel>
                 </StackPanel>
-                <!-- Ряд 3: Caps, ASDF... -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Caps" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[Capital], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Z" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Z], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="X" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[X], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="C" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[C], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="V" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[V], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="B" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[B], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="N" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[N], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="M" Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[M], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="," Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[Oemcomma], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="." Style="{StaticResource KeyStyle}" ToolTip="{Binding Path=.[OemPeriod], StringFormat='Нажатий: {0}'}"/>
-                </StackPanel>
-                <!-- Ряд 4: Shift, ZXCV... -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Shift" Style="{StaticResource ExtraWideKeyStyle}" ToolTip="{Binding Path=.[LShiftKey], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Ctrl" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LControlKey], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Win" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LWin], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Alt" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[LMenu], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Space" Style="{StaticResource SpacebarStyle}" ToolTip="{Binding Path=.[Space], StringFormat='Нажатий: {0}'}"/>
-                    <Button Content="Esc" Style="{StaticResource WideKeyStyle}" ToolTip="{Binding Path=.[Escape], StringFormat='Нажатий: {0}'}"/>
-                </StackPanel>
-            </StackPanel>
-        </Viewbox>
+            </Viewbox>
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -3,71 +3,92 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using ClickStat.Core.Interfaces;
 using ClickStat.Presentation.Model;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
 
 namespace ClickStat.Presentation.ViewModels;
 
-public class StatisticsViewModel : INotifyPropertyChanged
+ public class StatisticsViewModel : INotifyPropertyChanged
     {
         private readonly IGetDataClick _dataClickService;
-        private int _totalClicks;
-        private bool _isLoading = true;
+        private bool _isLoading;
 
-        public ObservableCollection<DailyStat> Last10DaysStats { get; } = new ObservableCollection<DailyStat>();
-
-        public int TotalClicks
-        {
-            get => _totalClicks;
-            set
-            {
-                _totalClicks = value;
-                OnPropertyChanged();
-            }
-        }
+        public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
         
-        public bool IsLoading
-        {
-            get => _isLoading;
-            set
-            {
-                _isLoading = value;
-                OnPropertyChanged();
-            }
-        }
+        private int _totalClicks;
+        public int TotalClicks { get => _totalClicks; set { _totalClicks = value; OnPropertyChanged(); } }
 
+        private int _clicksToday;
+        public int ClicksToday { get => _clicksToday; set { _clicksToday = value; OnPropertyChanged(); } }
+
+        private string _mostFrequentKey;
+        public string MostFrequentKey { get => _mostFrequentKey; set { _mostFrequentKey = value; OnPropertyChanged(); } }
+        
+        public ISeries[] DailyStatsSeries { get; set; }
+        public Axis[] XAxes { get; set; }
+        public Axis[] YAxes { get; set; }
+        public SolidColorPaint LegendTextPaint { get; set; }
+        public SolidColorPaint TooltipBackgroundPaint { get; set; }
+        public SolidColorPaint TooltipTextPaint { get; set; }
 
         public StatisticsViewModel(IGetDataClick dataClickService)
         {
             _dataClickService = dataClickService;
-            LoadDataAsync();
+            InitializeChart();
+            _ = LoadStatsAsync();
         }
 
-        private async Task LoadDataAsync()
+        private void InitializeChart()
+        {
+            var textColor = new SKColor(200, 200, 200);
+            var separatorColor = new SKColor(100, 100, 100);
+
+            DailyStatsSeries = new ISeries[] { new ColumnSeries<int> { Name = "Нажатия", Values = new int[] { }, Fill = new SolidColorPaint(new SKColor(170, 112, 255)) } };
+            
+            XAxes = new Axis[]
+            {
+                new Axis { Name = "Дата", LabelsRotation = 15, TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
+            };
+
+            YAxes = new Axis[]
+            {
+                new Axis { Name = "Количество нажатий", TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
+            };
+
+            LegendTextPaint = new SolidColorPaint(textColor);
+            TooltipBackgroundPaint = new SolidColorPaint(new SKColor(40, 40, 40));
+            TooltipTextPaint = new SolidColorPaint(textColor);
+        }
+
+        private async Task LoadStatsAsync()
         {
             IsLoading = true;
-            try
-            {
-                TotalClicks = await _dataClickService.GetKeyStatisticsForTheAllTime();
 
-                Last10DaysStats.Clear();
-                for (int i = 0; i < 10; i++)
-                {
-                    var date = DateTime.Today.AddDays(-i);
-                    var statsForDay = await _dataClickService.GetKeyStatisticsForTheDay(date);
-                    var dayData = statsForDay.FirstOrDefault();
+            // Загрузка данных для карточек
+            TotalClicks = await _dataClickService.GetKeyStatisticsForTheAllTime();
+            var todayStats = await _dataClickService.GetKeyStatisticsForTheDay(DateTime.Today);
+            ClicksToday = todayStats.FirstOrDefault()?.ClickCount ?? 0;
+            
+            var allKeys = await _dataClickService.GetKeyStatistics();
+            MostFrequentKey = allKeys.Any() ? allKeys.OrderByDescending(k => k.Count).First().KeyName : "N/A";
 
-                    Last10DaysStats.Add(new DailyStat
-                    {
-                        Date = date.ToString("dd.MM.yyyy"),
-                        Count = dayData?.ClickCount ?? 0
-                    });
-                }
-            }
-            finally
+            // Загрузка данных для графика за последние 10 дней
+            var dates = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-i)).Reverse().ToList();
+            var counts = new List<int>();
+            foreach (var date in dates)
             {
-                IsLoading = false;
+                var dayStat = await _dataClickService.GetKeyStatisticsForTheDay(date);
+                counts.Add(dayStat.FirstOrDefault()?.ClickCount ?? 0);
             }
+
+            DailyStatsSeries[0].Values = counts;
+            XAxes[0].Labels = dates.Select(d => d.ToString("dd MMM")).ToArray();
+
+            IsLoading = false;
         }
-
+        
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

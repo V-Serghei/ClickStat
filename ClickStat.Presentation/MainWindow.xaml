@@ -7,59 +7,110 @@
         xmlns:views="clr-namespace:ClickStat.Presentation.Views"
         xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
         mc:Ignorable="d"
-        Title="ClickStat - Статистика нажатий" Height="600" Width="900"
-        MinHeight="500" MinWidth="750"
+        Title="ClickStat - Статистика нажатий" Height="720" Width="1280"
+        MinHeight="600" MinWidth="900"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         DataContext="{Binding Main, Source={x:Static viewModels:ViewModelLocator.Current}}">
 
     <Window.Resources>
+        <Style x:Key="WindowButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#A0A0A0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="45"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3E3E3E"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#C42B1C"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="CustomTabItemStyle" TargetType="TabItem">
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="Foreground" Value="#2B2D2D"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="border" 
-                                BorderThickness="0,0,0,2" 
-                                BorderBrush="Transparent"
-                                Margin="0,0,5,0">
-                            <ContentPresenter ContentSource="Header" 
-                                              HorizontalAlignment="Center" 
-                                              VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}"/>
+                        <Border x:Name="border" BorderThickness="0,0,0,3" BorderBrush="Transparent" Margin="0,0,10,0">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Foreground" Value="#007ACC"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#007ACC"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFAA70FF"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="#005A9E"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                             <Trigger Property="IsSelected" Value="False">
+                                <Setter Property="Foreground" Value="#A0A0A0"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        
+
         <Style x:Key="CustomTabControlStyle" TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="5"/>
         </Style>
     </Window.Resources>
-    
-    <Grid>
-        <TabControl Style="{StaticResource CustomTabControlStyle}">
-            <TabItem Header="Статистика" Style="{StaticResource CustomTabItemStyle}">
-                <views:StatisticsView DataContext="{Binding StatisticsVm}"/>
-            </TabItem>
+
+    <Border CornerRadius="10" Background="#1E1E1E" BorderBrush="#3C3C3C" BorderThickness="1">
+        <Grid>
+            <Grid.Background>
+                <ImageBrush ImageSource="Assets/fill.jpg" Stretch="UniformToFill" Opacity="0.05"/>
+            </Grid.Background>
             
-            <TabItem Header="Клавиатура" Style="{StaticResource CustomTabItemStyle}">
-                <views:KeyboardView DataContext="{Binding KeyboardVm}"/>
-            </TabItem>
-        </TabControl>
-    </Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/> <RowDefinition Height="*"/>   </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Background="#252525" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding Title}" Foreground="#A0A0A0" VerticalAlignment="Center" Margin="10,0"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="—" Style="{StaticResource WindowButtonStyle}" Click="MinimizeButton_Click"/>
+                    <Button Content="🗖" Style="{StaticResource WindowButtonStyle}" Click="MaximizeButton_Click"/>
+                    <Button Content="✕" Style="{StaticResource CloseButtonStyle}" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+            
+            <TabControl Grid.Row="1" Style="{StaticResource CustomTabControlStyle}" Margin="5">
+                <TabItem Header="📊 Статистика" Style="{StaticResource CustomTabItemStyle}">
+                    <views:StatisticsView DataContext="{Binding StatisticsVm}"/>
+                </TabItem>
+                <TabItem Header="⌨️ Клавиатура" Style="{StaticResource CustomTabItemStyle}">
+                    <views:KeyboardView DataContext="{Binding KeyboardVm}"/>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </Border>
 </Window>
