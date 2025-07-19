@@ -1,0 +1,55 @@
+<UserControl x:Class="ClickStat.Presentation.Views.StatisticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.Wpf"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewModels:StatisticsViewModel, IsDesignTimeCreatable=False}"
+             d:DesignHeight="650" d:DesignWidth="1200"
+             Foreground="#D0D0D0">
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Общая статистика" FontSize="28" FontWeight="Light" Margin="0,0,0,20"/>
+
+        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,30">
+            <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="0,0,15,0">
+                <StackPanel>
+                    <TextBlock Text="ВСЕГО НАЖАТИЙ" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{Binding TotalClicks, StringFormat={}{0:N0}}" FontSize="36" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="15,0">
+                <StackPanel>
+                    <TextBlock Text="НАЖАТИЙ СЕГОДНЯ" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{Binding ClicksToday, StringFormat={}{0:N0}}" FontSize="36" FontWeight="Bold" Foreground="#FFAA70FF" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="15,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="САМАЯ ЧАСТАЯ КЛАВИША" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{Binding MostFrequentKey}" FontSize="36" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="2" Background="#2C2C2C" CornerRadius="8" Padding="20">
+            <lvc:CartesianChart
+                Series="{Binding DailyStatsSeries}"
+                XAxes="{Binding XAxes}"
+                YAxes="{Binding YAxes}"
+                LegendPosition="Bottom"
+                LegendTextPaint="{Binding LegendTextPaint}"
+                TooltipPosition="Top"
+                TooltipBackgroundPaint="{Binding TooltipBackgroundPaint}"
+                TooltipTextPaint="{Binding TooltipTextPaint}">
+            </lvc:CartesianChart>
+        </Border>
+    </Grid>
+</UserControl>
