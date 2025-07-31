@@ -9,7 +9,7 @@ namespace ClickStat.Infrastructure.Data;
 
 public class KeyDataProcessor
 {
-    private const int SaveIntervalSeconds = 5;
+    private const int SaveIntervalSeconds = 1;
     private const int MaxDelaySeconds = 20;
     private readonly DataContext _context;
     private readonly string _dbPath;

@@ -20,13 +20,16 @@ namespace ClickStat.Presentation.ViewModels
         public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
         
         private int _totalClicks;
-        public int TotalClicks { get => _totalClicks; set { _totalClicks = value; OnPropertyChanged(); } }
+        public int TotalClicks { get => _totalClicks;
+            private set { _totalClicks = value; OnPropertyChanged(); } }
 
         private int _clicksToday;
-        public int ClicksToday { get => _clicksToday; set { _clicksToday = value; OnPropertyChanged(); } }
+        public int ClicksToday { get => _clicksToday;
+            private set { _clicksToday = value; OnPropertyChanged(); } }
 
         private string _mostFrequentKey;
-        public string MostFrequentKey { get => _mostFrequentKey; set { _mostFrequentKey = value; OnPropertyChanged(); } }
+        public string MostFrequentKey { get => _mostFrequentKey;
+            private set { _mostFrequentKey = value; OnPropertyChanged(); } }
         
         public ISeries[] DailyStatsSeries { get; set; }
         public Axis[] XAxes { get; set; }

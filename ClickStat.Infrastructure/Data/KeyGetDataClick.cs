@@ -28,66 +28,69 @@ public class KeyGetDataClick
 
     private void InitializeDatabase()
     {
-        _context.Database.EnsureCreated();
+        using var context = new DataContext(_dbPath);
+        context.Database.EnsureCreated();
     }
 
     public async Task<List<KeyStatistics>> GetKeyStatistics()
     {
-        return await _context.KeyStatistics.ToListAsync();
+        await using var context = new DataContext(_dbPath);
+        return await context.KeyStatistics.ToListAsync();
     }
 
     public async Task<List<KeyStatistics>> GetKeyStatisticsByKeyCode(int keyCode)
     {
-        var keyStatistics = await _context.KeyStatistics
+        
+        await using var context = new DataContext(_dbPath);
+        return await context.KeyStatistics
             .Where(k => k.KeyCode == keyCode)
             .ToListAsync();
-        return keyStatistics;
     }
 
     public async Task<List<KeyStatistics>> GetKeyStatisticsByKeyName(string keyName)
     {
-        var keyStatistics = await _context.KeyStatistics
+        await using var context = new DataContext(_dbPath);
+        return await context.KeyStatistics
             .Where(k => k.KeyName.Equals(keyName, StringComparison.OrdinalIgnoreCase))
             .ToListAsync();
-        return keyStatistics;
     }
 
     public async Task<List<KeyStatisticsForTheDay>> GetKeyStatisticsForTheDay(DateTime date)
     {
         
-            var keyStatisticsForTheDay = await _context.KeyStatisticsForTheDay
-                .Where(k => k.Date.Date == date.Date)
-                .ToListAsync();
+        await using var context = new DataContext(_dbPath);
 
-            if (keyStatisticsForTheDay.Count > 1)
+        var keyStatisticsForTheDay = await context.KeyStatisticsForTheDay
+            .Where(k => k.Date.Date == date.Date)
+            .ToListAsync();
+
+        if (keyStatisticsForTheDay.Count > 1)
+        {
+            var primaryRecord = keyStatisticsForTheDay[0];
+            for (int i = 1; i < keyStatisticsForTheDay.Count; i++)
             {
-                
-                var primaryRecord = keyStatisticsForTheDay[0];
-                for (int i = 1; i < keyStatisticsForTheDay.Count; i++)
-                {
-                    primaryRecord.ClickCount += keyStatisticsForTheDay[i].ClickCount;
-                }
-
-                var duplicates = keyStatisticsForTheDay.Skip(1).ToList();
-                _context.KeyStatisticsForTheDay.RemoveRange(duplicates);
-
-                await _context.SaveChangesAsync();
-            }
-            else if (keyStatisticsForTheDay.Count == 0)
-            {
-                var newRecord = new KeyStatisticsForTheDay
-                {
-                    DayId = Guid.NewGuid(),
-                    Date = date.Date,
-                    ClickCount = 0
-                };
-                _context.KeyStatisticsForTheDay.Add(newRecord);
-                await _context.SaveChangesAsync();
-                keyStatisticsForTheDay.Add(newRecord);
+                primaryRecord.ClickCount += keyStatisticsForTheDay[i].ClickCount;
             }
 
-            
-            return keyStatisticsForTheDay;
+            var duplicates = keyStatisticsForTheDay.Skip(1).ToList();
+            context.KeyStatisticsForTheDay.RemoveRange(duplicates);
+
+            await context.SaveChangesAsync();
+        }
+        else if (keyStatisticsForTheDay.Count == 0)
+        {
+            var newRecord = new KeyStatisticsForTheDay
+            {
+                DayId = Guid.NewGuid(),
+                Date = date.Date,
+                ClickCount = 0
+            };
+            context.KeyStatisticsForTheDay.Add(newRecord);
+            await context.SaveChangesAsync();
+            keyStatisticsForTheDay.Add(newRecord);
+        }
+        
+        return keyStatisticsForTheDay;
         
         
     }
@@ -95,6 +98,7 @@ public class KeyGetDataClick
 
 public async Task<int> GetKeyStatisticsForTheAllTime()
     {
-        return await _context.KeyStatisticsForTheDay.SumAsync(k=> k.ClickCount);
+        await using var context = new DataContext(_dbPath);
+        return await context.KeyStatisticsForTheDay.SumAsync(k=> k.ClickCount);
     }
 }
