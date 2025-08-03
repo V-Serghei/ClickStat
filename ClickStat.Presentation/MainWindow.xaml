@@ -9,6 +9,7 @@
         mc:Ignorable="d"
         Title="ClickStat - Статистика нажатий" Height="720" Width="1280"
         MinHeight="600" MinWidth="900"
+        Icon="Assets/icon.ico"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         DataContext="{Binding Main, Source={x:Static viewModels:ViewModelLocator.Current}}">
@@ -105,11 +106,20 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/> 
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="{Binding Title}" Foreground="#A0A0A0" VerticalAlignment="Center" Margin="10,0"/>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                
+                <CheckBox Grid.Column="1" 
+                          Content="Запускать вместе с Windows"
+                          IsChecked="{Binding IsInStartup, Mode=TwoWay}"
+                          Foreground="#A0A0A0"
+                          VerticalAlignment="Center"
+                          Margin="0,0,20,0"/>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Style="{StaticResource RefreshButtonStyle}" Command="{Binding RefreshDataCommand}"/>
                     <Button Content="—" Style="{StaticResource WindowButtonStyle}" Click="MinimizeButton_Click"/>
                     <Button Content="🗖" Style="{StaticResource WindowButtonStyle}" Click="MaximizeButton_Click"/>

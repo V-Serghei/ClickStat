@@ -11,24 +11,49 @@ namespace ClickStat.Presentation.ViewModels
         private readonly IInputMonitorService _inputMonitorService;
         private readonly ISavingClick _savingClickService;
         private readonly IGetDataClick _getDataClickService;
+        private readonly IStartupService _startupService;
         public StatisticsViewModel StatisticsVm { get; }
         public KeyboardViewModel KeyboardVm { get; }
         public ICommand RefreshDataCommand { get; }
+        private bool _isInStartup;
+        public bool IsInStartup
+        {
+            get => _isInStartup;
+            set
+            {
+                if (_isInStartup != value)
+                {
+                    _isInStartup = value;
+                    OnPropertyChanged();
+                    if (_isInStartup)
+                    {
+                        _startupService.AddToStartup();
+                    }
+                    else
+                    {
+                        _startupService.RemoveFromStartup();
+                    }
+                }
+            }
+        }
 
         public MainViewModel(IInputMonitorService inputMonitorService,
             ISavingClick savingClickService,
             StatisticsViewModel statisticsVm,
             KeyboardViewModel keyboardVm,
-            IGetDataClick dataService)
+            IGetDataClick dataService,
+            IStartupService startupService)
         {
             _inputMonitorService = inputMonitorService;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
             _inputMonitorService.StartMonitoring();
             _savingClickService = savingClickService;
             _getDataClickService = dataService;
+            _startupService = startupService;
             StatisticsVm = statisticsVm;
             KeyboardVm = keyboardVm;
             RefreshDataCommand = new RelayCommand(ExecuteRefreshData);
+            _isInStartup = _startupService.IsInStartup();
         }
 
         private async void ExecuteRefreshData(object parameter)

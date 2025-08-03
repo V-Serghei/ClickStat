@@ -172,15 +172,15 @@
 
                     <StackPanel Grid.Column="1" Orientation="Vertical" Margin="20,0,20,0">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Content="PrintScreen" Style="{StaticResource KeyStyle}"/><Button Content="LaunchApplication2" ContentStringFormat="App2" Style="{StaticResource KeyStyle}"/><Button Content="MediaStop" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="PrintScreen" Style="{StaticResource KeyStyle}"/><Button Content="LaunchApplication2" Style="{StaticResource KeyStyle}"/><Button Content="MediaStop" Style="{StaticResource KeyStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Content="Insert" Style="{StaticResource KeyStyle}"/><Button Content="Home" Style="{StaticResource KeyStyle}"/><Button Content="PageUp" Style="{StaticResource KeyStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="Delete" Style="{StaticResource KeyStyle}"/><Button Content="End" Style="{StaticResource KeyStyle}"/><Button Content="Next" ContentStringFormat="PgDn" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="Delete" Style="{StaticResource KeyStyle}"/><Button Content="End" Style="{StaticResource KeyStyle}"/><Button Content="Next" Style="{StaticResource KeyStyle}"/>
                         </StackPanel>
-                        <Grid Margin="0,20,0,0">
+                        <Grid Margin="0,20,0,0" HorizontalAlignment="Center">
                              <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -195,17 +195,20 @@
                             <Button Grid.Column="1" Grid.Row="1" Content="Down" Style="{StaticResource KeyStyle}"/>
                             <Button Grid.Column="2" Grid.Row="1" Content="Right" Style="{StaticResource KeyStyle}"/>
                         </Grid>
-                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                             <Button Content="MediaPreviousTrack" Style="{StaticResource KeyStyle}"/><Button Content="MediaPlayPause" Style="{StaticResource KeyStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0" HorizontalAlignment="Center">
+                             <Button Content="MediaPreviousTrack" Style="{StaticResource KeyStyle}"/><Button Content="MediaPlayPause" Style="{StaticResource KeyStyle}"/><Button Content="MediaNextTrack" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0" HorizontalAlignment="Center">
+                             <Button Content="VolumeMute" Style="{StaticResource KeyStyle}"/><Button Content="VolumeDown" Style="{StaticResource KeyStyle}"/><Button Content="VolumeUp" Style="{StaticResource KeyStyle}"/>
                         </StackPanel>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Vertical">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                           <TextBlock VerticalAlignment="Center" Foreground="Gray" Width="180" TextAlignment="Center">(Numpad)</TextBlock>
+                           <TextBlock VerticalAlignment="Center" Foreground="Gray" Width="238" TextAlignment="Center">(Numpad)</TextBlock>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="NumLock" Style="{StaticResource KeyStyle}"/><Button Content="Divide" Style="{StaticResource KeyStyle}"/><Button Content="Multiply" Style="{StaticResource KeyStyle}"/><Button Content="Subtract" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="Clear" Style="{StaticResource KeyStyle}"/><Button Content="NumLock" Style="{StaticResource KeyStyle}"/><Button Content="Divide" Style="{StaticResource KeyStyle}"/><Button Content="Multiply" Style="{StaticResource KeyStyle}"/><Button Content="Subtract" Style="{StaticResource KeyStyle}"/>
                         </StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>

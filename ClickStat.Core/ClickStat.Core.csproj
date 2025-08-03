@@ -9,5 +9,9 @@
     <ItemGroup>
       <ProjectReference Include="..\ClickStat.Infrastructure\ClickStat.Infrastructure.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="icon.ico" />
+    </ItemGroup>
     
 </Project>
