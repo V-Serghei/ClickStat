@@ -30,6 +30,7 @@
     <ItemGroup>
       <None Remove="Assets\fill.jpg" />
       <Resource Include="Assets\fill.jpg" />
+      <Resource Include="Assets\icon.ico" />
     </ItemGroup>
 
 </Project>

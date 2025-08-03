@@ -1,16 +1,18 @@
-using System.Collections.ObjectModel;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using ClickStat.Core.Interfaces;
-using ClickStat.Presentation.Model;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 
-namespace ClickStat.Presentation.ViewModels;
-
- public class StatisticsViewModel : INotifyPropertyChanged
+namespace ClickStat.Presentation.ViewModels
+{
+    public class StatisticsViewModel : INotifyPropertyChanged
     {
         private readonly IGetDataClick _dataClickService;
         private bool _isLoading;
@@ -18,13 +20,16 @@ namespace ClickStat.Presentation.ViewModels;
         public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
         
         private int _totalClicks;
-        public int TotalClicks { get => _totalClicks; set { _totalClicks = value; OnPropertyChanged(); } }
+        public int TotalClicks { get => _totalClicks;
+            private set { _totalClicks = value; OnPropertyChanged(); } }
 
         private int _clicksToday;
-        public int ClicksToday { get => _clicksToday; set { _clicksToday = value; OnPropertyChanged(); } }
+        public int ClicksToday { get => _clicksToday;
+            private set { _clicksToday = value; OnPropertyChanged(); } }
 
         private string _mostFrequentKey;
-        public string MostFrequentKey { get => _mostFrequentKey; set { _mostFrequentKey = value; OnPropertyChanged(); } }
+        public string MostFrequentKey { get => _mostFrequentKey;
+            private set { _mostFrequentKey = value; OnPropertyChanged(); } }
         
         public ISeries[] DailyStatsSeries { get; set; }
         public Axis[] XAxes { get; set; }
@@ -62,11 +67,10 @@ namespace ClickStat.Presentation.ViewModels;
             TooltipTextPaint = new SolidColorPaint(textColor);
         }
 
-        private async Task LoadStatsAsync()
+        public async Task LoadStatsAsync()
         {
             IsLoading = true;
 
-            // Загрузка данных для карточек
             TotalClicks = await _dataClickService.GetKeyStatisticsForTheAllTime();
             var todayStats = await _dataClickService.GetKeyStatisticsForTheDay(DateTime.Today);
             ClicksToday = todayStats.FirstOrDefault()?.ClickCount ?? 0;
@@ -74,7 +78,6 @@ namespace ClickStat.Presentation.ViewModels;
             var allKeys = await _dataClickService.GetKeyStatistics();
             MostFrequentKey = allKeys.Any() ? allKeys.OrderByDescending(k => k.Count).First().KeyName : "N/A";
 
-            // Загрузка данных для графика за последние 10 дней
             var dates = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-i)).Reverse().ToList();
             var counts = new List<int>();
             foreach (var date in dates)
@@ -95,3 +98,4 @@ namespace ClickStat.Presentation.ViewModels;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
+}

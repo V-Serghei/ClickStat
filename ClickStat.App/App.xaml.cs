@@ -24,22 +24,31 @@ public partial class App : Application
     private void Application_Startup(object sender, StartupEventArgs e)
     {
         var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+        
+        var trayService = ServiceProvider.GetRequiredService<ITrayService>();
+        trayService.Initialize(mainWindow);
         mainWindow.Show();
     }
 
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IStartupService, StartupService>();
+        services.AddSingleton<ITrayService, TrayService>();
         services.AddSingleton<IInputMonitorService, InputMonitorService>();
         services.AddSingleton<ISavingClick, SavingClickService>();
         services.AddSingleton<IGetDataClick, GetDataClickService>();
         services.AddTransient<StatisticsViewModel>();
         services.AddTransient<KeyboardViewModel>();
-        services.AddTransient<MainViewModel>();
-        services.AddTransient<MainWindow>();
+        services.AddSingleton<MainViewModel>();
+        services.AddSingleton<MainWindow>();
     }
     private void Application_Exit(object sender, ExitEventArgs e)
     {
         var keyDataProcessor = ServiceProvider.GetRequiredService<ISavingClick>();
-        ((SavingClickService)keyDataProcessor).OnApplicationExitAsync().Wait();
+        if (keyDataProcessor is SavingClickService service)
+        {
+            service.OnApplicationExitAsync().Wait();
+        }
+        // ((SavingClickService)keyDataProcessor).OnApplicationExitAsync().Wait();
     }
 }

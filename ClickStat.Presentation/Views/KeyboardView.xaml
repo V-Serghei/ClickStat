@@ -5,10 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
              xmlns:conv="clr-namespace:ClickStat.Presentation.Converters"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=viewModels:KeyboardViewModel, IsDesignTimeCreatable=True}"
-             Background="#1A1A1A"
              d:DesignHeight="700" d:DesignWidth="1200">
     <UserControl.Resources>
         <conv:IntensityToBrushConverter x:Key="IntensityToBrushConverter"/>
@@ -40,19 +38,20 @@
                                     </MultiBinding>
                                 </Border.Background>
                                 <Border.BorderBrush>
-                                    <MultiBinding Converter="{StaticResource IntensityToBrushConverter}">
-                                        <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
-                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
-                                        <Binding Path="DataContext.MaxCount" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
-                                    </MultiBinding>
+                                    <SolidColorBrush Color="Black" Opacity="0.2"/>
                                 </Border.BorderBrush>
                             </Border>
 
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                            <Border Background="White" CornerRadius="8" Padding="5,1"
+                            <Border Background="#F0F0F0" CornerRadius="8" Padding="5,1"
                                     HorizontalAlignment="Right" VerticalAlignment="Top"
                                     Margin="0,-8,-8,0">
+    
+                                <Border.Effect>
+                                    <DropShadowEffect ShadowDepth="1" Color="Black" Opacity="0.25" BlurRadius="3"/>
+                                </Border.Effect>
+
                                 <Border.Visibility>
                                     <MultiBinding Converter="{StaticResource CountToBadgeConverter}" ConverterParameter="visibility">
                                         <Binding Path="DataContext.KeyCounts" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
@@ -73,17 +72,9 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect ShadowDepth="0" Color="#FFFFFF" Opacity="0.5" BlurRadius="10"/>
+                                        <DropShadowEffect ShadowDepth="0" Color="#FFFFFF" Opacity="0.3" BlurRadius="10"/>
                                     </Setter.Value>
                                 </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -110,64 +101,141 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="KeyStyle_Medium" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="80"/></Style>
-        <Style x:Key="KeyStyle_Large" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="100"/></Style>
-        <Style x:Key="KeyStyle_XLarge" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="125"/></Style>
-        <Style x:Key="KeyStyle_Space" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="400"/></Style>
+        
+        <Style x:Key="KeyStyle_1_25" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="72" /></Style>
+        <Style x:Key="KeyStyle_1_5" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="88" /></Style>
+        <Style x:Key="KeyStyle_1_75" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="104" /></Style>
+        <Style x:Key="KeyStyle_2_25" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="136" /></Style>
+        <Style x:Key="KeyStyle_2_75" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="168" /></Style>
+        <Style x:Key="KeyStyle_Space" TargetType="Button" BasedOn="{StaticResource KeyStyle}"><Setter Property="Width" Value="346" /></Style>
+        
         <Style x:Key="LegendItem" TargetType="StackPanel"><Setter Property="Orientation" Value="Horizontal"/><Setter Property="Margin" Value="10,0"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
         <Style x:Key="LegendBox" TargetType="Border"><Setter Property="Width" Value="16"/><Setter Property="Height" Value="16"/><Setter Property="CornerRadius" Value="3"/><Setter Property="Margin" Value="0,0,8,0"/></Style>
     </UserControl.Resources>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        
-        <TextBlock Text="Загрузка данных..." Foreground="White" FontSize="24"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" Grid.RowSpan="2"
+        <TextBlock Text="Загрузка данных о клавиатуре..." Foreground="White" FontSize="24"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
                    Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-        
-        <StackPanel Grid.Row="0" Grid.RowSpan="2">
+
+        <StackPanel>
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
-                    <Setter Property="Visibility" Value="Collapsed" /> <Style.Triggers>
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
                         <DataTrigger Binding="{Binding IsLoading}" Value="False">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </StackPanel.Style>
-             <Border Background="#2D2D2D" CornerRadius="8" Padding="15,10" Margin="0,10,0,20">
+
+            <Border Background="#2C2C2C" CornerRadius="8" Padding="15,10" Margin="25,10,25,20">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="Интенсивность:" Foreground="Gray" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock Text="Интенсивность:" Foreground="#A0A0A0" VerticalAlignment="Center" FontWeight="SemiBold"/>
                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#4299E1"/><TextBlock Text="Редко" Foreground="White"/></StackPanel>
                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#48BB78"/></StackPanel>
-                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#E9D52D"/></StackPanel>
-                     <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#ED8936"/></StackPanel>
-                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#F56565"/><TextBlock Text="Очень часто" Foreground="White"/></StackPanel>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#E9D52D"/></StackPanel>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#ED8936"/></StackPanel>
+                    <StackPanel Style="{StaticResource LegendItem}"><Border Style="{StaticResource LegendBox}" Background="#F56565"/><TextBlock Text="Часто" Foreground="White"/></StackPanel>
                 </StackPanel>
             </Border>
-        
-            <Viewbox Stretch="Uniform">
-                <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Oemtilde" Style="{StaticResource KeyStyle}"/><Button Content="D1" Style="{StaticResource KeyStyle}"/><Button Content="D2" Style="{StaticResource KeyStyle}"/><Button Content="D3" Style="{StaticResource KeyStyle}"/><Button Content="D4" Style="{StaticResource KeyStyle}"/><Button Content="D5" Style="{StaticResource KeyStyle}"/><Button Content="D6" Style="{StaticResource KeyStyle}"/><Button Content="D7" Style="{StaticResource KeyStyle}"/><Button Content="D8" Style="{StaticResource KeyStyle}"/><Button Content="D9" Style="{StaticResource KeyStyle}"/><Button Content="D0" Style="{StaticResource KeyStyle}"/><Button Content="OemMinus" Style="{StaticResource KeyStyle}"/><Button Content="OemPlus" Style="{StaticResource KeyStyle}"/><Button Content="Back" Style="{StaticResource KeyStyle_Large}"/>
+
+            <Viewbox Stretch="Uniform" Margin="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Content="Escape" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="F1" Style="{StaticResource KeyStyle}" Margin="30,3,3,3"/><Button Content="F2" Style="{StaticResource KeyStyle}"/><Button Content="F3" Style="{StaticResource KeyStyle}"/><Button Content="F4" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="F5" Style="{StaticResource KeyStyle}" Margin="15,3,3,3"/><Button Content="F6" Style="{StaticResource KeyStyle}"/><Button Content="F7" Style="{StaticResource KeyStyle}"/><Button Content="F8" Style="{StaticResource KeyStyle}"/>
+                            <Button Content="F9" Style="{StaticResource KeyStyle}" Margin="15,3,3,3"/><Button Content="F10" Style="{StaticResource KeyStyle}"/><Button Content="F11" Style="{StaticResource KeyStyle}"/><Button Content="F12" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Oemtilde" Style="{StaticResource KeyStyle}"/><Button Content="D1" Style="{StaticResource KeyStyle}"/><Button Content="D2" Style="{StaticResource KeyStyle}"/><Button Content="D3" Style="{StaticResource KeyStyle}"/><Button Content="D4" Style="{StaticResource KeyStyle}"/><Button Content="D5" Style="{StaticResource KeyStyle}"/><Button Content="D6" Style="{StaticResource KeyStyle}"/><Button Content="D7" Style="{StaticResource KeyStyle}"/><Button Content="D8" Style="{StaticResource KeyStyle}"/><Button Content="D9" Style="{StaticResource KeyStyle}"/><Button Content="D0" Style="{StaticResource KeyStyle}"/><Button Content="OemMinus" Style="{StaticResource KeyStyle}"/><Button Content="Oemplus" Style="{StaticResource KeyStyle}"/><Button Content="Back" Style="{StaticResource KeyStyle_2_25}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Tab" Style="{StaticResource KeyStyle_1_5}"/><Button Content="Q" Style="{StaticResource KeyStyle}"/><Button Content="W" Style="{StaticResource KeyStyle}"/><Button Content="E" Style="{StaticResource KeyStyle}"/><Button Content="R" Style="{StaticResource KeyStyle}"/><Button Content="T" Style="{StaticResource KeyStyle}"/><Button Content="Y" Style="{StaticResource KeyStyle}"/><Button Content="U" Style="{StaticResource KeyStyle}"/><Button Content="I" Style="{StaticResource KeyStyle}"/><Button Content="O" Style="{StaticResource KeyStyle}"/><Button Content="P" Style="{StaticResource KeyStyle}"/><Button Content="Oem4" Style="{StaticResource KeyStyle}"/><Button Content="Oem6" Style="{StaticResource KeyStyle}"/><Button Content="OemPipe" Style="{StaticResource KeyStyle_1_5}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Capital" Style="{StaticResource KeyStyle_1_75}"/><Button Content="A" Style="{StaticResource KeyStyle}"/><Button Content="S" Style="{StaticResource KeyStyle}"/><Button Content="D" Style="{StaticResource KeyStyle}"/><Button Content="F" Style="{StaticResource KeyStyle}"/><Button Content="G" Style="{StaticResource KeyStyle}"/><Button Content="H" Style="{StaticResource KeyStyle}"/><Button Content="J" Style="{StaticResource KeyStyle}"/><Button Content="K" Style="{StaticResource KeyStyle}"/><Button Content="L" Style="{StaticResource KeyStyle}"/><Button Content="OemSemicolon" Style="{StaticResource KeyStyle}"/><Button Content="OemQuotes" Style="{StaticResource KeyStyle}"/><Button Content="Enter" Style="{StaticResource KeyStyle_2_75}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="LShiftKey" Style="{StaticResource KeyStyle_2_25}"/><Button Content="Z" Style="{StaticResource KeyStyle}"/><Button Content="X" Style="{StaticResource KeyStyle}"/><Button Content="C" Style="{StaticResource KeyStyle}"/><Button Content="V" Style="{StaticResource KeyStyle}"/><Button Content="B" Style="{StaticResource KeyStyle}"/><Button Content="N" Style="{StaticResource KeyStyle}"/><Button Content="M" Style="{StaticResource KeyStyle}"/><Button Content="Oemcomma" Style="{StaticResource KeyStyle}"/><Button Content="OemPeriod" Style="{StaticResource KeyStyle}"/><Button Content="Oem2" Style="{StaticResource KeyStyle}"/><Button Content="RShiftKey" Style="{StaticResource KeyStyle_2_75}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="LControlKey" Style="{StaticResource KeyStyle_1_25}"/><Button Content="LWin" Style="{StaticResource KeyStyle_1_25}"/><Button Content="LMenu" Style="{StaticResource KeyStyle_1_25}"/><Button Content="Space" Style="{StaticResource KeyStyle_Space}"/><Button Content="RMenu" Style="{StaticResource KeyStyle_1_25}"/><Button Content="RControlKey" Style="{StaticResource KeyStyle_1_25}"/>
+                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Tab" Style="{StaticResource KeyStyle_Medium}"/><Button Content="Q" Style="{StaticResource KeyStyle}"/><Button Content="W" Style="{StaticResource KeyStyle}"/><Button Content="E" Style="{StaticResource KeyStyle}"/><Button Content="R" Style="{StaticResource KeyStyle}"/><Button Content="T" Style="{StaticResource KeyStyle}"/><Button Content="Y" Style="{StaticResource KeyStyle}"/><Button Content="U" Style="{StaticResource KeyStyle}"/><Button Content="I" Style="{StaticResource KeyStyle}"/><Button Content="O" Style="{StaticResource KeyStyle}"/><Button Content="P" Style="{StaticResource KeyStyle}"/><Button Content="OemOpenBrackets" Style="{StaticResource KeyStyle}"/><Button Content="OemCloseBrackets" Style="{StaticResource KeyStyle}"/><Button Content="OemPipe" Style="{StaticResource KeyStyle}"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Vertical" Margin="20,0,20,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Content="PrintScreen" Style="{StaticResource KeyStyle}"/><Button Content="LaunchApplication2" Style="{StaticResource KeyStyle}"/><Button Content="MediaStop" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Insert" Style="{StaticResource KeyStyle}"/><Button Content="Home" Style="{StaticResource KeyStyle}"/><Button Content="PageUp" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Delete" Style="{StaticResource KeyStyle}"/><Button Content="End" Style="{StaticResource KeyStyle}"/><Button Content="Next" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <Grid Margin="0,20,0,0" HorizontalAlignment="Center">
+                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Button Grid.Column="1" Grid.Row="0" Content="Up" Style="{StaticResource KeyStyle}"/>
+                            <Button Grid.Column="0" Grid.Row="1" Content="Left" Style="{StaticResource KeyStyle}"/>
+                            <Button Grid.Column="1" Grid.Row="1" Content="Down" Style="{StaticResource KeyStyle}"/>
+                            <Button Grid.Column="2" Grid.Row="1" Content="Right" Style="{StaticResource KeyStyle}"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0" HorizontalAlignment="Center">
+                             <Button Content="MediaPreviousTrack" Style="{StaticResource KeyStyle}"/><Button Content="MediaPlayPause" Style="{StaticResource KeyStyle}"/><Button Content="MediaNextTrack" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0" HorizontalAlignment="Center">
+                             <Button Content="VolumeMute" Style="{StaticResource KeyStyle}"/><Button Content="VolumeDown" Style="{StaticResource KeyStyle}"/><Button Content="VolumeUp" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Capital" Style="{StaticResource KeyStyle_Large}"/><Button Content="A" Style="{StaticResource KeyStyle}"/><Button Content="S" Style="{StaticResource KeyStyle}"/><Button Content="D" Style="{StaticResource KeyStyle}"/><Button Content="F" Style="{StaticResource KeyStyle}"/><Button Content="G" Style="{StaticResource KeyStyle}"/><Button Content="H" Style="{StaticResource KeyStyle}"/><Button Content="J" Style="{StaticResource KeyStyle}"/><Button Content="K" Style="{StaticResource KeyStyle}"/><Button Content="L" Style="{StaticResource KeyStyle}"/><Button Content="OemSemicolon" Style="{StaticResource KeyStyle}"/><Button Content="OemQuotes" Style="{StaticResource KeyStyle}"/><Button Content="Enter" Style="{StaticResource KeyStyle_XLarge}"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                           <TextBlock VerticalAlignment="Center" Foreground="Gray" Width="238" TextAlignment="Center">(Numpad)</TextBlock>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Clear" Style="{StaticResource KeyStyle}"/><Button Content="NumLock" Style="{StaticResource KeyStyle}"/><Button Content="Divide" Style="{StaticResource KeyStyle}"/><Button Content="Multiply" Style="{StaticResource KeyStyle}"/><Button Content="Subtract" Style="{StaticResource KeyStyle}"/>
+                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Vertical">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad7" Style="{StaticResource KeyStyle}"/><Button Content="NumPad8" Style="{StaticResource KeyStyle}"/><Button Content="NumPad9" Style="{StaticResource KeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad4" Style="{StaticResource KeyStyle}"/><Button Content="NumPad5" Style="{StaticResource KeyStyle}"/><Button Content="NumPad6" Style="{StaticResource KeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad1" Style="{StaticResource KeyStyle}"/><Button Content="NumPad2" Style="{StaticResource KeyStyle}"/><Button Content="NumPad3" Style="{StaticResource KeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad0" Style="{StaticResource KeyStyle}" Width="116"/><Button Content="Decimal" Style="{StaticResource KeyStyle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Vertical">
+                                <Button Content="Add" Style="{StaticResource KeyStyle}" Height="116"/>
+                                <Button Content="Enter" Style="{StaticResource KeyStyle}" Height="116"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="LShiftKey" Style="{StaticResource KeyStyle_XLarge}"/><Button Content="Z" Style="{StaticResource KeyStyle}"/><Button Content="X" Style="{StaticResource KeyStyle}"/><Button Content="C" Style="{StaticResource KeyStyle}"/><Button Content="V" Style="{StaticResource KeyStyle}"/><Button Content="B" Style="{StaticResource KeyStyle}"/><Button Content="N" Style="{StaticResource KeyStyle}"/><Button Content="M" Style="{StaticResource KeyStyle}"/><Button Content="Oemcomma" Style="{StaticResource KeyStyle}"/><Button Content="OemPeriod" Style="{StaticResource KeyStyle}"/><Button Content="OemQuestion" Style="{StaticResource KeyStyle}"/><Button Content="RShiftKey" Style="{StaticResource KeyStyle_XLarge}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="LControlKey" Style="{StaticResource KeyStyle_Medium}"/><Button Content="LWin" Style="{StaticResource KeyStyle_Medium}"/><Button Content="LMenu" Style="{StaticResource KeyStyle_Medium}"/><Button Content="Space" Style="{StaticResource KeyStyle_Space}"/><Button Content="RMenu" Style="{StaticResource KeyStyle_Medium}"/><Button Content="RControlKey" Style="{StaticResource KeyStyle_Medium}"/>
-                    </StackPanel>
-                </StackPanel>
+                </Grid>
             </Viewbox>
         </StackPanel>
     </Grid>

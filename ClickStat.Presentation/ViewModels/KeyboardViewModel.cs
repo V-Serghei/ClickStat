@@ -1,9 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Windows;
-using System.Windows.Data;
+using System.Threading.Tasks;
 using ClickStat.Core.Interfaces;
 
 namespace ClickStat.Presentation.ViewModels
@@ -30,18 +29,18 @@ namespace ClickStat.Presentation.ViewModels
             _ = LoadKeyCountsAsync();
         }
 
-        private async Task LoadKeyCountsAsync()
+        public async Task LoadKeyCountsAsync()
         {
             IsLoading = true;
-            // Имитация задержки сети для демонстрации индикатора загрузки
+            
             await Task.Delay(500); 
 
             var stats = await _dataClickService.GetKeyStatistics();
             KeyCounts = stats.ToDictionary(s => s.KeyName, s => s.Count);
 
-            MaxCount = KeyCounts.Values.Any() ? KeyCounts.Values.Max() : 1; // Избегаем деления на ноль
+            MaxCount = KeyCounts.Values.Any() ? KeyCounts.Values.Max() : 1;
             
-            OnPropertyChanged(string.Empty); // Уведомить UI обо всех изменениях
+            OnPropertyChanged(string.Empty);
             IsLoading = false;
         }
 
@@ -49,24 +48,6 @@ namespace ClickStat.Presentation.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-    
-    // Вспомогательный конвертер для инвертирования Visibility
-    [ValueConversion(typeof(bool), typeof(Visibility))]
-    public class InverseBooleanToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            bool boolValue = (bool)value;
-            if (parameter as string == "inverse")
-                boolValue = !boolValue;
-            return boolValue ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotSupportedException();
         }
     }
 }
