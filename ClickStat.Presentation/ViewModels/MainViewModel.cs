@@ -65,7 +65,7 @@ namespace ClickStat.Presentation.ViewModels
         private void OnKeyReceived(Keys key)
         {
             _savingClickService.SaveClick(key);
-        }
+         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

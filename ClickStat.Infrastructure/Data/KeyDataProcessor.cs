@@ -57,17 +57,19 @@ public class KeyDataProcessor
 
     public async Task ProcessKeyPress(Keys key)
     {
-        lock (_keyStatistics)
-        {
-            if (_keyStatistics.ContainsKey(key))
-                _keyStatistics[key].Count++;
-            else
-                _keyStatistics[key] = new KeyStatistics { KeyCode = (int)key, KeyName = key.ToString(), Count = 1 };
-        }
+        if(key != Keys.None){
+            lock (_keyStatistics)
+            {
+                if (_keyStatistics.ContainsKey(key))
+                    _keyStatistics[key].Count++;
+                else
+                    _keyStatistics[key] = new KeyStatistics { KeyCode = (int)key, KeyName = key.ToString(), Count = 1 };
+            }
 
-        var timeSinceLastSave = (DateTime.Now - _lastSaveTime).TotalSeconds;
-        if (timeSinceLastSave >= MaxDelaySeconds)
-            _ = SaveToDatabaseBuffered();
+            var timeSinceLastSave = (DateTime.Now - _lastSaveTime).TotalSeconds;
+            if (timeSinceLastSave >= MaxDelaySeconds)
+                _ = SaveToDatabaseBuffered();
+        }
     }
 
     private async Task SaveToDatabaseBuffered()
