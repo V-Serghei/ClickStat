@@ -1,0 +1,60 @@
+<UserControl x:Class="ClickStat.Presentation.Views.SidebarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ClickStat.Presentation.ViewModels"
+             Background="#0D0D1A">
+
+    <UserControl.Resources>
+        <Style x:Key="NavBtn" TargetType="Button">
+            <Setter Property="Background"              Value="Transparent"/>
+            <Setter Property="BorderThickness"         Value="0"/>
+            <Setter Property="Foreground"              Value="#5858A0"/>
+            <Setter Property="Cursor"                  Value="Hand"/>
+            <Setter Property="Padding"                 Value="14,11"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Margin="6,2">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#14143A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Logo -->
+        <Border Grid.Row="0" Padding="18,20,18,16" BorderBrush="#1A1A40"
+                BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBlock FontSize="22" FontWeight="Bold">
+                    <Run Text="Click" Foreground="White"/>
+                    <Run Text="Stat"  Foreground="#AA70FF"/>
+                </TextBlock>
+                <TextBlock Text="Статистика ввода" Foreground="#404070"
+                           FontSize="10" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Nav items (code-behind sets them up) -->
+        <StackPanel Grid.Row="1" x:Name="NavPanel" Margin="0,10"/>
+
+        <!-- Footer -->
+        <TextBlock Grid.Row="2" Text="v1.0" Foreground="#1A1A40"
+                   FontSize="10" HorizontalAlignment="Center" Margin="0,8"/>
+    </Grid>
+</UserControl>

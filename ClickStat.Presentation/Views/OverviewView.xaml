@@ -1,0 +1,79 @@
+<UserControl x:Class="ClickStat.Presentation.Views.OverviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.Wpf"
+             Foreground="#D0D0D0">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Обзор" Foreground="White"
+                   FontSize="20" FontWeight="Bold" Margin="0,0,0,18"/>
+
+        <!-- Stat cards -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,20">
+
+            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="#1A1A4A" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="ВСЕГО НАЖАТИЙ" FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                    <TextBlock Text="{Binding TotalClicks, StringFormat='{}{0:N0}'}"
+                               FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="#1A1A4A" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="СЕГОДНЯ" FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                    <TextBlock Text="{Binding ClicksToday, StringFormat='{}{0:N0}'}"
+                               FontSize="32" FontWeight="Bold" Foreground="#AA70FF" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="#1A1A4A" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="САМАЯ ЧАСТАЯ" FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                    <TextBlock Text="{Binding MostFrequentKey}"
+                               FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#0E0E1C" CornerRadius="10" Padding="18"
+                    BorderBrush="#1A1A4A" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="КОЭФ. ОШИБОК" FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="{Binding ErrorRate, StringFormat='{}{0}%'}"
+                                   FontSize="32" FontWeight="Bold" Foreground="#FF8080"/>
+                        <TextBlock Text=" (Backspace)" Foreground="#303060" FontSize="12"
+                                   VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Chart -->
+        <Border Grid.Row="2" Background="#0E0E1C" CornerRadius="10" Padding="16"
+                BorderBrush="#1A1A3A" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="Нажатия за последние 10 дней"
+                           Foreground="#505080" FontSize="12" Margin="0,0,0,12"/>
+                <lvc:CartesianChart
+                    Series="{Binding DailyStatsSeries}"
+                    XAxes="{Binding XAxes}"
+                    YAxes="{Binding YAxes}"
+                    LegendPosition="Bottom"
+                    LegendTextPaint="{Binding LegendTextPaint}"
+                    TooltipPosition="Top"
+                    TooltipBackgroundPaint="{Binding TooltipBackgroundPaint}"
+                    TooltipTextPaint="{Binding TooltipTextPaint}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

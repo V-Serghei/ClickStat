@@ -25,11 +25,16 @@ public class MouseDataProcessor : IDisposable
         { (int)MouseButtons.XButton2, "Кнопка вперёд" },
     };
 
+    private const int GridW = 80;  // 1920 / 24
+    private const int GridH = 45;  // 1080 / 24
+
     private readonly string _dbPath;
     private readonly HashSet<int> _registeredCodes = new();
     private readonly Dictionary<int, (string name, long count)> _buttonBuffer = new();
     private long _scrollUpBuffer;
     private long _scrollDownBuffer;
+    private long _distanceBuffer; // 0.01 mm units
+    private readonly Dictionary<int, int> _heatmapBuffer = new(); // cellId → delta
     private readonly object _lock = new();
     private readonly Timer _saveTimer;
 
@@ -69,9 +74,23 @@ public class MouseDataProcessor : IDisposable
         // Create scroll table if it didn't exist yet
         ctx.Database.ExecuteSqlRaw(@"
             CREATE TABLE IF NOT EXISTS MouseScrollStatistics (
-                Id INTEGER PRIMARY KEY,
-                ScrollUpNotches INTEGER NOT NULL DEFAULT 0,
+                Id                INTEGER PRIMARY KEY,
+                ScrollUpNotches   INTEGER NOT NULL DEFAULT 0,
                 ScrollDownNotches INTEGER NOT NULL DEFAULT 0
+            )");
+
+        ctx.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS MouseClickCells (
+                CellId INTEGER PRIMARY KEY,
+                GridX  INTEGER NOT NULL DEFAULT 0,
+                GridY  INTEGER NOT NULL DEFAULT 0,
+                Count  INTEGER NOT NULL DEFAULT 0
+            )");
+
+        ctx.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS MouseDistances (
+                Id         INTEGER PRIMARY KEY,
+                TotalUnits INTEGER NOT NULL DEFAULT 0
             )");
     }
 
@@ -137,6 +156,24 @@ public class MouseDataProcessor : IDisposable
         }
     }
 
+    // dx, dy in raw HID units; at 96 DPI: 1 unit ≈ 0.265 mm → multiply × 265 for 0.01 mm
+    public void TrackMovement(int dx, int dy)
+    {
+        long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 265);
+        lock (_lock) _distanceBuffer += units;
+    }
+
+    public void TrackClickPosition()
+    {
+        if (!GetCursorPos(out var pt)) return;
+        // Clamp to screen grid; assume max 3840×2160
+        int gx = Math.Clamp(pt.X * GridW / 3840, 0, GridW - 1);
+        int gy = Math.Clamp(pt.Y * GridH / 2160, 0, GridH - 1);
+        int id = gx * GridH + gy;
+        lock (_lock)
+            _heatmapBuffer[id] = _heatmapBuffer.GetValueOrDefault(id) + 1;
+    }
+
     // ──────────────────────────────────────────────
     // Custom button registration
     // ──────────────────────────────────────────────
@@ -181,6 +218,19 @@ public class MouseDataProcessor : IDisposable
         return await ctx.MouseScrollStatistics.FindAsync(1);
     }
 
+    public async Task<long> GetTotalDistanceUnits()
+    {
+        await using var ctx = new DataContext(_dbPath);
+        var row = await ctx.MouseDistances.FindAsync(1);
+        return row?.TotalUnits ?? 0;
+    }
+
+    public async Task<List<MouseClickCell>> GetHeatmapCells()
+    {
+        await using var ctx = new DataContext(_dbPath);
+        return await ctx.MouseClickCells.Where(c => c.Count > 0).ToListAsync();
+    }
+
     // ──────────────────────────────────────────────
     // Persistence
     // ──────────────────────────────────────────────
@@ -188,19 +238,23 @@ public class MouseDataProcessor : IDisposable
     private async Task FlushToDatabase()
     {
         Dictionary<int, (string name, long count)> buttonSnapshot;
-        long scrollUp, scrollDown;
+        Dictionary<int, int> heatSnap;
+        long scrollUp, scrollDown, distance;
 
         lock (_lock)
         {
-            if (_buttonBuffer.Count == 0 && _scrollUpBuffer == 0 && _scrollDownBuffer == 0)
-                return;
+            bool empty = _buttonBuffer.Count == 0 && _scrollUpBuffer == 0
+                      && _scrollDownBuffer == 0 && _distanceBuffer == 0
+                      && _heatmapBuffer.Count == 0;
+            if (empty) return;
 
             buttonSnapshot = new Dictionary<int, (string, long)>(_buttonBuffer);
-            scrollUp = _scrollUpBuffer;
-            scrollDown = _scrollDownBuffer;
-            _buttonBuffer.Clear();
-            _scrollUpBuffer = 0;
-            _scrollDownBuffer = 0;
+            heatSnap       = new Dictionary<int, int>(_heatmapBuffer);
+            scrollUp       = _scrollUpBuffer;
+            scrollDown     = _scrollDownBuffer;
+            distance       = _distanceBuffer;
+            _buttonBuffer.Clear(); _heatmapBuffer.Clear();
+            _scrollUpBuffer = 0; _scrollDownBuffer = 0; _distanceBuffer = 0;
         }
 
         await using var ctx = new DataContext(_dbPath);
@@ -232,6 +286,28 @@ public class MouseDataProcessor : IDisposable
                 }
             }
 
+            // Distance
+            if (distance > 0)
+            {
+                var dist = await ctx.MouseDistances.FindAsync(1);
+                if (dist != null) dist.TotalUnits += distance;
+                else ctx.MouseDistances.Add(new MouseDistance { Id = 1, TotalUnits = distance });
+            }
+
+            // Click heatmap
+            foreach (var (id, delta) in heatSnap)
+            {
+                var cell = await ctx.MouseClickCells.FindAsync(id);
+                if (cell != null) cell.Count += delta;
+                else ctx.MouseClickCells.Add(new MouseClickCell
+                {
+                    CellId = id,
+                    GridX  = id / GridH,
+                    GridY  = id % GridH,
+                    Count  = delta
+                });
+            }
+
             await ctx.SaveChangesAsync();
             await tx.CommitAsync();
         }
@@ -253,4 +329,7 @@ public class MouseDataProcessor : IDisposable
         _saveTimer.Stop();
         _saveTimer.Dispose();
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out System.Drawing.Point lpPoint);
 }

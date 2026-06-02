@@ -29,6 +29,9 @@ public sealed class RawMouseMonitor : IDisposable
     /// <summary>Positive = scroll up notches, negative = scroll down.</summary>
     public event Action<int>? Wheel;
 
+    /// <summary>Cursor moved — raw delta (in HID units, relative). Used for distance tracking.</summary>
+    public event Action<int, int>? Moved; // dx, dy
+
     private HwndSource? _source;
 
     public void Initialize(IntPtr hwnd)
@@ -82,8 +85,11 @@ public sealed class RawMouseMonitor : IDisposable
     {
         var f = m.ButtonFlags;
 
-        // Pure movement — no buttons and no wheel. Skip entirely to avoid
-        // ~800–1000 alloc+marshal cycles per second on high-polling-rate mice.
+        // Movement (may accompany button events too)
+        if ((m.LastX != 0 || m.LastY != 0) && Moved != null)
+            Moved.Invoke(m.LastX, m.LastY);
+
+        // Pure movement with no button/wheel — nothing else to process
         if (f == 0) return;
 
         if ((f & BTN1_DOWN) != 0) ButtonDown?.Invoke(1);

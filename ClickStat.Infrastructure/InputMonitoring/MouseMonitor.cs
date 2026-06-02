@@ -21,10 +21,13 @@ public class MouseMonitor : IDisposable
         (MouseButtons.XButton2, (int)MouseButtons.XButton2),
     };
 
+    public event Action<int, int>? Moved;
+
     public MouseMonitor()
     {
         _raw.ButtonDown += OnRawButton;
         _raw.Wheel      += notches => Scrolled?.Invoke(notches);
+        _raw.Moved      += (dx, dy) => Moved?.Invoke(dx, dy);
     }
 
     private void OnRawButton(int rawNumber)

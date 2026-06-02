@@ -18,7 +18,6 @@ public partial class App : Application
         var services = new ServiceCollection();
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
-
         ViewModelLocator.Current.ServiceProvider = ServiceProvider;
     }
 
@@ -30,43 +29,56 @@ public partial class App : Application
         trayService.Initialize(mainWindow);
         mainWindow.Show();
 
-        // Raw Input requires the HWND to exist — available after Show()
         var mouseMonitor = ServiceProvider.GetRequiredService<IMouseMonitorService>();
         var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
         mouseMonitor.InitializeRawInput(hwnd);
     }
 
-    private void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection s)
     {
-        // Keyboard
-        services.AddSingleton<IStartupService, StartupService>();
-        services.AddSingleton<ITrayService, TrayService>();
-        services.AddSingleton<IInputMonitorService, InputMonitorService>();
-        services.AddSingleton<ISavingClick, SavingClickService>();
-        services.AddSingleton<IGetDataClick, GetDataClickService>();
+        // Core infrastructure
+        s.AddSingleton<IStartupService, StartupService>();
+        s.AddSingleton<ITrayService, TrayService>();
+        s.AddSingleton<IInputMonitorService, InputMonitorService>();
+        s.AddSingleton<ISavingClick, SavingClickService>();
+        s.AddSingleton<IGetDataClick, GetDataClickService>();
 
         // Mouse
-        services.AddSingleton<IMouseMonitorService, MouseMonitorService>();
-        services.AddSingleton<IMouseStatisticsService, MouseStatisticsService>();
+        s.AddSingleton<IMouseMonitorService, MouseMonitorService>();
+        s.AddSingleton<IMouseStatisticsService, MouseStatisticsService>();
 
-        // Live event bus (UI dispatcher captured at startup)
-        services.AddSingleton(sp => new LiveEventBus(System.Windows.Application.Current.Dispatcher));
+        // New processors
+        s.AddSingleton<WordProcessor>();
+        s.AddSingleton<HourlyActivityProcessor>();
+        s.AddSingleton<AppUsageProcessor>();
+        s.AddSingleton<MouseDataProcessor>();  // shared instance for ActivityViewModel
+
+        // Live bus (UI thread)
+        s.AddSingleton(sp => new LiveEventBus(System.Windows.Application.Current.Dispatcher));
+
+        // Break reminder (DispatcherTimer — must be on UI thread at creation)
+        s.AddSingleton<BreakReminderService>();
 
         // ViewModels
-        services.AddTransient<StatisticsViewModel>();
-        services.AddTransient<KeyboardViewModel>();
-        services.AddTransient<MouseViewModel>();
-        services.AddSingleton<MainViewModel>();
-        services.AddSingleton<MainWindow>();
+        s.AddTransient<OverviewViewModel>();
+        s.AddTransient<KeyboardViewModel>();
+        s.AddTransient<MouseViewModel>();
+        s.AddTransient<ActivityViewModel>();
+        s.AddTransient<WordsViewModel>();
+        s.AddTransient<AppsViewModel>();
+        s.AddTransient<SettingsViewModel>();
+        s.AddSingleton<MainViewModel>();
+        s.AddSingleton<MainWindow>();
     }
 
     private void Application_Exit(object sender, ExitEventArgs e)
     {
-        var keyService = ServiceProvider.GetRequiredService<ISavingClick>();
-        if (keyService is SavingClickService keySvc)
-            keySvc.OnApplicationExitAsync().Wait();
+        var key   = ServiceProvider.GetRequiredService<ISavingClick>();
+        if (key is SavingClickService ks) ks.OnApplicationExitAsync().Wait();
 
-        var mouseService = ServiceProvider.GetRequiredService<IMouseStatisticsService>();
-        mouseService.OnApplicationExitAsync().Wait();
+        ServiceProvider.GetRequiredService<IMouseStatisticsService>().OnApplicationExitAsync().Wait();
+        ServiceProvider.GetRequiredService<WordProcessor>().OnApplicationExitAsync().Wait();
+        ServiceProvider.GetRequiredService<HourlyActivityProcessor>().OnApplicationExitAsync().Wait();
+        ServiceProvider.GetRequiredService<AppUsageProcessor>().OnApplicationExitAsync().Wait();
     }
 }
