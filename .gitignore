@@ -3,3 +3,17 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# User-specific settings
+*.user
+*.DotSettings.user
+
+# Database files
+*.sqlite
+*.db
+
+# Build output
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
