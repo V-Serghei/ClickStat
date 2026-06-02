@@ -27,6 +27,13 @@ public class MouseButtonStat : INotifyPropertyChanged
         _            => _count.ToString()
     };
 
+    private bool _isActive;
+    public bool IsActive
+    {
+        get => _isActive;
+        set { _isActive = value; OnPropertyChanged(); }
+    }
+
     public MouseButtonStat(int buttonCode, string buttonName)
     {
         ButtonCode = buttonCode;

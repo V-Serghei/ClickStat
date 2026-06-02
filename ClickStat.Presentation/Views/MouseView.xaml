@@ -194,11 +194,26 @@
                 </Border>
             </Grid>
 
-            <!-- Standard button cards (compact) -->
+            <!-- Standard button cards (compact, pulse on IsActive) -->
             <ItemsControl>
                 <ItemsControl.Items>
                     <!-- Left -->
-                    <Border Style="{StaticResource StatCard}" Margin="0,0,0,6">
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LeftButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -210,39 +225,79 @@
                         </Grid>
                     </Border>
                     <!-- Right -->
-                    <Border Style="{StaticResource StatCard}" Margin="0,0,0,6">
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RightButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Правая кнопка" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
-                            <TextBlock Grid.Column="1" Text="{Binding RightButton.FormattedCount}"
-                                       Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding RightButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                     <!-- Middle -->
-                    <Border Style="{StaticResource StatCard}" Margin="0,0,0,6">
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MiddleButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Колесо (клик)" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
-                            <TextBlock Grid.Column="1" Text="{Binding MiddleButton.FormattedCount}"
-                                       Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding MiddleButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                     <!-- Back -->
-                    <Border Style="{StaticResource StatCard}" Margin="0,0,0,6">
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BackButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="◄ Назад" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
-                            <TextBlock Grid.Column="1" Text="{Binding BackButton.FormattedCount}"
-                                       Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding BackButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                     <!-- Forward -->
-                    <Border Style="{StaticResource StatCard}">
+                    <Border>
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ForwardButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="► Вперёд" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
-                            <TextBlock Grid.Column="1" Text="{Binding ForwardButton.FormattedCount}"
-                                       Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ForwardButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                 </ItemsControl.Items>

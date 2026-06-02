@@ -82,6 +82,10 @@ public sealed class RawMouseMonitor : IDisposable
     {
         var f = m.ButtonFlags;
 
+        // Pure movement — no buttons and no wheel. Skip entirely to avoid
+        // ~800–1000 alloc+marshal cycles per second on high-polling-rate mice.
+        if (f == 0) return;
+
         if ((f & BTN1_DOWN) != 0) ButtonDown?.Invoke(1);
         if ((f & BTN2_DOWN) != 0) ButtonDown?.Invoke(2);
         if ((f & BTN3_DOWN) != 0) ButtonDown?.Invoke(3);

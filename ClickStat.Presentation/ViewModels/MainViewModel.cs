@@ -4,22 +4,23 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using ClickStat.Core.Helpers;
 using ClickStat.Core.Interfaces;
+using ClickStat.Presentation.Services;
 using System.Windows.Forms;
 
 namespace ClickStat.Presentation.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        private readonly IInputMonitorService _inputMonitorService;
-        private readonly IMouseMonitorService _mouseMonitorService;
-        private readonly ISavingClick _savingClickService;
-        private readonly IMouseStatisticsService _mouseStatisticsService;
-        private readonly IGetDataClick _getDataClickService;
-        private readonly IStartupService _startupService;
+        private readonly IInputMonitorService      _inputMonitorService;
+        private readonly IMouseMonitorService      _mouseMonitorService;
+        private readonly ISavingClick              _savingClickService;
+        private readonly IMouseStatisticsService   _mouseStatisticsService;
+        private readonly IStartupService           _startupService;
+        private readonly LiveEventBus              _liveBus;
 
         public StatisticsViewModel StatisticsVm { get; }
-        public KeyboardViewModel KeyboardVm { get; }
-        public MouseViewModel MouseVm { get; }
+        public KeyboardViewModel   KeyboardVm   { get; }
+        public MouseViewModel      MouseVm      { get; }
 
         public ICommand RefreshDataCommand { get; }
 
@@ -29,58 +30,59 @@ namespace ClickStat.Presentation.ViewModels
             get => _isInStartup;
             set
             {
-                if (_isInStartup != value)
-                {
-                    _isInStartup = value;
-                    OnPropertyChanged();
-                    if (_isInStartup) _startupService.AddToStartup();
-                    else _startupService.RemoveFromStartup();
-                }
+                if (_isInStartup == value) return;
+                _isInStartup = value;
+                OnPropertyChanged();
+                if (_isInStartup) _startupService.AddToStartup();
+                else _startupService.RemoveFromStartup();
             }
         }
 
         public MainViewModel(
-            IInputMonitorService inputMonitorService,
-            IMouseMonitorService mouseMonitorService,
-            ISavingClick savingClickService,
+            IInputMonitorService    inputMonitorService,
+            IMouseMonitorService    mouseMonitorService,
+            ISavingClick            savingClickService,
             IMouseStatisticsService mouseStatisticsService,
-            StatisticsViewModel statisticsVm,
-            KeyboardViewModel keyboardVm,
-            MouseViewModel mouseVm,
-            IGetDataClick dataService,
-            IStartupService startupService)
+            StatisticsViewModel     statisticsVm,
+            KeyboardViewModel       keyboardVm,
+            MouseViewModel          mouseVm,
+            IGetDataClick           dataService,
+            IStartupService         startupService,
+            LiveEventBus            liveBus)
         {
-            _inputMonitorService = inputMonitorService;
-            _mouseMonitorService = mouseMonitorService;
-            _savingClickService = savingClickService;
+            _inputMonitorService    = inputMonitorService;
+            _mouseMonitorService    = mouseMonitorService;
+            _savingClickService     = savingClickService;
             _mouseStatisticsService = mouseStatisticsService;
-            _getDataClickService = dataService;
-            _startupService = startupService;
+            _startupService         = startupService;
+            _liveBus                = liveBus;
 
             StatisticsVm = statisticsVm;
-            KeyboardVm = keyboardVm;
-            MouseVm = mouseVm;
+            KeyboardVm   = keyboardVm;
+            MouseVm      = mouseVm;
 
             _inputMonitorService.OnKeyDown   += OnKeyDownReceived;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
             _inputMonitorService.StartMonitoring();
 
             _mouseMonitorService.OnButtonPressed += OnMouseButtonPressed;
-            _mouseMonitorService.OnScroll += OnMouseScrolled;
+            _mouseMonitorService.OnScroll        += OnMouseScrolled;
             _mouseMonitorService.StartMonitoring();
 
             RefreshDataCommand = new RelayCommand(ExecuteRefreshData);
             _isInStartup = _startupService.IsInStartup();
         }
 
-        private async void ExecuteRefreshData(object parameter)
+        // ── Tab visibility management ──────────────────────────────────────
+
+        public void SetActiveTab(int tabIndex)
         {
-            await StatisticsVm.LoadStatsAsync();
-            await KeyboardVm.LoadKeyCountsAsync();
-            await MouseVm.LoadDataAsync();
+            KeyboardVm.IsLiveActive = (tabIndex == 1);
+            MouseVm.IsLiveActive    = (tabIndex == 2);
         }
 
-        // Tracks which modifier keys are currently held (for combo detection)
+        // ── Keyboard ──────────────────────────────────────────────────────
+
         private readonly HashSet<Keys> _heldModifiers = new();
 
         private void OnKeyDownReceived(Keys key)
@@ -91,7 +93,6 @@ namespace ClickStat.Presentation.ViewModels
 
         private void OnKeyReceived(Keys key)
         {
-            // Check if this key + held modifiers match a keyboard-mapped mouse button
             if (!MouseButtonCodeHelper.IsModifier(key))
             {
                 bool ctrl  = _heldModifiers.Contains(Keys.ControlKey) || _heldModifiers.Contains(Keys.LControlKey) || _heldModifiers.Contains(Keys.RControlKey);
@@ -100,17 +101,19 @@ namespace ClickStat.Presentation.ViewModels
 
                 int code = MouseButtonCodeHelper.EncodeKeyboard(key, ctrl, shift, alt);
                 if (_mouseStatisticsService.IsRegistered(code))
-                {
-                    string name = MouseButtonCodeHelper.FormatShortcut(code);
-                    _mouseStatisticsService.TrackButtonClick(code, name);
-                }
+                    _mouseStatisticsService.TrackButtonClick(code, MouseButtonCodeHelper.FormatShortcut(code));
             }
 
             if (MouseButtonCodeHelper.IsModifier(key))
                 _heldModifiers.Remove(key);
 
             _savingClickService.SaveClick(key);
+
+            // Publish to live bus (only has subscribers when keyboard tab is open)
+            _liveBus.PublishKey(key.ToString());
         }
+
+        // ── Mouse ─────────────────────────────────────────────────────────
 
         private void OnMouseButtonPressed(MouseButtons button, int buttonCode)
         {
@@ -127,22 +130,35 @@ namespace ClickStat.Presentation.ViewModels
                 };
                 _mouseStatisticsService.TrackButtonClick(buttonCode, name);
             }
+            _liveBus.PublishMouseButton(buttonCode);
         }
 
-        private void OnMouseScrolled(int notches) => _mouseStatisticsService.TrackScroll(notches);
+        private void OnMouseScrolled(int notches)
+        {
+            _mouseStatisticsService.TrackScroll(notches);
+            _liveBus.PublishMouseScroll(notches);
+        }
+
+        // ── Refresh ───────────────────────────────────────────────────────
+
+        private async void ExecuteRefreshData(object parameter)
+        {
+            await StatisticsVm.LoadStatsAsync();
+            await KeyboardVm.LoadKeyCountsAsync();
+            await MouseVm.LoadDataAsync();
+        }
+
+        // ── INotifyPropertyChanged ────────────────────────────────────────
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        private string _title = "ClickStat Application";
+        private string _title = "ClickStat";
         public string Title
         {
             get => _title;
-            set
-            {
-                if (_title != value) { _title = value; OnPropertyChanged(); }
-            }
+            set { if (_title != value) { _title = value; OnPropertyChanged(); } }
         }
     }
 
@@ -153,15 +169,16 @@ namespace ClickStat.Presentation.ViewModels
 
         public RelayCommand(Action<object> execute, Func<object, bool>? canExecute = null)
         {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _execute    = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
         }
 
         public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter!) ?? true;
-        public void Execute(object? parameter) => _execute(parameter!);
+        public void Execute(object? parameter)    => _execute(parameter!);
+
         public event EventHandler? CanExecuteChanged
         {
-            add => CommandManager.RequerySuggested += value;
+            add    => CommandManager.RequerySuggested += value;
             remove => CommandManager.RequerySuggested -= value;
         }
     }

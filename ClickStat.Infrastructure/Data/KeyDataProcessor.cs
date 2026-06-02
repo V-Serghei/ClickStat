@@ -9,109 +9,93 @@ namespace ClickStat.Infrastructure.Data;
 
 public class KeyDataProcessor
 {
-    private const int SaveIntervalSeconds = 1;
+    // 5 s matches MouseDataProcessor; 1 s was overkill and caused
+    // a DB transaction every second even with no keypresses.
+    private const int SaveIntervalSeconds = 5;
     private const int MaxDelaySeconds = 20;
-    private readonly DataContext _context;
+
     private readonly string _dbPath;
     private readonly Dictionary<Keys, KeyStatistics> _keyStatistics = new();
+    private readonly object _lock = new();
     private readonly Timer _saveTimer;
     private DateTime _lastSaveTime = DateTime.MinValue;
 
     public KeyDataProcessor()
     {
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folderPath = Path.Combine(documentsPath, "KeyClick");
-        if (!Directory.Exists(folderPath))
-        {
-            Directory.CreateDirectory(folderPath);
-            Console.WriteLine($"Folder Create: {folderPath}");
-        }
+        var folderPath    = Path.Combine(documentsPath, "KeyClick");
+        Directory.CreateDirectory(folderPath);
 
         _dbPath = Path.Combine(folderPath, "key_statistics.db");
-        _context = new DataContext(_dbPath);
-        InitializeDatabase();
 
-        _saveTimer = new Timer(SaveIntervalSeconds * 1000);
-        _saveTimer.Elapsed += async (s, e) => await SaveToDatabaseBuffered();
-        _saveTimer.AutoReset = true;
+        using var ctx = new DataContext(_dbPath);
+        ctx.Database.EnsureCreated();
+
+        _saveTimer = new Timer(SaveIntervalSeconds * 1000) { AutoReset = true };
+        _saveTimer.Elapsed += async (_, _) => await SaveToDatabaseBuffered();
         _saveTimer.Start();
     }
 
-    private void InitializeDatabase()
+    public Task ProcessKeyPress(Keys key)
     {
-        _context.Database.EnsureCreated();
-    }
+        if (key == Keys.None) return Task.CompletedTask;
 
-    private void LoadDataFromDatabase()
-    {
-        var stats = _context.KeyStatistics.ToList();
-        foreach (var stat in stats)
-            _keyStatistics[(Keys)stat.KeyCode] = new KeyStatistics
-            {
-                KeyCode = stat.KeyCode,
-                KeyName = stat.KeyName,
-                Count = stat.Count
-            };
-    }
-
-
-    public async Task ProcessKeyPress(Keys key)
-    {
-        if(key != Keys.None){
-            lock (_keyStatistics)
-            {
-                if (_keyStatistics.ContainsKey(key))
-                    _keyStatistics[key].Count++;
-                else
-                    _keyStatistics[key] = new KeyStatistics { KeyCode = (int)key, KeyName = key.ToString(), Count = 1 };
-            }
-
-            var timeSinceLastSave = (DateTime.Now - _lastSaveTime).TotalSeconds;
-            if (timeSinceLastSave >= MaxDelaySeconds)
-                _ = SaveToDatabaseBuffered();
+        lock (_lock)
+        {
+            if (_keyStatistics.TryGetValue(key, out var existing))
+                existing.Count++;
+            else
+                _keyStatistics[key] = new KeyStatistics { KeyCode = (int)key, KeyName = key.ToString(), Count = 1 };
         }
+
+        // Emergency flush if data has been accumulating for too long without a save
+        if ((DateTime.Now - _lastSaveTime).TotalSeconds >= MaxDelaySeconds)
+            _ = SaveToDatabaseBuffered();
+
+        return Task.CompletedTask;
     }
 
     private async Task SaveToDatabaseBuffered()
     {
-        using var context = new DataContext(_dbPath);
-        var transaction = await context.Database.BeginTransactionAsync();
+        // Snapshot under lock — prevents race between timer flush and keypress
+        Dictionary<Keys, KeyStatistics> snapshot;
+        lock (_lock)
+        {
+            if (_keyStatistics.Count == 0) return;  // Nothing accumulated — skip DB entirely
+            snapshot = new Dictionary<Keys, KeyStatistics>(_keyStatistics);
+            _keyStatistics.Clear();
+        }
 
+        await using var context = new DataContext(_dbPath);
+        var transaction = await context.Database.BeginTransactionAsync();
         try
         {
-            var countKey = 0;
-            foreach (var stat in _keyStatistics.ToList())
+            var totalCount = 0;
+            foreach (var (_, stat) in snapshot)
             {
-                var existingStat = await context.KeyStatistics.FindAsync(stat.Value.KeyCode);
-                if (existingStat != null)
-                    existingStat.Count += stat.Value.Count;
+                var existing = await context.KeyStatistics.FindAsync(stat.KeyCode);
+                if (existing != null)
+                    existing.Count += stat.Count;
                 else
                     context.KeyStatistics.Add(new KeyStatistics
                     {
-                        KeyCode = stat.Value.KeyCode,
-                        KeyName = stat.Value.KeyName,
-                        Count = stat.Value.Count
+                        KeyCode = stat.KeyCode,
+                        KeyName = stat.KeyName,
+                        Count   = stat.Count
                     });
-                countKey+= stat.Value.Count;
-                
+                totalCount += stat.Count;
             }
-            
-            var existingStatForTheDay = await context.KeyStatisticsForTheDay
-                .FirstOrDefaultAsync(k=> k.Date.Date == DateTime.Now.Date);
-            if (existingStatForTheDay != null)
-            {
-                existingStatForTheDay.ClickCount += countKey;
-            }
+
+            var today = await context.KeyStatisticsForTheDay
+                .FirstOrDefaultAsync(k => k.Date.Date == DateTime.Now.Date);
+            if (today != null)
+                today.ClickCount += totalCount;
             else
-            {
                 context.KeyStatisticsForTheDay.Add(new KeyStatisticsForTheDay
                 {
-                    Date = DateTime.Now.Date,
-                    ClickCount = countKey
+                    Date       = DateTime.Now.Date,
+                    ClickCount = totalCount
                 });
-            }
-            
-            _keyStatistics.Clear();
 
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -121,6 +105,18 @@ public class KeyDataProcessor
         {
             await transaction.RollbackAsync();
             Console.WriteLine($"Save failed: {ex.Message}");
+
+            // Put data back so it isn't lost
+            lock (_lock)
+            {
+                foreach (var (key, stat) in snapshot)
+                {
+                    if (_keyStatistics.TryGetValue(key, out var existing))
+                        existing.Count += stat.Count;
+                    else
+                        _keyStatistics[key] = stat;
+                }
+            }
         }
     }
 

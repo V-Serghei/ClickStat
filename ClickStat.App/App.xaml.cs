@@ -3,6 +3,7 @@ using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
 using ClickStat.Presentation;
+using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -47,6 +48,9 @@ public partial class App : Application
         // Mouse
         services.AddSingleton<IMouseMonitorService, MouseMonitorService>();
         services.AddSingleton<IMouseStatisticsService, MouseStatisticsService>();
+
+        // Live event bus (UI dispatcher captured at startup)
+        services.AddSingleton(sp => new LiveEventBus(System.Windows.Application.Current.Dispatcher));
 
         // ViewModels
         services.AddTransient<StatisticsViewModel>();

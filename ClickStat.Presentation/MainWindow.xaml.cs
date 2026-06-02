@@ -42,4 +42,10 @@ public partial class MainWindow : Window
     {
         this.Close();
     }
+
+    private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && sender is TabControl tc)
+            vm.SetActiveTab(tc.SelectedIndex);
+    }
 }

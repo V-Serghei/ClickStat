@@ -127,7 +127,8 @@
                 </StackPanel>
             </Grid>
             
-            <TabControl Grid.Row="1" Style="{StaticResource CustomTabControlStyle}" Margin="5">
+            <TabControl Grid.Row="1" Style="{StaticResource CustomTabControlStyle}" Margin="5"
+                        SelectionChanged="TabControl_SelectionChanged">
                 <TabItem Header="📊 Статистика" Style="{StaticResource CustomTabItemStyle}">
                     <views:StatisticsView DataContext="{Binding StatisticsVm}"/>
                 </TabItem>

@@ -13,6 +13,7 @@
         <conv:IntensityToBrushConverter  x:Key="IntensityToBrushConverter"/>
         <conv:CountToBadgeConverter      x:Key="CountToBadgeConverter"/>
         <conv:KeyNameToLabelConverter    x:Key="KeyLabel"/>
+        <conv:KeyFlashConverter          x:Key="KeyFlash"/>
         <BooleanToVisibilityConverter    x:Key="BoolToVis"/>
 
         <!-- ════════════════════════════════════════
@@ -68,6 +69,19 @@
                                 <Border.Background>
                                     <SolidColorBrush Color="Black"/>
                                 </Border.Background>
+                            </Border>
+
+                            <!-- Flash overlay — visible for ~110 ms when key is pressed -->
+                            <Border x:Name="FlashOverlay" CornerRadius="7" IsHitTestVisible="False"
+                                    Background="#55FFFFFF">
+                                <Border.Visibility>
+                                    <MultiBinding Converter="{StaticResource KeyFlash}">
+                                        <Binding Path="DataContext.FlashingKeys"
+                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        <Binding Path="Content"
+                                                 RelativeSource="{RelativeSource TemplatedParent}"/>
+                                    </MultiBinding>
+                                </Border.Visibility>
                             </Border>
 
                             <!-- Key label -->
@@ -229,6 +243,72 @@
                         <Border Style="{StaticResource LegendDot}" Background="#F56565"/>
                         <TextBlock Text="MAX" Foreground="#F56565" VerticalAlignment="Center" FontSize="11" Margin="4,0,0,0"/>
                     </StackPanel>
+                </Border>
+
+                <!-- ── Live WPM panel (visible only when tab is active) ── -->
+                <Border Margin="20,0,20,4" Padding="14,10" CornerRadius="8"
+                        Background="#0E142A" BorderBrush="#2A2A5A" BorderThickness="1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLiveActive}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Live indicator -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                            <Ellipse Width="8" Height="8" Fill="#50FF80" VerticalAlignment="Center" Margin="0,0,6,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Style.Triggers>
+                                            <EventTrigger RoutedEvent="Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                         From="1" To="0.2" Duration="0:0:0.8"
+                                                                         AutoReverse="True"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="LIVE" Foreground="#50FF80" FontSize="11"
+                                       FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Spacer -->
+                        <Grid Grid.Column="1"/>
+
+                        <!-- Current WPM -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,24,0"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="Скорость: " Foreground="#7070A0" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding CurrentWpm, StringFormat='{}{0:0}'}"
+                                       Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" зн/мин" Foreground="#7070A0" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Peak WPM -->
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Рекорд: " Foreground="#7070A0" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding PeakWpm, StringFormat='{}{0:0}'}"
+                                       Foreground="#AA70FF" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" зн/мин" Foreground="#7070A0" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- ── Keyboard ─────────────────────────────────────── -->
