@@ -42,9 +42,59 @@
                                        Foreground="#7070A0" FontSize="12"/>
                             <TextBlock Text="{Binding DistanceLabel}"
                                        Foreground="White" FontSize="30" FontWeight="Bold"/>
-                            <TextBlock Text="(при стандартных 96 DPI)"
+                            <TextBlock Text="(по пикселям и DPI текущего монитора)"
                                        Foreground="#303060" FontSize="11"/>
                         </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- All-time weekday coefficients -->
+                <Border Background="#0E0E1C" CornerRadius="12" Padding="16"
+                        Margin="0,0,0,24" BorderBrush="#1A1A3A" BorderThickness="1">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Активность за всё время по дням недели"
+                                           Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Коэффициент считается относительно среднего дня недели"
+                                           Foreground="#505070" FontSize="11" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Right">
+                                <TextBlock Text="Самый активный день" Foreground="#505070" FontSize="11"/>
+                                <TextBlock Text="{Binding MostActiveDayLabel}"
+                                           Foreground="#AA70FF" FontSize="16" FontWeight="Bold"
+                                           HorizontalAlignment="Right"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding DayStats}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="7"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#14142A" CornerRadius="9" Padding="10,9"
+                                            Margin="0,0,8,0" BorderBrush="#2A2A5A" BorderThickness="1">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DayName}"
+                                                       Foreground="White" FontSize="13" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding CoefficientLabel}"
+                                                       Foreground="#AA70FF" FontSize="20" FontWeight="Bold"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding ShareLabel, StringFormat='доля {0}'}"
+                                                       Foreground="#606080" FontSize="10"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Count, StringFormat='{}{0:N0} наж.'}"
+                                                       Foreground="#404060" FontSize="10"
+                                                       HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 

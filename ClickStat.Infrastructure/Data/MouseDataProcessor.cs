@@ -157,8 +157,7 @@ public class MouseDataProcessor : IDisposable
     }
 
     // Track actual cursor travel in screen pixels using GetCursorPos().
-    // Raw RAWMOUSE lLastX/lLastY are sensor counts (device DPI, not screen pixels),
-    // which would over-count by 10-100× depending on mouse DPI setting.
+    // Raw RAWMOUSE lLastX/lLastY are sensor counts (device DPI, not screen pixels).
     private System.Drawing.Point _lastCursorPos;
     private bool _hasCursorPos;
 
@@ -172,9 +171,14 @@ public class MouseDataProcessor : IDisposable
             int dy = pt.Y - _lastCursorPos.Y;
             if (dx != 0 || dy != 0)
             {
-                // Screen pixels → 0.01 mm at 96 DPI: 1px = 25.4/96 mm = 0.2646mm = 26.46 × 0.01mm
-                long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 26.46);
-                lock (_lock) _distanceBuffer += units;
+                double pixelDistance = Math.Sqrt((double)dx * dx + (double)dy * dy);
+                if (pixelDistance <= GetVirtualScreenDiagonalPixels() * 1.5)
+                {
+                    double mm = GetMovementMillimeters(dx, dy, pt);
+                    long units = (long)Math.Round(mm * 100.0); // 0.01-mm units
+                    if (units > 0)
+                        lock (_lock) _distanceBuffer += units;
+                }
             }
         }
         _lastCursorPos = pt;
@@ -184,9 +188,11 @@ public class MouseDataProcessor : IDisposable
     public void TrackClickPosition()
     {
         if (!GetCursorPos(out var pt)) return;
-        // Clamp to screen grid; assume max 3840×2160
-        int gx = Math.Clamp(pt.X * GridW / 3840, 0, GridW - 1);
-        int gy = Math.Clamp(pt.Y * GridH / 2160, 0, GridH - 1);
+        var screen = SystemInformation.VirtualScreen;
+        int width = Math.Max(1, screen.Width);
+        int height = Math.Max(1, screen.Height);
+        int gx = Math.Clamp((pt.X - screen.Left) * GridW / width, 0, GridW - 1);
+        int gy = Math.Clamp((pt.Y - screen.Top) * GridH / height, 0, GridH - 1);
         int id = gx * GridH + gy;
         lock (_lock)
             _heatmapBuffer[id] = _heatmapBuffer.GetValueOrDefault(id) + 1;
@@ -350,4 +356,48 @@ public class MouseDataProcessor : IDisposable
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool GetCursorPos(out System.Drawing.Point lpPoint);
+
+    private static double GetMovementMillimeters(int dx, int dy, System.Drawing.Point point)
+    {
+        var (dpiX, dpiY) = GetDpiForPoint(point);
+        double xMm = dx * 25.4 / dpiX;
+        double yMm = dy * 25.4 / dpiY;
+        return Math.Sqrt(xMm * xMm + yMm * yMm);
+    }
+
+    private static (double X, double Y) GetDpiForPoint(System.Drawing.Point point)
+    {
+        try
+        {
+            var monitor = MonitorFromPoint(point, MonitorDefaultToNearest);
+            if (monitor != IntPtr.Zero &&
+                GetDpiForMonitor(monitor, EffectiveDpi, out uint dpiX, out uint dpiY) == 0 &&
+                dpiX > 0 && dpiY > 0)
+            {
+                return (dpiX, dpiY);
+            }
+        }
+        catch
+        {
+            // shcore.dll may be unavailable on very old Windows builds.
+        }
+
+        using var graphics = System.Drawing.Graphics.FromHwnd(IntPtr.Zero);
+        return (graphics.DpiX > 0 ? graphics.DpiX : 96, graphics.DpiY > 0 ? graphics.DpiY : 96);
+    }
+
+    private static double GetVirtualScreenDiagonalPixels()
+    {
+        var screen = SystemInformation.VirtualScreen;
+        return Math.Sqrt((double)screen.Width * screen.Width + (double)screen.Height * screen.Height);
+    }
+
+    private const uint MonitorDefaultToNearest = 2;
+    private const int EffectiveDpi = 0;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, uint dwFlags);
+
+    [System.Runtime.InteropServices.DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 }

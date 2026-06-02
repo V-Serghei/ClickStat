@@ -221,10 +221,35 @@ public sealed class WordProcessor : IDisposable
 
     public static bool IsRecognizedWord(string word) => IsAcceptableWord(word);
 
+    public static bool IsEnglishWord(string word) => GetWordLanguage(word) == "EN";
+
+    public static bool IsRussianWord(string word) => GetWordLanguage(word) == "RU";
+
+    public static string? GetWordLanguage(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string word = raw.Trim().ToLowerInvariant();
+        bool hasLatin = word.Any(IsLatinLetter);
+        bool hasRussian = word.Any(IsRussianLetter);
+        if (hasLatin == hasRussian) return null;
+        return hasLatin ? "EN" : "RU";
+    }
+
+    public static bool IsPhraseLanguage(string phrase, string language)
+    {
+        var parts = phrase.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length is 2 or 3 &&
+               parts.All(IsAcceptableWord) &&
+               parts.All(part => GetWordLanguage(part) == language);
+    }
+
     private static bool IsAcceptablePhrase(string phrase)
     {
         var parts = phrase.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length is 2 or 3 && parts.All(IsAcceptableWord);
+        if (parts.Length is not (2 or 3) || !parts.All(IsAcceptableWord)) return false;
+
+        string? language = GetWordLanguage(parts[0]);
+        return language != null && parts.All(part => GetWordLanguage(part) == language);
     }
 
     private static bool IsKnownEnglishWord(string word)
@@ -301,6 +326,10 @@ public sealed class WordProcessor : IDisposable
             _lastWords.Clear();
             return;
         }
+
+        string? language = GetWordLanguage(word);
+        if (_lastWords.Count > 0 && GetWordLanguage(_lastWords.Last()) != language)
+            _lastWords.Clear();
 
         _words[word] = _words.GetValueOrDefault(word) + 1;
 

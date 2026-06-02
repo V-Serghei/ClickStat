@@ -21,6 +21,17 @@
             <Setter Property="Padding"         Value="10,5"/>
             <Setter Property="Margin"          Value="0,0,6,6"/>
         </Style>
+
+        <Style x:Key="LanguageButton" TargetType="Button">
+            <Setter Property="Background" Value="#1A1A2E"/>
+            <Setter Property="Foreground" Value="#CFCFFF"/>
+            <Setter Property="BorderBrush" Value="#2E2E5E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="20">
@@ -42,24 +53,39 @@
 
             <StackPanel>
 
-                <!-- Stats bar -->
+                <!-- Stats bar + language switch -->
                 <Border Background="#0E0E1C" CornerRadius="12" Padding="16,12"
                         Margin="0,0,0,20" BorderBrush="#1A1A4A" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <StackPanel Margin="0,0,32,0" HorizontalAlignment="Center">
-                            <TextBlock Text="Всего слов напечатано" Foreground="#606080" FontSize="11"/>
-                            <TextBlock Text="{Binding TotalTyped}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button TextBlock.TextAlignment="Center"
+                                    Content="{Binding RussianButtonText}"
+                                    Command="{Binding ShowRussianCommand}"
+                                    Style="{StaticResource LanguageButton}"/>
+                            <Button Content="{Binding EnglishButtonText}"
+                                    Command="{Binding ShowEnglishCommand}"
+                                    Style="{StaticResource LanguageButton}"/>
                         </StackPanel>
-                        <StackPanel Margin="0,0,32,0" HorizontalAlignment="Center">
-                            <TextBlock Text="Уникальных слов" Foreground="#606080" FontSize="11"/>
-                            <TextBlock Text="{Binding UniqueCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <StackPanel Margin="0,0,32,0" HorizontalAlignment="Center">
+                                <TextBlock Text="Язык" Foreground="#606080" FontSize="11"/>
+                                <TextBlock Text="{Binding LanguageTitle}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,32,0" HorizontalAlignment="Center">
+                                <TextBlock Text="Всего слов" Foreground="#606080" FontSize="11"/>
+                                <TextBlock Text="{Binding TotalTyped}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,32,0" HorizontalAlignment="Center">
+                                <TextBlock Text="Уникальных слов" Foreground="#606080" FontSize="11"/>
+                                <TextBlock Text="{Binding UniqueCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Фраз" Foreground="#606080" FontSize="11"/>
+                                <TextBlock Text="{Binding PhraseCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
                         </StackPanel>
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="Слов после фильтра" Foreground="#606080" FontSize="11"/>
-                            <TextBlock Text="{Binding KnownPercent, StringFormat='{}{0}%'}"
-                                       Foreground="#AA70FF" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
                 <Grid>
@@ -71,9 +97,9 @@
 
                     <!-- Left column: words -->
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="📚 Слова" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="📚 Слова выбранного языка" Style="{StaticResource SectionTitle}"/>
                         <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
-                            <ItemsControl ItemsSource="{Binding KnownWords}">
+                            <ItemsControl ItemsSource="{Binding TopWords}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
@@ -90,51 +116,11 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Border>
-
-                        <TextBlock Text="🔤 Прочие токены" Style="{StaticResource SectionTitle}" Margin="0,20,0,10"/>
-                        <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
-                            <ItemsControl ItemsSource="{Binding UniqueWords}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource WordChip}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Word}" Foreground="#909090" FontSize="12" FontFamily="Consolas"/>
-                                                <TextBlock Text=" " FontSize="12"/>
-                                                <TextBlock Text="{Binding Count}" Foreground="#6060A0" FontSize="12" FontWeight="Bold"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
                     </StackPanel>
 
-                    <!-- Right column: bigrams + phrases -->
+                    <!-- Right column: phrases -->
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="⌨️ Частые пары клавиш (биграммы)" Style="{StaticResource SectionTitle}"/>
-                        <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
-                            <ItemsControl ItemsSource="{Binding TopBigrams}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,0,0,6">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Pair}" Foreground="#909090"
-                                                       FontFamily="Consolas" FontSize="12" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Count}"
-                                                       Foreground="#AA70FF" FontSize="13" FontWeight="Bold"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
-
-                        <TextBlock Text="💬 Частые фразы" Style="{StaticResource SectionTitle}" Margin="0,20,0,10"/>
+                        <TextBlock Text="💬 Частые фразы выбранного языка" Style="{StaticResource SectionTitle}"/>
                         <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
                             <ItemsControl ItemsSource="{Binding TopPhrases}">
                                 <ItemsControl.ItemTemplate>
