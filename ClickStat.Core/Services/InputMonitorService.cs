@@ -11,11 +11,13 @@ namespace ClickStat.Core.Services
         private readonly KeyboardMonitor _keyboardMonitor;
 
         public event Action<Keys>? OnKeyAction;
+        public event Action<Keys>? OnKeyDown;
 
         public InputMonitorService()
         {
             _keyboardMonitor = new KeyboardMonitor();
-            _keyboardMonitor.KeyPressed += (key) => OnKeyAction?.Invoke(key);
+            _keyboardMonitor.KeyPressed += key => OnKeyAction?.Invoke(key);
+            _keyboardMonitor.KeyDown    += key => OnKeyDown?.Invoke(key);
         }
 
         public void StartMonitoring()

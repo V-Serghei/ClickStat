@@ -9,7 +9,8 @@ namespace ClickStat.Infrastructure.InputMonitoring
         private readonly IKeyboardMouseEvents _globalHook;
         private readonly HashSet<Keys> _pressedKeys = new HashSet<Keys>();
 
-        public event Action<Keys> KeyPressed;
+        public event Action<Keys> KeyPressed;  // KeyUp
+        public event Action<Keys> KeyDown;     // KeyDown
 
         public KeyboardMonitor()
         {
@@ -30,10 +31,8 @@ namespace ClickStat.Infrastructure.InputMonitoring
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            if (_pressedKeys.Add(e.KeyCode)) 
-            {
-                
-            }
+            if (_pressedKeys.Add(e.KeyCode))
+                KeyDown?.Invoke(e.KeyCode);
         }
 
         private void OnKeyUp(object sender, KeyEventArgs e)

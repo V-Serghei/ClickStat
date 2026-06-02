@@ -1,45 +1,48 @@
 using System;
 using System.Windows.Forms;
-using Gma.System.MouseKeyHook;
 
 namespace ClickStat.Infrastructure.InputMonitoring;
 
 public class MouseMonitor : IDisposable
 {
-    private IKeyboardMouseEvents? _globalHook;
+    private readonly RawMouseMonitor _raw = new();
 
-    // button enum value (MouseButtons) + raw int code
+    // button enum + int code (matching MouseButtons enum values)
     public event Action<MouseButtons, int>? ButtonPressed;
     // positive = scroll up notches, negative = scroll down notches
     public event Action<int>? Scrolled;
 
-    public void Subscribe()
+    private static readonly (MouseButtons btn, int code)[] ButtonMap =
     {
-        _globalHook = Hook.GlobalEvents();
-        _globalHook.MouseDown += OnMouseDown;
-        _globalHook.MouseWheel += OnMouseWheel;
+        (MouseButtons.Left,     (int)MouseButtons.Left),
+        (MouseButtons.Right,    (int)MouseButtons.Right),
+        (MouseButtons.Middle,   (int)MouseButtons.Middle),
+        (MouseButtons.XButton1, (int)MouseButtons.XButton1),
+        (MouseButtons.XButton2, (int)MouseButtons.XButton2),
+    };
+
+    public MouseMonitor()
+    {
+        _raw.ButtonDown += OnRawButton;
+        _raw.Wheel      += notches => Scrolled?.Invoke(notches);
     }
 
-    public void Unsubscribe()
+    private void OnRawButton(int rawNumber)
     {
-        if (_globalHook == null) return;
-        _globalHook.MouseDown -= OnMouseDown;
-        _globalHook.MouseWheel -= OnMouseWheel;
-        _globalHook.Dispose();
-        _globalHook = null;
+        // rawNumber: 1=Left, 2=Right, 3=Middle, 4=Back, 5=Forward
+        int idx = rawNumber - 1;
+        if (idx < 0 || idx >= ButtonMap.Length) return;
+        var (btn, code) = ButtonMap[idx];
+        ButtonPressed?.Invoke(btn, code);
     }
 
-    private void OnMouseDown(object? sender, MouseEventArgs e)
-    {
-        ButtonPressed?.Invoke(e.Button, (int)e.Button);
-    }
+    /// <summary>
+    /// Must be called after the main window is shown so the HWND exists.
+    /// </summary>
+    public void InitializeRawInput(IntPtr hwnd) => _raw.Initialize(hwnd);
 
-    private void OnMouseWheel(object? sender, MouseEventArgs e)
-    {
-        int notches = e.Delta / 120;
-        if (notches != 0)
-            Scrolled?.Invoke(notches);
-    }
+    public void Subscribe()   { /* Raw Input is always active once Initialize is called */ }
+    public void Unsubscribe() { /* kept for interface compatibility */ }
 
-    public void Dispose() => Unsubscribe();
+    public void Dispose() => _raw.Dispose();
 }

@@ -9,4 +9,5 @@ public interface IMouseMonitorService
     event Action<int> OnScroll;
     void StartMonitoring();
     void StopMonitoring();
+    void InitializeRawInput(IntPtr hwnd);
 }

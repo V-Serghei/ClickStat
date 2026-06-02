@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using ClickStat.Core.Helpers;
 using ClickStat.Core.Interfaces;
 using System.Windows.Forms;
 
@@ -59,6 +61,7 @@ namespace ClickStat.Presentation.ViewModels
             KeyboardVm = keyboardVm;
             MouseVm = mouseVm;
 
+            _inputMonitorService.OnKeyDown   += OnKeyDownReceived;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
             _inputMonitorService.StartMonitoring();
 
@@ -77,7 +80,37 @@ namespace ClickStat.Presentation.ViewModels
             await MouseVm.LoadDataAsync();
         }
 
-        private void OnKeyReceived(Keys key) => _savingClickService.SaveClick(key);
+        // Tracks which modifier keys are currently held (for combo detection)
+        private readonly HashSet<Keys> _heldModifiers = new();
+
+        private void OnKeyDownReceived(Keys key)
+        {
+            if (MouseButtonCodeHelper.IsModifier(key))
+                _heldModifiers.Add(key);
+        }
+
+        private void OnKeyReceived(Keys key)
+        {
+            // Check if this key + held modifiers match a keyboard-mapped mouse button
+            if (!MouseButtonCodeHelper.IsModifier(key))
+            {
+                bool ctrl  = _heldModifiers.Contains(Keys.ControlKey) || _heldModifiers.Contains(Keys.LControlKey) || _heldModifiers.Contains(Keys.RControlKey);
+                bool shift = _heldModifiers.Contains(Keys.ShiftKey)   || _heldModifiers.Contains(Keys.LShiftKey)   || _heldModifiers.Contains(Keys.RShiftKey);
+                bool alt   = _heldModifiers.Contains(Keys.Menu)       || _heldModifiers.Contains(Keys.LMenu)       || _heldModifiers.Contains(Keys.RMenu);
+
+                int code = MouseButtonCodeHelper.EncodeKeyboard(key, ctrl, shift, alt);
+                if (_mouseStatisticsService.IsRegistered(code))
+                {
+                    string name = MouseButtonCodeHelper.FormatShortcut(code);
+                    _mouseStatisticsService.TrackButtonClick(code, name);
+                }
+            }
+
+            if (MouseButtonCodeHelper.IsModifier(key))
+                _heldModifiers.Remove(key);
+
+            _savingClickService.SaveClick(key);
+        }
 
         private void OnMouseButtonPressed(MouseButtons button, int buttonCode)
         {

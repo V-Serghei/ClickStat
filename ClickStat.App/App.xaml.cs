@@ -28,6 +28,11 @@ public partial class App : Application
         var trayService = ServiceProvider.GetRequiredService<ITrayService>();
         trayService.Initialize(mainWindow);
         mainWindow.Show();
+
+        // Raw Input requires the HWND to exist — available after Show()
+        var mouseMonitor = ServiceProvider.GetRequiredService<IMouseMonitorService>();
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+        mouseMonitor.InitializeRawInput(hwnd);
     }
 
     private void ConfigureServices(IServiceCollection services)

@@ -19,5 +19,6 @@ public class MouseMonitorService : IMouseMonitorService
     }
 
     public void StartMonitoring() => _monitor.Subscribe();
-    public void StopMonitoring() => _monitor.Unsubscribe();
+    public void StopMonitoring()  => _monitor.Unsubscribe();
+    public void InitializeRawInput(IntPtr hwnd) => _monitor.InitializeRawInput(hwnd);
 }
