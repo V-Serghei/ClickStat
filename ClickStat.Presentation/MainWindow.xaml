@@ -134,6 +134,9 @@
                 <TabItem Header="⌨️ Клавиатура" Style="{StaticResource CustomTabItemStyle}">
                     <views:KeyboardView DataContext="{Binding KeyboardVm}"/>
                 </TabItem>
+                <TabItem Header="🖱️ Мышь" Style="{StaticResource CustomTabItemStyle}">
+                    <views:MouseView DataContext="{Binding MouseVm}"/>
+                </TabItem>
             </TabControl>
         </Grid>
     </Border>

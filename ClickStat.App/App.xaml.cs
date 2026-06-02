@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
@@ -24,7 +24,7 @@ public partial class App : Application
     private void Application_Startup(object sender, StartupEventArgs e)
     {
         var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
-        
+
         var trayService = ServiceProvider.GetRequiredService<ITrayService>();
         trayService.Initialize(mainWindow);
         mainWindow.Show();
@@ -32,23 +32,32 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        // Keyboard
         services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<ITrayService, TrayService>();
         services.AddSingleton<IInputMonitorService, InputMonitorService>();
         services.AddSingleton<ISavingClick, SavingClickService>();
         services.AddSingleton<IGetDataClick, GetDataClickService>();
+
+        // Mouse
+        services.AddSingleton<IMouseMonitorService, MouseMonitorService>();
+        services.AddSingleton<IMouseStatisticsService, MouseStatisticsService>();
+
+        // ViewModels
         services.AddTransient<StatisticsViewModel>();
         services.AddTransient<KeyboardViewModel>();
+        services.AddTransient<MouseViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
     }
+
     private void Application_Exit(object sender, ExitEventArgs e)
     {
-        var keyDataProcessor = ServiceProvider.GetRequiredService<ISavingClick>();
-        if (keyDataProcessor is SavingClickService service)
-        {
-            service.OnApplicationExitAsync().Wait();
-        }
-        // ((SavingClickService)keyDataProcessor).OnApplicationExitAsync().Wait();
+        var keyService = ServiceProvider.GetRequiredService<ISavingClick>();
+        if (keyService is SavingClickService keySvc)
+            keySvc.OnApplicationExitAsync().Wait();
+
+        var mouseService = ServiceProvider.GetRequiredService<IMouseStatisticsService>();
+        mouseService.OnApplicationExitAsync().Wait();
     }
 }

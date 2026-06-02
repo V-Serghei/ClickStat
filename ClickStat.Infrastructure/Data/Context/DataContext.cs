@@ -7,6 +7,8 @@ public class DataContext : DbContext
 {
     public DbSet<KeyStatistics> KeyStatistics { get; set; }
     public DbSet<KeyStatisticsForTheDay> KeyStatisticsForTheDay { get; set; }
+    public DbSet<MouseStatistics> MouseStatistics { get; set; }
+    public DbSet<MouseScrollStatistics> MouseScrollStatistics { get; set; }
     
     private readonly string _dbPath;
     
