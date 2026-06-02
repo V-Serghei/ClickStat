@@ -45,6 +45,13 @@
     <Border CornerRadius="12" Background="#12121E"
             BorderBrush="#1E1E40" BorderThickness="1">
         <Grid>
+            <!-- Background image: very low opacity, user-configurable from Settings -->
+            <Image x:Name="BgImage"
+                   Source="{Binding SettingsVm.BackgroundUri}"
+                   Stretch="UniformToFill" Opacity="0.05"
+                   Panel.ZIndex="0"/>
+
+            <Grid Panel.ZIndex="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>  <!-- title bar -->
                 <RowDefinition Height="*"/>
@@ -96,6 +103,7 @@
                 <ContentControl Grid.Column="1"
                                 Content="{Binding CurrentPageVm}"/>
             </Grid>
+            </Grid> <!-- inner panel.zindex grid -->
         </Grid>
     </Border>
 </Window>

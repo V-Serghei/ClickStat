@@ -30,9 +30,13 @@ public class OverviewViewModel : INotifyPropertyChanged
     /// <summary>Backspace count / total key presses × 100 — error rate proxy.</summary>
     public double ErrorRate        { get => _errorRate;        set { _errorRate = value;        OnPropertyChanged(); } }
 
-    public ISeries[]? DailyStatsSeries   { get; private set; }
-    public Axis[]?    XAxes               { get; private set; }
-    public Axis[]?    YAxes               { get; private set; }
+    private ISeries[]? _series;
+    private Axis[]? _xAxes;
+    private Axis[]? _yAxes;
+
+    public ISeries[]? DailyStatsSeries    { get => _series;                set { _series = value;                OnPropertyChanged(); } }
+    public Axis[]?    XAxes               { get => _xAxes;                 set { _xAxes  = value;                OnPropertyChanged(); } }
+    public Axis[]?    YAxes               { get => _yAxes;                 set { _yAxes  = value;                OnPropertyChanged(); } }
     public SolidColorPaint? LegendTextPaint       { get; private set; }
     public SolidColorPaint? TooltipBackgroundPaint{ get; private set; }
     public SolidColorPaint? TooltipTextPaint      { get; private set; }
@@ -109,11 +113,31 @@ public class OverviewViewModel : INotifyPropertyChanged
         var lookup = await _dataService.GetDailyClickCounts(dates[0], dates[^1]);
         var counts = dates.Select(d => lookup.TryGetValue(d.Date, out var c) ? c : 0).ToList();
 
-        DailyStatsSeries![0].Values = counts;
-        XAxes![0].Labels = dates.Select(d => d.ToString("dd MMM")).ToArray();
+        // Recreate series so LiveChartsCore detects the change properly
+        var text      = new SKColor(200, 200, 200);
+        var separator = new SKColor(100, 100, 100);
 
-        OnPropertyChanged(nameof(DailyStatsSeries));
-        OnPropertyChanged(nameof(XAxes));
+        DailyStatsSeries = new ISeries[]
+        {
+            new ColumnSeries<int>
+            {
+                Name   = "Нажатия",
+                Values = counts,
+                Fill   = new SolidColorPaint(new SKColor(170, 112, 255))
+            }
+        };
+        XAxes = new Axis[]
+        {
+            new Axis
+            {
+                Labels          = dates.Select(d => d.ToString("dd MMM")).ToArray(),
+                LabelsRotation  = 15,
+                TextSize        = 12,
+                NamePaint       = new SolidColorPaint(text),
+                LabelsPaint     = new SolidColorPaint(text),
+                SeparatorsPaint = new SolidColorPaint(separator)
+            }
+        };
 
         IsLoading = false;
     }

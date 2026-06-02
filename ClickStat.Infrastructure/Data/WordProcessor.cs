@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -47,17 +48,28 @@ public sealed class WordProcessor : IDisposable
 
     // ── Public API ────────────────────────────────────────────────────────
 
-    /// <summary>Call from MainViewModel.OnKeyReceived (KeyUp) when no Ctrl/Alt held.</summary>
+    /// <summary>
+    /// Call from MainViewModel.OnKeyReceived (KeyUp) when no Ctrl/Alt held.
+    /// Uses ToUnicode to get the actual character for ANY keyboard layout (RU, EN, DE, …).
+    /// </summary>
     public void ProcessKey(Keys key)
     {
         lock (_lock)
         {
-            if (IsLetter(key))
+            if (key == Keys.Back)
             {
-                char c = KeyToChar(key);
-                _buffer.Append(c);
+                if (_buffer.Length > 0) _buffer.Remove(_buffer.Length - 1, 1);
+                return;
+            }
 
-                // Track bigram (key-level, raw names)
+            // Try to resolve the actual unicode character for current layout + modifier state
+            char? ch = ResolveChar(key);
+
+            if (ch.HasValue && char.IsLetter(ch.Value))
+            {
+                _buffer.Append(char.ToLowerInvariant(ch.Value));
+
+                // Key-level bigram (layout-independent: raw key names)
                 if (_lastKey != null)
                 {
                     string bigram = $"{_lastKey}|{key}";
@@ -67,21 +79,39 @@ public sealed class WordProcessor : IDisposable
                 return;
             }
 
-            if (key == Keys.Back)
-            {
-                if (_buffer.Length > 0) _buffer.Remove(_buffer.Length - 1, 1);
-                return;
-            }
-
-            // Word boundary
-            if (IsWordBoundary(key))
-            {
+            // Word boundary: space, punctuation, enter, tab, etc.
+            if (IsWordBoundary(key) || (ch.HasValue && (char.IsWhiteSpace(ch.Value) || char.IsPunctuation(ch.Value))))
                 CompleteWord();
-            }
 
             _lastKey = null;
         }
     }
+
+    /// <summary>
+    /// Converts a virtual key to the character produced in the current keyboard layout.
+    /// Uses flag 4 (peek-only) to avoid consuming dead key state.
+    /// </summary>
+    private static char? ResolveChar(Keys key)
+    {
+        var keyState = new byte[256];
+        if (!GetKeyboardState(keyState)) return null;
+
+        var sb = new StringBuilder(4);
+        int result = ToUnicode((uint)key, 0, keyState, sb, 4, 4);
+        if (result > 0 && sb.Length > 0)
+            return sb[0];
+        return null;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetKeyboardState(byte[] lpKeyState);
+
+    [DllImport("user32.dll")]
+    private static extern int ToUnicode(
+        uint wVirtKey, uint wScanCode,
+        byte[] lpKeyState,
+        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
+        int cchBuff, uint wFlags);
 
     public void ClearBuffer()
     {
@@ -135,6 +165,20 @@ public sealed class WordProcessor : IDisposable
 
     // ── Internal ──────────────────────────────────────────────────────────
 
+    // Vowels for English and Russian — random key sequences won't have these
+    private static readonly HashSet<char> Vowels = new()
+    {
+        'a','e','i','o','u',                              // EN
+        'а','е','ё','и','й','о','у','ы','э','ю','я'      // RU
+    };
+
+    private bool HasVowel(string word)
+    {
+        foreach (char c in word)
+            if (Vowels.Contains(c)) return true;
+        return false;
+    }
+
     private void CompleteWord()
     {
         if (_buffer.Length < MinWordLength) { _buffer.Clear(); return; }
@@ -142,6 +186,9 @@ public sealed class WordProcessor : IDisposable
         string raw  = _buffer.ToString();
         string word = raw.ToLowerInvariant();
         _buffer.Clear();
+
+        // Reject random letter sequences (gaming keys, shortcuts, etc.)
+        if (!HasVowel(word)) return;
 
         _words[word] = _words.GetValueOrDefault(word) + 1;
 
@@ -253,17 +300,11 @@ public sealed class WordProcessor : IDisposable
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private static bool IsLetter(Keys key) =>
-        key is >= Keys.A and <= Keys.Z;
-
     private static bool IsWordBoundary(Keys key) => key is
         Keys.Space or Keys.Enter or Keys.Return or Keys.Tab or
         Keys.OemPeriod or Keys.Oemcomma or Keys.OemSemicolon or
         Keys.OemQuestion or Keys.Oem2 or Keys.OemQuotes or
         Keys.Escape or Keys.Delete or Keys.Next or Keys.Prior;
-
-    private static char KeyToChar(Keys key) =>
-        (char)('a' + (key - Keys.A));
 
     public async Task OnApplicationExitAsync()
     {

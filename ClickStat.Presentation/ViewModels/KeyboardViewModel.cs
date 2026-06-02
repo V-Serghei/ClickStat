@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using ClickStat.Core.Interfaces;
+using ClickStat.Infrastructure.Services;
 using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
 
@@ -36,6 +37,22 @@ public class KeyboardViewModel : INotifyPropertyChanged
     // ── Custom keys ────────────────────────────────────────────────────────
 
     public ObservableCollection<CustomKeyItem> CustomKeys { get; private set; } = new();
+
+    // ── Keyboard layout ────────────────────────────────────────────────────
+
+    private string _layoutCode = "EN";
+    private string _layoutName = "";
+
+    public string LayoutCode
+    {
+        get => _layoutCode;
+        private set { _layoutCode = value; OnPropertyChanged(); }
+    }
+    public string LayoutName
+    {
+        get => _layoutName;
+        private set { _layoutName = value; OnPropertyChanged(); }
+    }
 
     // ── Flash state (real-time key press highlight) ─────────────────────────
 
@@ -143,6 +160,17 @@ public class KeyboardViewModel : INotifyPropertyChanged
         FlashingKeys.Add(keyName);
         OnPropertyChanged(nameof(FlashingKeys));
         if (!_flashTimer.IsEnabled) _flashTimer.Start();
+
+        // 2b. Update layout (cheap call, poll on every keypress)
+        var (code, name) = LayoutService.GetCurrent();
+        if (code != LayoutCode)
+        {
+            LayoutCode = code;
+            LayoutName = name;
+            // Tell converter to use new layout labels, then refresh ALL key bindings
+            Converters.KeyNameToLabelConverter.CurrentLayoutCode = code;
+            OnPropertyChanged(nameof(KeyCounts)); // forces all key labels to re-evaluate
+        }
 
         // 3. WPM (skip pure modifiers — they don't count as typed characters)
         if (!IsModifierName(keyName))

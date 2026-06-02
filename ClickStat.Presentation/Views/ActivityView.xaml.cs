@@ -19,12 +19,17 @@ public partial class ActivityView : UserControl
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (e.NewValue is ActivityViewModel vm)
-            vm.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(ActivityViewModel.HeatmapCells))
-                    RenderHeatmap(vm);
-            };
+        if (e.NewValue is not ActivityViewModel vm) return;
+
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ActivityViewModel.HeatmapCells))
+                Dispatcher.InvokeAsync(() => RenderHeatmap(vm));
+        };
+
+        // Render immediately if data is already loaded (e.g. navigating back to this tab)
+        if (!vm.IsLoading && vm.HeatmapCells.Count > 0)
+            RenderHeatmap(vm);
     }
 
     private void RenderHeatmap(ActivityViewModel vm)
@@ -62,12 +67,15 @@ public partial class ActivityView : UserControl
         foreach (var cell in vm.HeatmapCells)
         {
             var color  = (Color)converter.Convert(cell.Intensity, typeof(Color), null!, System.Globalization.CultureInfo.InvariantCulture);
+            // Always show a subtle outline so empty slots are visible against the background
             var border = new Border
             {
-                Background   = new SolidColorBrush(color),
-                CornerRadius = new CornerRadius(3),
-                Margin       = new Thickness(1),
-                ToolTip      = cell.Tooltip
+                Background      = new SolidColorBrush(color),
+                BorderBrush     = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x2E)),
+                BorderThickness = new Thickness(0.5),
+                CornerRadius    = new CornerRadius(3),
+                Margin          = new Thickness(1),
+                ToolTip         = cell.Tooltip
             };
             Grid.SetRow(border,    cell.DayOfWeek);
             Grid.SetColumn(border, cell.Hour + 1); // +1 for label column

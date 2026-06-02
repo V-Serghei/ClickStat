@@ -245,6 +245,21 @@
                     </StackPanel>
                 </Border>
 
+                <!-- ── Keyboard layout badge ────────────────────────── -->
+                <Border HorizontalAlignment="Right" Margin="20,0,20,4"
+                        Background="#14142E" CornerRadius="6" Padding="12,5"
+                        BorderBrush="#2A2A5A" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⌨️ " FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding LayoutCode}"
+                                   Foreground="#AA70FF" FontSize="14" FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   ToolTip="{Binding LayoutName}"/>
+                        <TextBlock Text="{Binding LayoutName, StringFormat=' — {0}'}"
+                                   Foreground="#505070" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- ── Live WPM panel (visible only when tab is active) ── -->
                 <Border Margin="20,0,20,4" Padding="14,10" CornerRadius="8"
                         Background="#0E142A" BorderBrush="#2A2A5A" BorderThickness="1">

@@ -156,11 +156,29 @@ public class MouseDataProcessor : IDisposable
         }
     }
 
-    // dx, dy in raw HID units; at 96 DPI: 1 unit ≈ 0.265 mm → multiply × 265 for 0.01 mm
-    public void TrackMovement(int dx, int dy)
+    // Track actual cursor travel in screen pixels using GetCursorPos().
+    // Raw RAWMOUSE lLastX/lLastY are sensor counts (device DPI, not screen pixels),
+    // which would over-count by 10-100× depending on mouse DPI setting.
+    private System.Drawing.Point _lastCursorPos;
+    private bool _hasCursorPos;
+
+    public void TrackMovement(int rawDx, int rawDy)
     {
-        long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 265);
-        lock (_lock) _distanceBuffer += units;
+        if (!GetCursorPos(out var pt)) return;
+
+        if (_hasCursorPos)
+        {
+            int dx = pt.X - _lastCursorPos.X;
+            int dy = pt.Y - _lastCursorPos.Y;
+            if (dx != 0 || dy != 0)
+            {
+                // Screen pixels → 0.01 mm at 96 DPI: 1px = 25.4/96 mm = 0.2646mm = 26.46 × 0.01mm
+                long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 26.46);
+                lock (_lock) _distanceBuffer += units;
+            }
+        }
+        _lastCursorPos = pt;
+        _hasCursorPos  = true;
     }
 
     public void TrackClickPosition()

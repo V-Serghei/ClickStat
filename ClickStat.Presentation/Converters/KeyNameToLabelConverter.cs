@@ -7,79 +7,67 @@ namespace ClickStat.Presentation.Converters;
 
 public class KeyNameToLabelConverter : IValueConverter
 {
+    /// <summary>Set by KeyboardViewModel when layout changes. Thread-safe (UI only).</summary>
+    public static string CurrentLayoutCode { get; set; } = "EN";
+
+    // ── English / universal labels ────────────────────────────────────────
     private static readonly Dictionary<string, string> Labels = new()
     {
-        // Special
-        ["Escape"]      = "Esc",
-        ["Back"]        = "⌫",
-        ["Tab"]         = "Tab",
-        ["Capital"]     = "Caps",
-        ["Enter"]       = "↵",
-        ["Space"]       = "Space",
-        ["LShiftKey"]   = "Shift",
-        ["RShiftKey"]   = "Shift",
-        ["LControlKey"] = "Ctrl",
-        ["RControlKey"] = "Ctrl",
-        ["LWin"]        = "Win",
-        ["RWin"]        = "Win",
-        ["LMenu"]       = "Alt",
-        ["RMenu"]       = "Alt",
-
-        // Symbol row
+        ["Escape"]      = "Esc",    ["Back"]       = "⌫",
+        ["Tab"]         = "Tab",    ["Capital"]    = "Caps",
+        ["Enter"]       = "↵",      ["Space"]      = "Space",
+        ["LShiftKey"]   = "Shift",  ["RShiftKey"]  = "Shift",
+        ["LControlKey"] = "Ctrl",   ["RControlKey"]= "Ctrl",
+        ["LWin"]        = "Win",    ["RWin"]       = "Win",
+        ["LMenu"]       = "Alt",    ["RMenu"]      = "Alt",
         ["Oemtilde"]    = "` ~",
-        ["D1"] = "1",  ["D2"] = "2",  ["D3"] = "3",  ["D4"] = "4",  ["D5"] = "5",
-        ["D6"] = "6",  ["D7"] = "7",  ["D8"] = "8",  ["D9"] = "9",  ["D0"] = "0",
-        ["OemMinus"]    = "- _",
-        ["Oemplus"]     = "= +",
-        ["Oem4"]        = "[ {",
-        ["Oem6"]        = "] }",
-        ["OemPipe"]     = "\\ |",
-        ["OemSemicolon"]= "; :",
-        ["OemQuotes"]   = "' \"",
-        ["Oemcomma"]    = ", <",
-        ["OemPeriod"]   = ". >",
-        ["Oem2"]        = "/ ?",
+        ["D1"]="1",["D2"]="2",["D3"]="3",["D4"]="4",["D5"]="5",
+        ["D6"]="6",["D7"]="7",["D8"]="8",["D9"]="9",["D0"]="0",
+        ["OemMinus"]    = "- _",    ["Oemplus"]    = "= +",
+        ["Oem4"]        = "[ {",    ["Oem6"]       = "] }",
+        ["OemPipe"]     = "\\ |",   ["OemSemicolon"]= "; :",
+        ["OemQuotes"]   = "' \"",   ["Oemcomma"]   = ", <",
+        ["OemPeriod"]   = ". >",    ["Oem2"]       = "/ ?",
+        ["Insert"]      = "Ins",    ["Delete"]     = "Del",
+        ["Next"]        = "PgDn",   ["PageUp"]     = "PgUp",
+        ["PrintScreen"] = "PrtSc",  ["LaunchApplication2"] = "ScrLk",
+        ["MediaStop"]   = "Pause",  ["Scroll"]     = "ScrLk",
+        ["NumLock"]     = "Num",    ["Clear"]      = "Clr",
+        ["Divide"]      = "/",      ["Multiply"]   = "*",
+        ["Subtract"]    = "−",      ["Add"]        = "+",
+        ["Decimal"]     = ".",
+        ["NumPad0"]="0",["NumPad1"]="1",["NumPad2"]="2",["NumPad3"]="3",
+        ["NumPad4"]="4",["NumPad5"]="5",["NumPad6"]="6",
+        ["NumPad7"]="7",["NumPad8"]="8",["NumPad9"]="9",
+        ["Up"]="↑",["Down"]="↓",["Left"]="←",["Right"]="→",
+        ["MediaPreviousTrack"]="|◀",["MediaPlayPause"]="▶||",["MediaNextTrack"]="▶|",
+        ["VolumeMute"]="Mute",["VolumeDown"]="Vol−",["VolumeUp"]="Vol+",
+    };
 
-        // Navigation
-        ["Insert"]      = "Ins",
-        ["Delete"]      = "Del",
-        ["Next"]        = "PgDn",
-        ["PageUp"]      = "PgUp",
-        ["PrintScreen"] = "PrtSc",
-        ["LaunchApplication2"] = "ScrLk",
-        ["MediaStop"]   = "Pause",
-        ["Scroll"]      = "ScrLk",
-        ["Pause"]       = "Pause",
-
-        // Arrows
-        ["Up"]    = "↑",
-        ["Down"]  = "↓",
-        ["Left"]  = "←",
-        ["Right"] = "→",
-
-        // Numpad
-        ["NumLock"]  = "Num",
-        ["Clear"]    = "Clr",
-        ["Divide"]   = "/",
-        ["Multiply"] = "*",
-        ["Subtract"] = "−",
-        ["Add"]      = "+",
-        ["Decimal"]  = ".",
-        ["NumPad0"]  = "0", ["NumPad1"] = "1", ["NumPad2"] = "2", ["NumPad3"] = "3",
-        ["NumPad4"]  = "4", ["NumPad5"] = "5", ["NumPad6"] = "6",
-        ["NumPad7"]  = "7", ["NumPad8"] = "8", ["NumPad9"] = "9",
-
-        // Media
-        ["MediaPreviousTrack"] = "|◀",
-        ["MediaPlayPause"]     = "▶||",
-        ["MediaNextTrack"]     = "▶|",
-        ["VolumeMute"]         = "Mute",
-        ["VolumeDown"]         = "Vol−",
-        ["VolumeUp"]           = "Vol+",
+    // ── Russian (ЙЦУКЕН) layout — QWERTY key → Cyrillic ──────────────────
+    private static readonly Dictionary<string, string> RuLabels = new()
+    {
+        ["Q"]="Й",["W"]="Ц",["E"]="У",["R"]="К",["T"]="Е",
+        ["Y"]="Н",["U"]="Г",["I"]="Ш",["O"]="Щ",["P"]="З",
+        ["A"]="Ф",["S"]="Ы",["D"]="В",["F"]="А",["G"]="П",
+        ["H"]="Р",["J"]="О",["K"]="Л",["L"]="Д",
+        ["Z"]="Я",["X"]="Ч",["C"]="С",["V"]="М",
+        ["B"]="И",["N"]="Т",["M"]="Ь",
+        ["Oem4"]="Х",["Oem6"]="Ъ",["OemSemicolon"]="Ж",
+        ["Oemcomma"]="Б",["OemPeriod"]="Ю",["OemQuotes"]="Э",
+        ["Oemtilde"]="Ё",["OemPipe"]="\\ /",
     };
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value is string name && Labels.TryGetValue(name, out var label) ? label : value?.ToString() ?? "";
+    {
+        if (value is not string keyName) return "";
+
+        // For Russian layout: override letter and some symbol keys
+        if (CurrentLayoutCode == "RU" && RuLabels.TryGetValue(keyName, out var ru))
+            return ru;
+
+        return Labels.TryGetValue(keyName, out var label) ? label : keyName;
+    }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
