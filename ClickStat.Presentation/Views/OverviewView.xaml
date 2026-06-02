@@ -61,10 +61,16 @@
         <!-- Chart -->
         <Border Grid.Row="2" Background="#0E0E1C" CornerRadius="10" Padding="16"
                 BorderBrush="#1A1A3A" BorderThickness="1">
-            <StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
                 <TextBlock Text="Нажатия за последние 10 дней"
                            Foreground="#505080" FontSize="12" Margin="0,0,0,12"/>
                 <lvc:CartesianChart
+                    Grid.Row="1"
+                    MinHeight="260"
                     Series="{Binding DailyStatsSeries}"
                     XAxes="{Binding XAxes}"
                     YAxes="{Binding YAxes}"
@@ -73,7 +79,7 @@
                     TooltipPosition="Top"
                     TooltipBackgroundPaint="{Binding TooltipBackgroundPaint}"
                     TooltipTextPaint="{Binding TooltipTextPaint}"/>
-            </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

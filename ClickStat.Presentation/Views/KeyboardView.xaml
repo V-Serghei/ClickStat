@@ -93,9 +93,12 @@
                                        IsHitTestVisible="False"
                                        TextAlignment="Center">
                                 <TextBlock.Text>
-                                    <Binding Path="Content"
-                                             RelativeSource="{RelativeSource TemplatedParent}"
-                                             Converter="{StaticResource KeyLabel}"/>
+                                    <MultiBinding Converter="{StaticResource KeyLabel}">
+                                        <Binding Path="Content"
+                                                 RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        <Binding Path="DataContext.LayoutCode"
+                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                    </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
 
@@ -149,9 +152,12 @@
                         <StackPanel>
                             <TextBlock FontWeight="Bold" FontSize="15" Foreground="#AA70FF">
                                 <TextBlock.Text>
-                                    <Binding Path="PlacementTarget.Content"
-                                             RelativeSource="{RelativeSource AncestorType=ToolTip}"
-                                             Converter="{StaticResource KeyLabel}"/>
+                                    <MultiBinding Converter="{StaticResource KeyLabel}">
+                                        <Binding Path="PlacementTarget.Content"
+                                                 RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
+                                        <Binding Path="PlacementTarget.DataContext.LayoutCode"
+                                                 RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
+                                    </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
                             <TextBlock Foreground="#A0A0C0" FontSize="11" Margin="0,2,0,0">

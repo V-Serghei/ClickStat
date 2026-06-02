@@ -5,7 +5,7 @@ using System.Windows.Data;
 
 namespace ClickStat.Presentation.Converters;
 
-public class KeyNameToLabelConverter : IValueConverter
+public class KeyNameToLabelConverter : IValueConverter, IMultiValueConverter
 {
     /// <summary>Set by KeyboardViewModel when layout changes. Thread-safe (UI only).</summary>
     public static string CurrentLayoutCode { get; set; } = "EN";
@@ -61,14 +61,32 @@ public class KeyNameToLabelConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not string keyName) return "";
+        return GetLabel(keyName, CurrentLayoutCode);
+    }
 
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values.Length == 0 || values[0] is not string keyName) return "";
+
+        var layoutCode = values.Length > 1 && values[1] is string code
+            ? code
+            : CurrentLayoutCode;
+
+        return GetLabel(keyName, layoutCode);
+    }
+
+    private static string GetLabel(string keyName, string layoutCode)
+    {
         // For Russian layout: override letter and some symbol keys
-        if (CurrentLayoutCode == "RU" && RuLabels.TryGetValue(keyName, out var ru))
+        if (layoutCode == "RU" && RuLabels.TryGetValue(keyName, out var ru))
             return ru;
 
         return Labels.TryGetValue(keyName, out var label) ? label : keyName;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

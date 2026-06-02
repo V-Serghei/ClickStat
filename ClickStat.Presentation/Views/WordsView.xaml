@@ -55,7 +55,7 @@
                             <TextBlock Text="{Binding UniqueCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="Известных слов (словарь)" Foreground="#606080" FontSize="11"/>
+                            <TextBlock Text="Слов после фильтра" Foreground="#606080" FontSize="11"/>
                             <TextBlock Text="{Binding KnownPercent, StringFormat='{}{0}%'}"
                                        Foreground="#AA70FF" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -71,7 +71,7 @@
 
                     <!-- Left column: words -->
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="📚 Известные слова (из словаря)" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="📚 Слова" Style="{StaticResource SectionTitle}"/>
                         <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
                             <ItemsControl ItemsSource="{Binding KnownWords}">
                                 <ItemsControl.ItemsPanel>
@@ -91,7 +91,7 @@
                             </ItemsControl>
                         </Border>
 
-                        <TextBlock Text="🔤 Код / идентификаторы" Style="{StaticResource SectionTitle}" Margin="0,20,0,10"/>
+                        <TextBlock Text="🔤 Прочие токены" Style="{StaticResource SectionTitle}" Margin="0,20,0,10"/>
                         <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
                             <ItemsControl ItemsSource="{Binding UniqueWords}">
                                 <ItemsControl.ItemsPanel>

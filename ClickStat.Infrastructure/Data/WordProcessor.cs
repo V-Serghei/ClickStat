@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ClickStat.Infrastructure.Data.Context;
 using ClickStat.Infrastructure.Data.Model;
+using ClickStat.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Timer = System.Timers.Timer;
 
@@ -21,6 +22,7 @@ public sealed class WordProcessor : IDisposable
 {
     private const int FlushIntervalSeconds = 30;
     private const int MinWordLength        = 2;
+    private const int MaxWordLength        = 32;
 
     private readonly string _dbPath;
     private readonly Timer  _timer;
@@ -40,6 +42,7 @@ public sealed class WordProcessor : IDisposable
         _dbPath    = Path.Combine(docs, "KeyClick", "key_statistics.db");
 
         EnsureSchema();
+        CleanInvalidHistory();
 
         _timer = new Timer(FlushIntervalSeconds * 1000) { AutoReset = true };
         _timer.Elapsed += async (_, _) => await Flush();
@@ -97,7 +100,9 @@ public sealed class WordProcessor : IDisposable
         if (!GetKeyboardState(keyState)) return null;
 
         var sb = new StringBuilder(4);
-        int result = ToUnicode((uint)key, 0, keyState, sb, 4, 4);
+        var layout = LayoutService.GetCurrentKeyboardLayoutHandle();
+        uint scanCode = (uint)MapVirtualKeyEx((uint)key, 0, layout);
+        int result = ToUnicodeEx((uint)key, scanCode, keyState, sb, 4, 4, layout);
         if (result > 0 && sb.Length > 0)
             return sb[0];
         return null;
@@ -107,11 +112,17 @@ public sealed class WordProcessor : IDisposable
     private static extern bool GetKeyboardState(byte[] lpKeyState);
 
     [DllImport("user32.dll")]
-    private static extern int ToUnicode(
-        uint wVirtKey, uint wScanCode,
+    private static extern int ToUnicodeEx(
+        uint wVirtKey,
+        uint wScanCode,
         byte[] lpKeyState,
         [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
-        int cchBuff, uint wFlags);
+        int cchBuff,
+        uint wFlags,
+        IntPtr dwhkl);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKeyEx(uint uCode, uint uMapType, IntPtr dwhkl);
 
     public void ClearBuffer()
     {
@@ -127,10 +138,14 @@ public sealed class WordProcessor : IDisposable
     public async Task<List<WordStatistics>> GetTopWords(int limit = 50)
     {
         await using var ctx = new DataContext(_dbPath);
-        return await ctx.WordStatistics
+        var words = await ctx.WordStatistics
             .OrderByDescending(w => w.Count)
-            .Take(limit)
             .ToListAsync();
+
+        return words
+            .Where(w => IsAcceptableWord(w.Word))
+            .Take(limit)
+            .ToList();
     }
 
     public async Task<List<KeyBigram>> GetTopBigrams(int limit = 30)
@@ -145,39 +160,133 @@ public sealed class WordProcessor : IDisposable
     public async Task<List<WordPhrase>> GetTopPhrases(int limit = 30)
     {
         await using var ctx = new DataContext(_dbPath);
-        return await ctx.WordPhrases
+        var phrases = await ctx.WordPhrases
             .OrderByDescending(p => p.Count)
-            .Take(limit)
             .ToListAsync();
+
+        return phrases
+            .Where(p => IsAcceptablePhrase(p.Phrase))
+            .Take(limit)
+            .ToList();
     }
 
     public async Task<int> GetTotalWordsTyped()
     {
         await using var ctx = new DataContext(_dbPath);
-        return (int)await ctx.WordStatistics.SumAsync(w => (long)w.Count);
+        var words = await ctx.WordStatistics.ToListAsync();
+        return words.Where(w => IsAcceptableWord(w.Word)).Sum(w => w.Count);
     }
 
     public async Task<int> GetUniqueWordsCount()
     {
         await using var ctx = new DataContext(_dbPath);
-        return await ctx.WordStatistics.CountAsync();
+        var words = await ctx.WordStatistics.ToListAsync();
+        return words.Count(w => IsAcceptableWord(w.Word));
     }
 
     // ── Internal ──────────────────────────────────────────────────────────
 
-    // Vowels for English and Russian — random key sequences won't have these
-    private static readonly HashSet<char> Vowels = new()
+    private static readonly HashSet<char> RussianVowels = new()
     {
-        'a','e','i','o','u',                              // EN
-        'а','е','ё','и','й','о','у','ы','э','ю','я'      // RU
+        'а','е','ё','и','й','о','у','ы','э','ю','я'
     };
 
-    private bool HasVowel(string word)
+    private static readonly HashSet<string> RussianShortWords = new(StringComparer.OrdinalIgnoreCase)
     {
-        foreach (char c in word)
-            if (Vowels.Contains(c)) return true;
+        "а","я","в","к","с","у","о",
+        "да","не","на","но","он","мы","вы","ты","то","та","те","же","ли","из","за","по","до","от",
+        "во","со","об","ну","их","ее","её","уж","ой","ах",
+        "это","так","там","тут","тот","кто","что","как","где","все","всё","еще","ещё","уже","или",
+        "для","без","под","над","при","про","чем","она","оно","они","его","мой","моя","дом","код",
+        "мир","сын","два","три","раз"
+    };
+
+    public static bool IsAcceptableWord(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+
+        string word = raw.Trim().ToLowerInvariant();
+        if (word.Length < MinWordLength || word.Length > MaxWordLength) return false;
+        if (word.Any(c => !char.IsLetter(c))) return false;
+        if (HasExcessiveRepeats(word)) return false;
+
+        bool hasLatin = word.Any(IsLatinLetter);
+        bool hasRussian = word.Any(IsRussianLetter);
+        if (hasLatin == hasRussian) return false;
+
+        return hasLatin
+            ? IsKnownEnglishWord(word)
+            : IsLikelyRussianWord(word);
+    }
+
+    public static bool IsRecognizedWord(string word) => IsAcceptableWord(word);
+
+    private static bool IsAcceptablePhrase(string phrase)
+    {
+        var parts = phrase.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length is 2 or 3 && parts.All(IsAcceptableWord);
+    }
+
+    private static bool IsKnownEnglishWord(string word)
+    {
+        // Latin keyboard garbage is common, so English uses a dictionary gate.
+        return EnglishDictionary.Contains(word);
+    }
+
+    private static bool IsLikelyRussianWord(string word)
+    {
+        if (!word.Any(RussianVowels.Contains)) return false;
+
+        if (word.Length <= 3)
+        {
+            if (RussianShortWords.Contains(word)) return true;
+            return word.Length == 3 &&
+                   IsRussianConsonant(word[0]) &&
+                   RussianVowels.Contains(word[1]) &&
+                   IsRussianConsonant(word[2]);
+        }
+
+        return !HasImpossibleRuns(word, RussianVowels.Contains, maxConsonants: 4, maxVowels: 3);
+    }
+
+    private static bool HasExcessiveRepeats(string word)
+    {
+        var run = 1;
+        for (int i = 1; i < word.Length; i++)
+        {
+            run = word[i] == word[i - 1] ? run + 1 : 1;
+            if (run > 2) return true;
+        }
         return false;
     }
+
+    private static bool HasImpossibleRuns(string word, Func<char, bool> isVowel, int maxConsonants, int maxVowels)
+    {
+        var consonants = 0;
+        var vowels = 0;
+
+        foreach (char c in word)
+        {
+            if (isVowel(c))
+            {
+                vowels++;
+                consonants = 0;
+                if (vowels > maxVowels) return true;
+            }
+            else
+            {
+                consonants++;
+                vowels = 0;
+                if (consonants > maxConsonants) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsLatinLetter(char c) => c is >= 'a' and <= 'z';
+    private static bool IsRussianLetter(char c) => c is (>= 'а' and <= 'я') or 'ё';
+    private static bool IsRussianConsonant(char c) => IsRussianLetter(c) && !RussianVowels.Contains(c);
 
     private void CompleteWord()
     {
@@ -187,8 +296,11 @@ public sealed class WordProcessor : IDisposable
         string word = raw.ToLowerInvariant();
         _buffer.Clear();
 
-        // Reject random letter sequences (gaming keys, shortcuts, etc.)
-        if (!HasVowel(word)) return;
+        if (!IsAcceptableWord(word))
+        {
+            _lastWords.Clear();
+            return;
+        }
 
         _words[word] = _words.GetValueOrDefault(word) + 1;
 
@@ -233,6 +345,7 @@ public sealed class WordProcessor : IDisposable
                 {
                     existing.Count   += count;
                     existing.LastTyped = DateTime.Now;
+                    existing.IsKnown = IsRecognizedWord(word);
                 }
                 else
                     ctx.WordStatistics.Add(new WordStatistics
@@ -240,7 +353,7 @@ public sealed class WordProcessor : IDisposable
                         Word      = word,
                         Count     = count,
                         LastTyped = DateTime.Now,
-                        IsKnown   = EnglishDictionary.Contains(word)
+                        IsKnown   = IsRecognizedWord(word)
                     });
             }
 
@@ -296,6 +409,31 @@ public sealed class WordProcessor : IDisposable
                 Phrase TEXT    PRIMARY KEY,
                 Count  INTEGER NOT NULL DEFAULT 0
             )");
+    }
+
+    private void CleanInvalidHistory()
+    {
+        using var ctx = new DataContext(_dbPath);
+
+        var words = ctx.WordStatistics.ToList();
+        var invalidWords = words.Where(w => !IsAcceptableWord(w.Word)).ToList();
+        if (invalidWords.Count > 0)
+            ctx.WordStatistics.RemoveRange(invalidWords);
+
+        foreach (var word in words.Except(invalidWords))
+        {
+            bool isKnown = IsRecognizedWord(word.Word);
+            if (word.IsKnown != isKnown)
+                word.IsKnown = isKnown;
+        }
+
+        var phrases = ctx.WordPhrases.ToList();
+        var invalidPhrases = phrases.Where(p => !IsAcceptablePhrase(p.Phrase)).ToList();
+        if (invalidPhrases.Count > 0)
+            ctx.WordPhrases.RemoveRange(invalidPhrases);
+
+        if (invalidWords.Count > 0 || invalidPhrases.Count > 0 || ctx.ChangeTracker.HasChanges())
+            ctx.SaveChanges();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

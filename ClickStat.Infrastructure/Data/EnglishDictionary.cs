@@ -130,5 +130,12 @@ public static class EnglishDictionary
         "account","profile","team","project","task","issue","bug","feature","version",
         "release","build","test","debug","run","start","stop","server","client",
         "database","query","result","status","progress","loading","done","ready",
+        "hello","hi","thanks","thank","please","sorry","fine","okay","okey","nice",
+        "keyboard","mouse","typing","typed","layout","layouts","letter","letters",
+        "word","words","phrase","phrases","input","stat","stats","statistic","statistics",
+        "english","russian","language","screen","tab","tabs","empty","history","garbage",
+        "trash","meaning","filter","filtered","clean","clear","cleanup","dynamic","live",
+        "overview","activity","application","applications","app","apps","space","shift",
+        "control","alt","enter","escape","delete","backspace","caps","lock","scroll",
     };
 }

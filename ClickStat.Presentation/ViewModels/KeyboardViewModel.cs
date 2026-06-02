@@ -59,6 +59,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public HashSet<string> FlashingKeys { get; } = new();
     private readonly Dictionary<string, DateTime> _flashExpiry = new();
     private readonly DispatcherTimer _flashTimer;
+    private readonly DispatcherTimer _layoutTimer;
 
     // ── WPM tracking ───────────────────────────────────────────────────────
 
@@ -92,10 +93,15 @@ public class KeyboardViewModel : INotifyPropertyChanged
             OnPropertyChanged();
 
             if (_isLiveActive)
+            {
+                UpdateLayoutInfo(force: true);
+                _layoutTimer.Start();
                 _liveBus.KeyPressed += OnLiveKeyPress;
+            }
             else
             {
                 _liveBus.KeyPressed -= OnLiveKeyPress;
+                _layoutTimer.Stop();
                 // Clear flash state on deactivate
                 FlashingKeys.Clear();
                 _flashExpiry.Clear();
@@ -114,6 +120,10 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
         _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
         _flashTimer.Tick += OnFlashTick;
+
+        _layoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _layoutTimer.Tick += (_, _) => UpdateLayoutInfo();
+        UpdateLayoutInfo(force: true);
 
         _ = LoadKeyCountsAsync();
     }
@@ -136,6 +146,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
         CustomKeys = new ObservableCollection<CustomKeyItem>(custom);
 
+        UpdateLayoutInfo(force: true);
         OnPropertyChanged(string.Empty);
         IsLoading = false;
     }
@@ -161,16 +172,8 @@ public class KeyboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(FlashingKeys));
         if (!_flashTimer.IsEnabled) _flashTimer.Start();
 
-        // 2b. Update layout (cheap call, poll on every keypress)
-        var (code, name) = LayoutService.GetCurrent();
-        if (code != LayoutCode)
-        {
-            LayoutCode = code;
-            LayoutName = name;
-            // Tell converter to use new layout labels, then refresh ALL key bindings
-            Converters.KeyNameToLabelConverter.CurrentLayoutCode = code;
-            OnPropertyChanged(nameof(KeyCounts)); // forces all key labels to re-evaluate
-        }
+        // 2b. Update layout immediately on input; timer also catches layout hotkeys.
+        UpdateLayoutInfo();
 
         // 3. WPM (skip pure modifiers — they don't count as typed characters)
         if (!IsModifierName(keyName))
@@ -224,6 +227,16 @@ public class KeyboardViewModel : INotifyPropertyChanged
         "LControlKey" or "RControlKey" or "ControlKey" or
         "LMenu" or "RMenu" or "Menu"                 or
         "LWin" or "RWin";
+
+    private void UpdateLayoutInfo(bool force = false)
+    {
+        var (code, name) = LayoutService.GetCurrent();
+        if (!force && code == LayoutCode && name == LayoutName) return;
+
+        LayoutCode = code;
+        LayoutName = name;
+        Converters.KeyNameToLabelConverter.CurrentLayoutCode = code;
+    }
 
     // All key names shown in the XAML keyboard layout
     private static readonly HashSet<string> StandardKeys = new()
