@@ -1,16 +1,26 @@
 using System;
 using System.Windows.Forms;
+using Gma.System.MouseKeyHook;
 
 namespace ClickStat.Infrastructure.InputMonitoring;
 
+/// <summary>
+/// Primary mouse monitor — uses WH_MOUSE_LL global hook (Gma.System.MouseKeyHook).
+/// Works in background regardless of window focus or visibility.
+/// RawMouseMonitor is kept as a supplemental hook for extra-button detection.
+/// </summary>
 public class MouseMonitor : IDisposable
 {
+    private IKeyboardMouseEvents? _globalHook;
     private readonly RawMouseMonitor _raw = new();
 
-    // button enum + int code (matching MouseButtons enum values)
-    public event Action<MouseButtons, int>? ButtonPressed;
-    // positive = scroll up notches, negative = scroll down notches
-    public event Action<int>? Scrolled;
+    // Position tracking for distance calculation (screen pixels)
+    private int  _lastX = -1;
+    private int  _lastY = -1;
+
+    public event Action<MouseButtons, int>? ButtonPressed; // button, button code
+    public event Action<int>?              Scrolled;       // notches (positive=up)
+    public event Action<int, int>?         Moved;          // screen-pixel delta (dx, dy)
 
     private static readonly (MouseButtons btn, int code)[] ButtonMap =
     {
@@ -21,31 +31,57 @@ public class MouseMonitor : IDisposable
         (MouseButtons.XButton2, (int)MouseButtons.XButton2),
     };
 
-    public event Action<int, int>? Moved;
-
-    public MouseMonitor()
+    public void Subscribe()
     {
-        _raw.ButtonDown += OnRawButton;
-        _raw.Wheel      += notches => Scrolled?.Invoke(notches);
-        _raw.Moved      += (dx, dy) => Moved?.Invoke(dx, dy);
+        _globalHook = Hook.GlobalEvents();
+        _globalHook.MouseDown  += OnMouseDown;
+        _globalHook.MouseWheel += OnMouseWheel;
+        _globalHook.MouseMove  += OnMouseMove;
     }
 
-    private void OnRawButton(int rawNumber)
+    public void Unsubscribe()
     {
-        // rawNumber: 1=Left, 2=Right, 3=Middle, 4=Back, 5=Forward
-        int idx = rawNumber - 1;
-        if (idx < 0 || idx >= ButtonMap.Length) return;
-        var (btn, code) = ButtonMap[idx];
-        ButtonPressed?.Invoke(btn, code);
+        if (_globalHook == null) return;
+        _globalHook.MouseDown  -= OnMouseDown;
+        _globalHook.MouseWheel -= OnMouseWheel;
+        _globalHook.MouseMove  -= OnMouseMove;
+        _globalHook.Dispose();
+        _globalHook = null;
+    }
+
+    private void OnMouseDown(object? sender, MouseEventArgs e)
+    {
+        ButtonPressed?.Invoke(e.Button, (int)e.Button);
+    }
+
+    private void OnMouseWheel(object? sender, MouseEventArgs e)
+    {
+        int notches = e.Delta / 120;
+        if (notches != 0) Scrolled?.Invoke(notches);
+    }
+
+    private void OnMouseMove(object? sender, MouseEventArgs e)
+    {
+        if (_lastX >= 0)
+        {
+            int dx = e.X - _lastX;
+            int dy = e.Y - _lastY;
+            if (dx != 0 || dy != 0)
+                Moved?.Invoke(dx, dy);
+        }
+        _lastX = e.X;
+        _lastY = e.Y;
     }
 
     /// <summary>
-    /// Must be called after the main window is shown so the HWND exists.
+    /// Optional: register Raw Input hook for buttons beyond XButton2 (G502X extra buttons).
+    /// Must be called after main window is shown.
     /// </summary>
     public void InitializeRawInput(IntPtr hwnd) => _raw.Initialize(hwnd);
 
-    public void Subscribe()   { /* Raw Input is always active once Initialize is called */ }
-    public void Unsubscribe() { /* kept for interface compatibility */ }
-
-    public void Dispose() => _raw.Dispose();
+    public void Dispose()
+    {
+        Unsubscribe();
+        _raw.Dispose();
+    }
 }

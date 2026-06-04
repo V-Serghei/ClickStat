@@ -29,6 +29,9 @@ public sealed class AppUsageProcessor : IDisposable
     private string  _currentName = "unknown";
     private DateTime _lastPoll   = DateTime.MinValue;
 
+    // Cache exe path → friendly product name so FileVersionInfo isn't called on every poll
+    private readonly Dictionary<string, string> _nameCache = new();
+
     public AppUsageProcessor()
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -80,11 +83,43 @@ public sealed class AppUsageProcessor : IDisposable
             GetWindowThreadProcessId(hwnd, out uint pid);
             var proc = Process.GetProcessById((int)pid);
 
-            _currentExe  = proc.ProcessName.ToLowerInvariant();
-            _currentName = proc.MainWindowTitle.Length > 0 ? proc.MainWindowTitle : proc.ProcessName;
-            if (_currentName.Length > 80) _currentName = _currentName[..80];
+            // Use exe filename (e.g. "chrome.exe") as the stable unique key
+            string exePath = proc.MainModule?.FileName ?? "";
+            string exeName = Path.GetFileName(exePath);
+            if (string.IsNullOrEmpty(exeName)) exeName = proc.ProcessName + ".exe";
+
+            _currentExe  = exeName.ToLowerInvariant();
+            _currentName = ResolveFriendlyName(exePath, proc.ProcessName);
         }
-        catch { /* process may have exited */ }
+        catch { /* process may have exited or access is denied (system processes) */ }
+    }
+
+    /// <summary>
+    /// Reads ProductName (or FileDescription) from the exe's version info.
+    /// Falls back to process name. Results are cached per exe path.
+    /// </summary>
+    private string ResolveFriendlyName(string exePath, string processName)
+    {
+        if (_nameCache.TryGetValue(exePath, out var cached)) return cached;
+
+        string result = processName; // fallback
+        try
+        {
+            if (!string.IsNullOrEmpty(exePath))
+            {
+                var vi = FileVersionInfo.GetVersionInfo(exePath);
+                // ProductName is the proper app name (e.g. "Google Chrome")
+                // FileDescription is a secondary option (e.g. "Google Chrome")
+                result = vi.ProductName?.Trim()
+                      ?? vi.FileDescription?.Trim()
+                      ?? processName;
+                if (string.IsNullOrWhiteSpace(result)) result = processName;
+            }
+        }
+        catch { /* access denied on some system exes */ }
+
+        _nameCache[exePath] = result;
+        return result;
     }
 
     public async Task<List<AppUsageStatistics>> GetTopApps(int limit = 20)

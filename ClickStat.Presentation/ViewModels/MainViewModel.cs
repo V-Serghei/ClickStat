@@ -167,13 +167,38 @@ namespace ClickStat.Presentation.ViewModels
 
         private void UpdateLiveMode(AppPage page)
         {
+            OverviewVm.IsLiveActive = (page == AppPage.Overview);
             KeyboardVm.IsLiveActive = (page == AppPage.Keyboard);
             MouseVm.IsLiveActive    = (page == AppPage.Mouse);
 
-            // Load data when switching to a data-heavy tab
-            if (page == AppPage.Activity) _ = ActivityVm.LoadAsync();
-            if (page == AppPage.Words)    _ = WordsVm.LoadAsync();
-            if (page == AppPage.Apps)     _ = AppsVm.LoadAsync();
+            // Flush buffer → load fresh DB data. Order matters: flush first, then read.
+            switch (page)
+            {
+                case AppPage.Overview:
+                    _ = FlushThenLoad(_savingClickService.FlushAsync, OverviewVm.LoadStatsAsync);
+                    break;
+                case AppPage.Keyboard:
+                    _ = FlushThenLoad(_savingClickService.FlushAsync, KeyboardVm.LoadKeyCountsAsync);
+                    break;
+                case AppPage.Mouse:
+                    _ = FlushThenLoad(_mouseStatisticsService.FlushAsync, MouseVm.LoadDataAsync);
+                    break;
+                case AppPage.Activity:
+                    _ = ActivityVm.LoadAsync();
+                    break;
+                case AppPage.Words:
+                    _ = WordsVm.LoadAsync();
+                    break;
+                case AppPage.Apps:
+                    _ = AppsVm.LoadAsync();
+                    break;
+            }
+        }
+
+        private static async Task FlushThenLoad(Func<Task> flush, Func<Task> load)
+        {
+            await flush();
+            await load();
         }
 
         // ── Keyboard events ──────────────────────────────────────────────────

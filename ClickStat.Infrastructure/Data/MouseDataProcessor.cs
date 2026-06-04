@@ -156,33 +156,13 @@ public class MouseDataProcessor : IDisposable
         }
     }
 
-    // Track actual cursor travel in screen pixels using GetCursorPos().
-    // Raw RAWMOUSE lLastX/lLastY are sensor counts (device DPI, not screen pixels).
-    private System.Drawing.Point _lastCursorPos;
-    private bool _hasCursorPos;
-
-    public void TrackMovement(int rawDx, int rawDy)
+    // dx, dy = screen-pixel deltas from WH_MOUSE_LL global hook.
+    // 1 screen pixel at 96 DPI ≈ 0.2646 mm = 26.46 × 0.01mm units.
+    // Using the global hook gives accurate screen-pixel movement independent of mouse DPI.
+    public void TrackMovement(int dx, int dy)
     {
-        if (!GetCursorPos(out var pt)) return;
-
-        if (_hasCursorPos)
-        {
-            int dx = pt.X - _lastCursorPos.X;
-            int dy = pt.Y - _lastCursorPos.Y;
-            if (dx != 0 || dy != 0)
-            {
-                double pixelDistance = Math.Sqrt((double)dx * dx + (double)dy * dy);
-                if (pixelDistance <= GetVirtualScreenDiagonalPixels() * 1.5)
-                {
-                    double mm = GetMovementMillimeters(dx, dy, pt);
-                    long units = (long)Math.Round(mm * 100.0); // 0.01-mm units
-                    if (units > 0)
-                        lock (_lock) _distanceBuffer += units;
-                }
-            }
-        }
-        _lastCursorPos = pt;
-        _hasCursorPos  = true;
+        long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 26.46);
+        if (units > 0) lock (_lock) _distanceBuffer += units;
     }
 
     public void TrackClickPosition()
@@ -341,6 +321,9 @@ public class MouseDataProcessor : IDisposable
             Console.WriteLine($"Mouse flush failed: {ex.Message}");
         }
     }
+
+    /// <summary>Force-flush the in-memory buffer to DB immediately (e.g. before reading fresh data).</summary>
+    public Task FlushAsync() => FlushToDatabase();
 
     public async Task OnApplicationExitAsync()
     {

@@ -120,6 +120,9 @@ public class KeyDataProcessor
         }
     }
 
+    /// <summary>Force-flush the in-memory buffer to DB immediately (e.g. before reading fresh data).</summary>
+    public Task FlushAsync() => SaveToDatabaseBuffered();
+
     public async Task OnApplicationExitAsync()
     {
         _saveTimer.Stop();

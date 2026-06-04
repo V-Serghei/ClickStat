@@ -28,5 +28,6 @@ public class MouseStatisticsService : IMouseStatisticsService
     public Task<MouseScrollStatistics?> GetScrollStatistics() =>
         _processor.GetScrollStatistics();
 
+    public Task FlushAsync()             => _processor.FlushAsync();
     public Task OnApplicationExitAsync() => _processor.OnApplicationExitAsync();
 }

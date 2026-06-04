@@ -14,5 +14,6 @@ public interface IMouseStatisticsService
     Task RegisterCustomButton(int buttonCode, string buttonName);
     Task<List<MouseStatistics>> GetButtonStatistics();
     Task<MouseScrollStatistics?> GetScrollStatistics();
+    Task FlushAsync();
     Task OnApplicationExitAsync();
 }

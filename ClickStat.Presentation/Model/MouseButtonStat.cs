@@ -34,6 +34,8 @@ public class MouseButtonStat : INotifyPropertyChanged
         set { _isActive = value; OnPropertyChanged(); }
     }
 
+    public void DoActive() => IsActive = true;
+
     public MouseButtonStat(int buttonCode, string buttonName)
     {
         ButtonCode = buttonCode;

@@ -10,5 +10,7 @@ public class SavingClickService: ISavingClick
 
     public Task SaveClick(Keys key) => _keyData.ProcessKeyPress(key);
 
+    public Task FlushAsync() => _keyData.FlushAsync();
+
     public Task OnApplicationExitAsync() => _keyData.OnApplicationExitAsync();
 }

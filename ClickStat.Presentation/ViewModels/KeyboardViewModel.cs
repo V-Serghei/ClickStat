@@ -96,13 +96,12 @@ public class KeyboardViewModel : INotifyPropertyChanged
             {
                 UpdateLayoutInfo(force: true);
                 _layoutTimer.Start();
-                _liveBus.KeyPressed += OnLiveKeyPress;
+                // Note: KeyPressed subscription is permanent (set in constructor)
             }
             else
             {
-                _liveBus.KeyPressed -= OnLiveKeyPress;
                 _layoutTimer.Stop();
-                // Clear flash state on deactivate
+                // Clear flash animations only
                 FlashingKeys.Clear();
                 _flashExpiry.Clear();
                 _flashTimer.Stop();
@@ -125,6 +124,9 @@ public class KeyboardViewModel : INotifyPropertyChanged
         _layoutTimer.Tick += (_, _) => UpdateLayoutInfo();
         UpdateLayoutInfo(force: true);
 
+        // Always subscribe — key presses accumulate in KeyCounts regardless of active tab
+        _liveBus.KeyPressed += OnLiveKeyPress;
+
         _ = LoadKeyCountsAsync();
     }
 
@@ -133,7 +135,6 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public async Task LoadKeyCountsAsync()
     {
         IsLoading = true;
-        await Task.Delay(200);
 
         var stats  = await _dataClickService.GetKeyStatistics();
         KeyCounts  = stats.ToDictionary(s => s.KeyName, s => s.Count);
