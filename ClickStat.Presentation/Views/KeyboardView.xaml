@@ -165,8 +165,8 @@
                                 <Run FontWeight="Bold" Foreground="White">
                                     <Run.Text>
                                         <MultiBinding Converter="{StaticResource CountToBadgeConverter}">
-                                            <Binding Path="DataContext.KeyCounts"
-                                                     RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            <Binding Path="PlacementTarget.DataContext.KeyCounts"
+                                                     RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
                                             <Binding Path="PlacementTarget.Content"
                                                      RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
                                         </MultiBinding>

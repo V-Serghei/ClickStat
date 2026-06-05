@@ -2,6 +2,7 @@ using System.Windows;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
+using ClickStat.Infrastructure.InputMonitoring;
 using ClickStat.Presentation;
 using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
@@ -53,6 +54,7 @@ public partial class App : Application
         s.AddSingleton<HourlyActivityProcessor>();
         s.AddSingleton<AppUsageProcessor>();
         s.AddSingleton<MouseDataProcessor>();  // shared instance for ActivityViewModel
+        s.AddSingleton<GamepadMonitorService>();
 
         // Live bus (UI thread)
         s.AddSingleton(sp => new LiveEventBus(System.Windows.Application.Current.Dispatcher));
@@ -67,6 +69,7 @@ public partial class App : Application
         s.AddTransient<ActivityViewModel>();
         s.AddTransient<WordsViewModel>();
         s.AddTransient<AppsViewModel>();
+        s.AddTransient<GamepadsViewModel>();
         s.AddTransient<SettingsViewModel>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<MainWindow>();
@@ -81,5 +84,6 @@ public partial class App : Application
         ServiceProvider.GetRequiredService<WordProcessor>().OnApplicationExitAsync().Wait();
         ServiceProvider.GetRequiredService<HourlyActivityProcessor>().OnApplicationExitAsync().Wait();
         ServiceProvider.GetRequiredService<AppUsageProcessor>().OnApplicationExitAsync().Wait();
+        ServiceProvider.GetRequiredService<GamepadMonitorService>().Dispose();
     }
 }

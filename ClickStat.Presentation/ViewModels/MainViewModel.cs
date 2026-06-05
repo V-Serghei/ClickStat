@@ -14,7 +14,7 @@ namespace ClickStat.Presentation.ViewModels
 {
     public enum AppPage
     {
-        Overview, Keyboard, Mouse, Activity, Words, Apps, Settings
+        Overview, Keyboard, Mouse, Activity, Words, Apps, Gamepads, Settings
     }
 
     public class NavItem
@@ -45,6 +45,7 @@ namespace ClickStat.Presentation.ViewModels
         public ActivityViewModel  ActivityVm  { get; }
         public WordsViewModel     WordsVm     { get; }
         public AppsViewModel      AppsVm      { get; }
+        public GamepadsViewModel  GamepadsVm  { get; }
         public SettingsViewModel  SettingsVm  { get; }
 
         // ── Navigation ──────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ namespace ClickStat.Presentation.ViewModels
             new NavItem { Icon = "📈", Label = "Активность",   Page = AppPage.Activity  },
             new NavItem { Icon = "📝", Label = "Слова",        Page = AppPage.Words     },
             new NavItem { Icon = "💻", Label = "Приложения",   Page = AppPage.Apps      },
+            new NavItem { Icon = "🎮", Label = "Геймпады",     Page = AppPage.Gamepads  },
             new NavItem { Icon = "⚙️", Label = "Настройки",    Page = AppPage.Settings  },
         };
 
@@ -81,6 +83,7 @@ namespace ClickStat.Presentation.ViewModels
             AppPage.Activity  => ActivityVm,
             AppPage.Words     => WordsVm,
             AppPage.Apps      => AppsVm,
+            AppPage.Gamepads  => GamepadsVm,
             AppPage.Settings  => SettingsVm,
             _                 => OverviewVm
         };
@@ -121,6 +124,7 @@ namespace ClickStat.Presentation.ViewModels
             ActivityViewModel       activityVm,
             WordsViewModel          wordsVm,
             AppsViewModel           appsVm,
+            GamepadsViewModel       gamepadsVm,
             SettingsViewModel       settingsVm)
         {
             _inputMonitorService    = inputMonitorService;
@@ -140,6 +144,7 @@ namespace ClickStat.Presentation.ViewModels
             ActivityVm = activityVm;
             WordsVm    = wordsVm;
             AppsVm     = appsVm;
+            GamepadsVm = gamepadsVm;
             SettingsVm = settingsVm;
 
             // Pass break reminder to settings so user can configure it
@@ -193,6 +198,9 @@ namespace ClickStat.Presentation.ViewModels
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
+                    break;
+                case AppPage.Gamepads:
+                    _ = GamepadsVm.LoadAsync();
                     break;
             }
         }
