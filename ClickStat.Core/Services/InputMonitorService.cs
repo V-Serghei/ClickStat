@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using System.Windows.Forms;
 using ClickStat.Core.Interfaces;
@@ -21,6 +22,7 @@ public class InputMonitorService : IInputMonitorService
     private readonly object _gate = new();
     private readonly Dictionary<(Keys Key, bool IsKeyUp), (string Source, DateTime Time)> _lastEmitted = new();
     private readonly HashSet<Keys> _pressedKeys = new();
+    private readonly Dictionary<Keys, Keys> _genericModifierSide = new();
     private readonly Channel<Action> _eventQueue = Channel.CreateUnbounded<Action>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
@@ -96,6 +98,7 @@ public class InputMonitorService : IInputMonitorService
     private void HandleKeyDown(Keys key, string source)
     {
         if (!IsRealKey(key)) return;
+        key = NormalizeKey(key, isKeyDown: true);
         InputLog.Key(source, "DOWN", key);
 
         if (!ShouldCountKeyDown(key, source)) return;
@@ -111,9 +114,10 @@ public class InputMonitorService : IInputMonitorService
     private void HandleKeyUp(Keys key, string source)
     {
         if (!IsRealKey(key)) return;
+        key = NormalizeKey(key, isKeyDown: false);
         InputLog.Key(source, "UP", key);
 
-        var normalized = NormalizeKey(key);
+        var normalized = key;
         lock (_gate)
         {
             if (ShouldSuppressDuplicateCore(normalized, isKeyUp: true, source, DateTime.UtcNow))
@@ -123,6 +127,7 @@ public class InputMonitorService : IInputMonitorService
             }
 
             _pressedKeys.Remove(normalized);
+            ForgetGenericModifierSide(normalized);
         }
 
         InputLog.Emit("UP", key);
@@ -132,7 +137,7 @@ public class InputMonitorService : IInputMonitorService
     private bool ShouldCountKeyDown(Keys key, string source)
     {
         var now = DateTime.UtcNow;
-        var normalized = NormalizeKey(key);
+        var normalized = key;
 
         lock (_gate)
         {
@@ -149,6 +154,7 @@ public class InputMonitorService : IInputMonitorService
             }
 
             _pressedKeys.Add(normalized);
+            RememberGenericModifierSide(normalized);
             return true;
         }
     }
@@ -173,10 +179,77 @@ public class InputMonitorService : IInputMonitorService
         return vk is > 0 and < 255;
     }
 
-    private static Keys NormalizeKey(Keys key)
+    private Keys NormalizeKey(Keys key, bool isKeyDown)
     {
-        return key & Keys.KeyCode;
+        var keyCode = key & Keys.KeyCode;
+        return keyCode switch
+        {
+            Keys.ShiftKey => ResolveGenericModifierSide(
+                Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, isKeyDown),
+            Keys.ControlKey => ResolveGenericModifierSide(
+                Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, isKeyDown),
+            Keys.Menu => ResolveGenericModifierSide(
+                Keys.Menu, Keys.LMenu, Keys.RMenu, isKeyDown),
+            _ => keyCode
+        };
     }
+
+    private Keys ResolveGenericModifierSide(Keys generic, Keys left, Keys right, bool isKeyDown)
+    {
+        if (!isKeyDown)
+        {
+            lock (_gate)
+            {
+                if (_genericModifierSide.TryGetValue(generic, out var remembered))
+                    return remembered;
+            }
+        }
+
+        if (IsKeyDown(right)) return right;
+        if (IsKeyDown(left)) return left;
+
+        lock (_gate)
+        {
+            return _genericModifierSide.TryGetValue(generic, out var remembered) ? remembered : left;
+        }
+    }
+
+    private void RememberGenericModifierSide(Keys key)
+    {
+        switch (key)
+        {
+            case Keys.LShiftKey or Keys.RShiftKey:
+                _genericModifierSide[Keys.ShiftKey] = key;
+                break;
+            case Keys.LControlKey or Keys.RControlKey:
+                _genericModifierSide[Keys.ControlKey] = key;
+                break;
+            case Keys.LMenu or Keys.RMenu:
+                _genericModifierSide[Keys.Menu] = key;
+                break;
+        }
+    }
+
+    private void ForgetGenericModifierSide(Keys key)
+    {
+        switch (key)
+        {
+            case Keys.LShiftKey or Keys.RShiftKey:
+                _genericModifierSide.Remove(Keys.ShiftKey);
+                break;
+            case Keys.LControlKey or Keys.RControlKey:
+                _genericModifierSide.Remove(Keys.ControlKey);
+                break;
+            case Keys.LMenu or Keys.RMenu:
+                _genericModifierSide.Remove(Keys.Menu);
+                break;
+        }
+    }
+
+    private static bool IsKeyDown(Keys key) => (GetAsyncKeyState((int)key) & 0x8000) != 0;
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
 
     private void EnqueueEvent(Action action)
     {
