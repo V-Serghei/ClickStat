@@ -1,170 +1,121 @@
 using System;
-using System.Threading.Channels;
 using System.Windows.Forms;
 using ClickStat.Core.Interfaces;
-using ClickStat.Core.Models;
+using ClickStat.Infrastructure.Diagnostics;
 using ClickStat.Infrastructure.InputMonitoring;
 
 namespace ClickStat.Core.Services
 {
+    /// <summary>
+    /// Keyboard input monitor.
+    ///
+    /// Architecture:
+    ///   PRIMARY  — WH_KEYBOARD_LL global hook (KeyboardMonitor).
+    ///              Catches all keystrokes including injected ones from RDP.
+    ///   SECONDARY — WM_INPUT raw keyboard (RawKeyboardMonitor, optional).
+    ///              Helps on some systems where the low-level hook is unreliable.
+    ///              A 75 ms dedup window prevents double-counting when both fire.
+    ///
+    /// Events fire on the UI (hook) thread — safe for WPF bindings.
+    /// </summary>
     public class InputMonitorService : IInputMonitorService
     {
-        private readonly KeyboardMonitor _keyboardMonitor;
-        private readonly RawKeyboardMonitor _rawKeyboardMonitor;
-        private bool _hookSubscribed;
-        private readonly object _emitLock = new();
-        private readonly Dictionary<(Keys Key, bool IsKeyUp), (string Source, DateTime Time)> _lastEmitted = new();
-        private readonly HashSet<Keys> _pressedKeys = new();
-        private readonly Dictionary<Keys, DateTime> _lastCountedKeyDown = new();
-        private readonly Channel<Action> _eventQueue = Channel.CreateUnbounded<Action>(
-            new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
-        private static readonly TimeSpan DuplicateWindow = TimeSpan.FromMilliseconds(75);
-        private static readonly TimeSpan StuckKeyRepeatWindow = TimeSpan.FromMilliseconds(180);
+        private readonly KeyboardMonitor    _hookMonitor;
+        private readonly RawKeyboardMonitor _rawMonitor;
+        private bool _hookActive;
 
-        public event Action<Keys>? OnKeyAction;
-        public event Action<Keys>? OnKeyDown;
-        public event Action<Keys>? OnKeyUp;
+        // Dedup: only suppress when SAME key fires from BOTH sources within 75 ms.
+        // Uses DateTime (UTC) for minimal overhead.
+        private readonly object _dedupLock = new();
+        private readonly Dictionary<Keys, (string source, DateTime time)> _lastKeyUp  = new();
+        private readonly Dictionary<Keys, (string source, DateTime time)> _lastKeyDown = new();
+        private static readonly TimeSpan DedupWindow = TimeSpan.FromMilliseconds(75);
+
+        public event Action<Keys>? OnKeyAction; // KeyUp — used for keystroke counting
+        public event Action<Keys>? OnKeyDown;   // KeyDown — used for modifier tracking
+        public event Action<Keys>? OnKeyUp;     // alias for OnKeyAction (same event, KeyUp)
 
         public InputMonitorService()
         {
-            _keyboardMonitor = new KeyboardMonitor();
-            _keyboardMonitor.KeyPressed += key => EmitKeyUp(key, "hook");
-            _keyboardMonitor.KeyDown    += key => EmitKeyDown(key, "hook");
+            _hookMonitor = new KeyboardMonitor();
+            _hookMonitor.KeyPressed += key => HandleKeyUp(key, "hook");
+            _hookMonitor.KeyDown    += key => HandleKeyDown(key, "hook");
 
-            _rawKeyboardMonitor = new RawKeyboardMonitor();
-            _rawKeyboardMonitor.KeyUp   += key => EmitKeyUp(key, "raw");
-            _rawKeyboardMonitor.KeyDown += key => EmitKeyDown(key, "raw");
+            _rawMonitor = new RawKeyboardMonitor();
+            _rawMonitor.KeyUp   += key => HandleKeyUp(key, "raw");
+            _rawMonitor.KeyDown += key => HandleKeyDown(key, "raw");
 
-            _ = ProcessEventQueueAsync();
+            InputLog.Info("InputMonitorService created");
         }
 
         public void InitializeRawInput(IntPtr hwnd)
         {
-            // Keep both Raw Input and the low-level hook alive. mstsc/RDP can expose
-            // different parts of input through different APIs, so disabling one path
-            // makes remote-session capture worse. EmitKey* deduplicates local doubles.
-            _rawKeyboardMonitor.Initialize(hwnd);
+            bool ok = _rawMonitor.Initialize(hwnd);
+            InputLog.Info($"RawKeyboardMonitor.Initialize → {ok}");
         }
 
         public void StartMonitoring()
         {
-            if (_hookSubscribed) return;
-            _keyboardMonitor.Subscribe();
-            _hookSubscribed = true;
+            if (_hookActive) return;
+            _hookMonitor.Subscribe();
+            _hookActive = true;
+            InputLog.Info("WH_KEYBOARD_LL hook subscribed");
         }
 
         public void StopMonitoring()
         {
-            if (_hookSubscribed)
-            {
-                _keyboardMonitor.Unsubscribe();
-                _hookSubscribed = false;
-            }
+            if (!_hookActive) return;
+            _hookMonitor.Unsubscribe();
+            _hookActive = false;
         }
 
-        public void ResetStatistics()
+        public void ResetStatistics() { }
+
+        // ── Event handlers ────────────────────────────────────────────────────
+
+        private void HandleKeyDown(Keys key, string source)
         {
+            InputLog.Key(source, "DOWN", key);
+
+            if (IsDuplicate(_lastKeyDown, key, source)) return;
+
+            InputLog.Emit("DOWN", key);
+            OnKeyDown?.Invoke(key);
         }
 
-        private void EmitKeyDown(Keys key, string source)
+        private void HandleKeyUp(Keys key, string source)
         {
-            if (!ShouldEmitKeyDown(key, source)) return;
-            EnqueueEvent(() =>
-            {
-                OnKeyDown?.Invoke(key);
-                OnKeyAction?.Invoke(key);
-            });
+            InputLog.Key(source, "UP", key);
+
+            if (IsDuplicate(_lastKeyUp, key, source)) return;
+
+            InputLog.Emit("UP  ", key);
+            OnKeyAction?.Invoke(key);
+            OnKeyUp?.Invoke(key);
         }
 
-        private void EmitKeyUp(Keys key, string source)
-        {
-            if (ShouldSuppressDuplicate(key, isKeyUp: true, source)) return;
+        // ── Deduplication ─────────────────────────────────────────────────────
+        // Suppress only when the EXACT SAME key fired from the OTHER source
+        // within DedupWindow.  If both sources fire → exactly one event passes.
+        // If only one source fires (RDP, some remote shells) → event always passes.
 
-            lock (_emitLock)
-            {
-                _pressedKeys.Remove(NormalizeKey(key));
-            }
-
-            EnqueueEvent(() => OnKeyUp?.Invoke(key));
-        }
-
-        private bool ShouldEmitKeyDown(Keys key, string source)
-        {
-            var now = DateTime.UtcNow;
-            var normalized = NormalizeKey(key);
-
-            lock (_emitLock)
-            {
-                if (ShouldSuppressDuplicateCore(normalized, isKeyUp: false, source, now))
-                    return false;
-
-                if (_pressedKeys.Contains(normalized) &&
-                    _lastCountedKeyDown.TryGetValue(normalized, out var lastDown) &&
-                    now - lastDown < StuckKeyRepeatWindow)
-                {
-                    return false;
-                }
-
-                _pressedKeys.Add(normalized);
-                _lastCountedKeyDown[normalized] = now;
-                return true;
-            }
-        }
-
-        private bool ShouldSuppressDuplicate(Keys key, bool isKeyUp, string source)
+        private bool IsDuplicate(
+            Dictionary<Keys, (string source, DateTime time)> table,
+            Keys key, string source)
         {
             var now = DateTime.UtcNow;
-            var normalized = NormalizeKey(key);
-
-            lock (_emitLock)
+            lock (_dedupLock)
             {
-                return ShouldSuppressDuplicateCore(normalized, isKeyUp, source, now);
-            }
-        }
-
-        private bool ShouldSuppressDuplicateCore(Keys key, bool isKeyUp, string source, DateTime now)
-        {
-            var signature = (key, isKeyUp);
-            if (_lastEmitted.TryGetValue(signature, out var last) &&
-                last.Source != source &&
-                now - last.Time <= DuplicateWindow)
-            {
-                return true;
-            }
-
-            _lastEmitted[signature] = (source, now);
-            return false;
-        }
-
-        private static Keys NormalizeKey(Keys key)
-        {
-            var keyCode = key & Keys.KeyCode;
-            return keyCode switch
-            {
-                Keys.LShiftKey or Keys.RShiftKey => Keys.ShiftKey,
-                Keys.LControlKey or Keys.RControlKey => Keys.ControlKey,
-                Keys.LMenu or Keys.RMenu => Keys.Menu,
-                _ => keyCode
-            };
-        }
-
-        private void EnqueueEvent(Action action)
-        {
-            _eventQueue.Writer.TryWrite(action);
-        }
-
-        private async Task ProcessEventQueueAsync()
-        {
-            await foreach (var action in _eventQueue.Reader.ReadAllAsync())
-            {
-                try
+                if (table.TryGetValue(key, out var last) &&
+                    last.source != source &&
+                    now - last.time <= DedupWindow)
                 {
-                    action();
+                    InputLog.Suppress(source, "    ", key,
+                        $"dup of '{last.source}' {(now - last.time).TotalMilliseconds:0}ms ago");
+                    return true;
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Input event processing failed: {ex.Message}");
-                }
+                table[key] = (source, now);
+                return false;
             }
         }
     }
