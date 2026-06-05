@@ -147,6 +147,7 @@ namespace ClickStat.Presentation.ViewModels
 
             _inputMonitorService.OnKeyDown   += OnKeyDownReceived;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
+            _inputMonitorService.OnKeyUp     += OnKeyUpReceived;
             _inputMonitorService.StartMonitoring();
 
             _mouseMonitorService.OnButtonPressed += OnMouseButtonPressed;
@@ -159,6 +160,7 @@ namespace ClickStat.Presentation.ViewModels
             RefreshCommand  = new RelayCommand(ExecuteRefresh);
             NavigateCommand = new RelayCommand(p => { if (p is AppPage page) NavigateTo(page); });
             _isInStartup   = _startupService.IsInStartup();
+            UpdateLiveMode(_activePage);
         }
 
         // ── Navigation ───────────────────────────────────────────────────────
@@ -187,7 +189,7 @@ namespace ClickStat.Presentation.ViewModels
                     _ = ActivityVm.LoadAsync();
                     break;
                 case AppPage.Words:
-                    _ = WordsVm.LoadAsync();
+                    _ = FlushThenLoad(_wordProcessor.FlushAsync, WordsVm.LoadAsync);
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
@@ -197,8 +199,15 @@ namespace ClickStat.Presentation.ViewModels
 
         private static async Task FlushThenLoad(Func<Task> flush, Func<Task> load)
         {
-            await flush();
-            await load();
+            try
+            {
+                await flush();
+                await load();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Flush/load failed: {ex.Message}");
+            }
         }
 
         // ── Keyboard events ──────────────────────────────────────────────────
@@ -208,14 +217,27 @@ namespace ClickStat.Presentation.ViewModels
         private void OnKeyDownReceived(Keys key)
         {
             if (MouseButtonCodeHelper.IsModifier(key))
+            {
                 _heldModifiers.Add(key);
+                if (IsCtrlHeld() || IsAltHeld())
+                    _wordProcessor.ClearBuffer();
+                return;
+            }
+
+            if (IsCtrlHeld() || IsAltHeld())
+            {
+                _wordProcessor.ClearBuffer();
+                return;
+            }
+
+            _wordProcessor.ProcessKey(key, IsShiftHeld());
         }
 
         private void OnKeyReceived(Keys key)
         {
-            bool ctrl  = _heldModifiers.Contains(Keys.ControlKey) || _heldModifiers.Contains(Keys.LControlKey) || _heldModifiers.Contains(Keys.RControlKey);
-            bool shift = _heldModifiers.Contains(Keys.ShiftKey)   || _heldModifiers.Contains(Keys.LShiftKey)   || _heldModifiers.Contains(Keys.RShiftKey);
-            bool alt   = _heldModifiers.Contains(Keys.Menu)       || _heldModifiers.Contains(Keys.LMenu)       || _heldModifiers.Contains(Keys.RMenu);
+            bool ctrl  = IsCtrlHeld();
+            bool shift = IsShiftHeld();
+            bool alt   = IsAltHeld();
 
             // Keyboard-mapped mouse button detection
             if (!MouseButtonCodeHelper.IsModifier(key))
@@ -225,21 +247,27 @@ namespace ClickStat.Presentation.ViewModels
                     _mouseStatisticsService.TrackButtonClick(code, MouseButtonCodeHelper.FormatShortcut(code));
             }
 
-            if (MouseButtonCodeHelper.IsModifier(key))
-                _heldModifiers.Remove(key);
-
             _savingClickService.SaveClick(key);
             _liveBus.PublishKey(key.ToString());
             _hourlyProcessor.Record();
             _appUsageProcessor.RecordKey();
             _breakReminder.RecordActivity();
-
-            // Word processing: only when no Ctrl/Alt (pure typing)
-            if (!ctrl && !alt)
-                _wordProcessor.ProcessKey(key);
-            else
-                _wordProcessor.ClearBuffer();
         }
+
+        private void OnKeyUpReceived(Keys key)
+        {
+            if (MouseButtonCodeHelper.IsModifier(key))
+                _heldModifiers.Remove(key);
+        }
+
+        private bool IsCtrlHeld() =>
+            _heldModifiers.Contains(Keys.ControlKey) || _heldModifiers.Contains(Keys.LControlKey) || _heldModifiers.Contains(Keys.RControlKey);
+
+        private bool IsShiftHeld() =>
+            _heldModifiers.Contains(Keys.ShiftKey) || _heldModifiers.Contains(Keys.LShiftKey) || _heldModifiers.Contains(Keys.RShiftKey);
+
+        private bool IsAltHeld() =>
+            _heldModifiers.Contains(Keys.Menu) || _heldModifiers.Contains(Keys.LMenu) || _heldModifiers.Contains(Keys.RMenu);
 
         // ── Mouse events ─────────────────────────────────────────────────────
 
@@ -287,6 +315,8 @@ namespace ClickStat.Presentation.ViewModels
 
         private async void ExecuteRefresh(object _)
         {
+            await _savingClickService.FlushAsync();
+            await _mouseStatisticsService.FlushAsync();
             await OverviewVm.LoadStatsAsync();
             await KeyboardVm.LoadKeyCountsAsync();
             await MouseVm.LoadDataAsync();

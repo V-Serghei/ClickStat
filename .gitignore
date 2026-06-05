@@ -13,6 +13,7 @@ riderModule.iml
 *.db
 
 # Build output
+artifacts/
 *.suo
 *.user
 *.userosscache

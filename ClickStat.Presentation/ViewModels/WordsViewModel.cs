@@ -64,6 +64,7 @@ public class WordsViewModel : INotifyPropertyChanged
         IsLoading = true;
         try
         {
+            await _wordProcessor.FlushAsync();
             _allWords = await _wordProcessor.GetTopWords(1000);
             _allPhrases = await _wordProcessor.GetTopPhrases(300);
             ApplyLanguageFilter();

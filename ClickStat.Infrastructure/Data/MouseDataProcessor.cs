@@ -37,6 +37,7 @@ public class MouseDataProcessor : IDisposable
     private readonly Dictionary<int, int> _heatmapBuffer = new(); // cellId → delta
     private readonly object _lock = new();
     private readonly Timer _saveTimer;
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
 
     public MouseDataProcessor()
     {
@@ -240,6 +241,13 @@ public class MouseDataProcessor : IDisposable
     // ──────────────────────────────────────────────
 
     private async Task FlushToDatabase()
+    {
+        await _flushGate.WaitAsync();
+        try { await FlushToDatabaseCore(); }
+        finally { _flushGate.Release(); }
+    }
+
+    private async Task FlushToDatabaseCore()
     {
         Dictionary<int, (string name, long count)> buttonSnapshot;
         Dictionary<int, int> heatSnap;

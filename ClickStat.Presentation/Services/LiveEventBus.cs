@@ -21,18 +21,26 @@ public sealed class LiveEventBus
     public void PublishKey(string keyName)
     {
         if (KeyPressed == null) return;
-        _ui.InvokeAsync(() => KeyPressed?.Invoke(keyName), DispatcherPriority.Background);
+        Dispatch(() => KeyPressed?.Invoke(keyName));
     }
 
     public void PublishMouseButton(int buttonCode)
     {
         if (MouseButtonPressed == null) return;
-        _ui.InvokeAsync(() => MouseButtonPressed?.Invoke(buttonCode), DispatcherPriority.Background);
+        Dispatch(() => MouseButtonPressed?.Invoke(buttonCode));
     }
 
     public void PublishMouseScroll(int notches)
     {
         if (MouseScrolled == null) return;
-        _ui.InvokeAsync(() => MouseScrolled?.Invoke(notches), DispatcherPriority.Background);
+        Dispatch(() => MouseScrolled?.Invoke(notches));
+    }
+
+    private void Dispatch(Action action)
+    {
+        if (_ui.CheckAccess())
+            action();
+        else
+            _ui.BeginInvoke(action, DispatcherPriority.Send);
     }
 }

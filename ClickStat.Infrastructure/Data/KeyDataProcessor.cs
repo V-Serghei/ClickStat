@@ -20,6 +20,10 @@ public class KeyDataProcessor
     private readonly Timer _saveTimer;
     private DateTime _lastSaveTime = DateTime.MinValue;
 
+    // Ensures only one flush runs at a time — prevents race between auto-timer
+    // and manual FlushAsync() called before a DB read.
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
+
     public KeyDataProcessor()
     {
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -56,6 +60,22 @@ public class KeyDataProcessor
     }
 
     private async Task SaveToDatabaseBuffered()
+    {
+        // Gate ensures only one flush runs at a time.
+        // Manual FlushAsync() will WAIT here if the auto-timer is currently writing,
+        // so the subsequent DB read always sees committed data.
+        await _flushGate.WaitAsync();
+        try
+        {
+            await SaveToDatabaseBufferedCore();
+        }
+        finally
+        {
+            _flushGate.Release();
+        }
+    }
+
+    private async Task SaveToDatabaseBufferedCore()
     {
         // Snapshot under lock — prevents race between timer flush and keypress
         Dictionary<Keys, KeyStatistics> snapshot;

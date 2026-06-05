@@ -15,7 +15,7 @@ using Timer = System.Timers.Timer;
 namespace ClickStat.Infrastructure.Data;
 
 /// <summary>
-/// Reconstructs words from individual KeyUp events, tracks frequencies,
+/// Reconstructs words from individual key events, tracks frequencies,
 /// bigrams, and 2-word phrases. Flushes to DB every 30 s.
 /// </summary>
 public sealed class WordProcessor : IDisposable
@@ -27,6 +27,7 @@ public sealed class WordProcessor : IDisposable
     private readonly string _dbPath;
     private readonly Timer  _timer;
     private readonly object _lock = new();
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
 
     // In-memory buffers
     private readonly StringBuilder              _buffer   = new();
@@ -52,10 +53,10 @@ public sealed class WordProcessor : IDisposable
     // ── Public API ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Call from MainViewModel.OnKeyReceived (KeyUp) when no Ctrl/Alt held.
+    /// Call from MainViewModel.OnKeyDownReceived when no Ctrl/Alt held.
     /// Uses ToUnicode to get the actual character for ANY keyboard layout (RU, EN, DE, …).
     /// </summary>
-    public void ProcessKey(Keys key)
+    public void ProcessKey(Keys key, bool shift = false)
     {
         lock (_lock)
         {
@@ -66,7 +67,7 @@ public sealed class WordProcessor : IDisposable
             }
 
             // Try to resolve the actual unicode character for current layout + modifier state
-            char? ch = ResolveChar(key);
+            char? ch = ResolveChar(key, shift);
 
             if (ch.HasValue && char.IsLetter(ch.Value))
             {
@@ -94,22 +95,28 @@ public sealed class WordProcessor : IDisposable
     /// Converts a virtual key to the character produced in the current keyboard layout.
     /// Uses flag 4 (peek-only) to avoid consuming dead key state.
     /// </summary>
-    private static char? ResolveChar(Keys key)
+    private static char? ResolveChar(Keys key, bool shift)
     {
         var keyState = new byte[256];
-        if (!GetKeyboardState(keyState)) return null;
+        var keyCode = key & Keys.KeyCode;
+        int virtualKey = (int)keyCode;
+        if (virtualKey is <= 0 or > 255) return null;
+
+        keyState[virtualKey] = 0x80;
+        if (shift)
+        {
+            keyState[(int)Keys.ShiftKey] = 0x80;
+            keyState[(int)Keys.LShiftKey] = 0x80;
+        }
 
         var sb = new StringBuilder(4);
         var layout = LayoutService.GetCurrentKeyboardLayoutHandle();
-        uint scanCode = (uint)MapVirtualKeyEx((uint)key, 0, layout);
-        int result = ToUnicodeEx((uint)key, scanCode, keyState, sb, 4, 4, layout);
+        uint scanCode = (uint)MapVirtualKeyEx((uint)virtualKey, 0, layout);
+        int result = ToUnicodeEx((uint)virtualKey, scanCode, keyState, sb, 4, 4, layout);
         if (result > 0 && sb.Length > 0)
             return sb[0];
         return null;
     }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetKeyboardState(byte[] lpKeyState);
 
     [DllImport("user32.dll")]
     private static extern int ToUnicodeEx(
@@ -252,10 +259,21 @@ public sealed class WordProcessor : IDisposable
         return language != null && parts.All(part => GetWordLanguage(part) == language);
     }
 
+    private static readonly HashSet<char> EnglishVowels = new() { 'a','e','i','o','u' };
+
     private static bool IsKnownEnglishWord(string word)
     {
-        // Latin keyboard garbage is common, so English uses a dictionary gate.
-        return EnglishDictionary.Contains(word);
+        // Allow any word that looks like real English (has vowels, no impossible runs).
+        // The dictionary is used only to BOOST recognition, not to gate all words.
+        // Gaming gibberish (wasd, hjkl) is caught by the vowel/run heuristics.
+        if (!word.Any(c => EnglishVowels.Contains(c))) return false;
+
+        // Words in the dictionary are definitely valid
+        if (EnglishDictionary.Contains(word)) return true;
+
+        // Unknown words: accept if they have plausible vowel/consonant structure
+        // (no more than 4 consecutive consonants or 3 consecutive vowels)
+        return !HasImpossibleRuns(word, c => EnglishVowels.Contains(c), maxConsonants: 4, maxVowels: 3);
     }
 
     private static bool IsLikelyRussianWord(string word)
@@ -351,7 +369,22 @@ public sealed class WordProcessor : IDisposable
         while (_lastWords.Count > 3) _lastWords.Dequeue();
     }
 
+    public Task FlushAsync() => Flush();
+
     private async Task Flush()
+    {
+        await _flushGate.WaitAsync();
+        try
+        {
+            await FlushCore();
+        }
+        finally
+        {
+            _flushGate.Release();
+        }
+    }
+
+    private async Task FlushCore()
     {
         Dictionary<string, int> wordSnap, bigramSnap, phraseSnap;
         lock (_lock)

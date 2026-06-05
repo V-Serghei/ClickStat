@@ -20,16 +20,8 @@ public class OverviewViewModel : INotifyPropertyChanged
     private readonly IGetDataClick _dataService;
     private readonly LiveEventBus  _liveBus;
 
-    // ── DB baseline (loaded on tab open) ──────────────────────────────────
-    private int  _dbTotal;
-    private int  _dbToday;
-    private long _dbBackspace;
-    private string _dbMostFrequent = "—";
-
-    // ── Live session counters (reset on each load) ────────────────────────
-    private long _sessionKeys;
-    private long _sessionBackspace;
-    private readonly Dictionary<string, int> _sessionKeyCounts = new();
+    private long _visibleBackspace;
+    private DateTime _visibleTodayDate = DateTime.Today;
 
     // ── Published properties ──────────────────────────────────────────────
     private int    _totalClicks;
@@ -92,24 +84,26 @@ public class OverviewViewModel : INotifyPropertyChanged
         IsLoading = true;
         try
         {
-            _dbTotal = await _dataService.GetKeyStatisticsForTheAllTime();
+            int previousTotal = TotalClicks;
+            int previousToday = _visibleTodayDate == DateTime.Today ? ClicksToday : 0;
 
+            var dbTotal = await _dataService.GetKeyStatisticsForTheAllTime();
             var today = await _dataService.GetKeyStatisticsForTheDay(DateTime.Today);
-            _dbToday  = today.FirstOrDefault()?.ClickCount ?? 0;
+            var dbToday = today.FirstOrDefault()?.ClickCount ?? 0;
 
             var allKeys   = await _dataService.GetKeyStatistics();
             var backspace = allKeys.FirstOrDefault(k => k.KeyName == "Back");
-            _dbBackspace  = backspace?.Count ?? 0;
-            _dbMostFrequent = allKeys.Any()
+            _visibleBackspace = Math.Max(_visibleBackspace, backspace?.Count ?? 0);
+
+            TotalClicks = Math.Max(dbTotal, previousTotal);
+            ClicksToday = Math.Max(dbToday, previousToday);
+            _visibleTodayDate = DateTime.Today;
+
+            MostFrequentKey = allKeys.Any()
                 ? FriendlyKey(allKeys.OrderByDescending(k => k.Count).First().KeyName)
                 : "N/A";
 
-            // Reset session counters — we have fresh DB data now
-            _sessionKeys      = 0;
-            _sessionBackspace = 0;
-            _sessionKeyCounts.Clear();
-
-            RefreshDisplayedValues();
+            RefreshErrorRate();
 
             // Chart
             await LoadChartAsync();
@@ -128,6 +122,8 @@ public class OverviewViewModel : INotifyPropertyChanged
         var dates  = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-9 + i)).ToList();
         var lookup = await _dataService.GetDailyClickCounts(dates[0], dates[^1]);
         var counts = dates.Select(d => lookup.TryGetValue(d.Date, out var c) ? c : 0).ToList();
+        if (dates[^1].Date == DateTime.Today)
+            counts[^1] = Math.Max(counts[^1], ClicksToday);
 
         DailyStatsSeries = new ISeries[]
         {
@@ -155,30 +151,23 @@ public class OverviewViewModel : INotifyPropertyChanged
     // ── Live event handler (UI thread via LiveEventBus) ───────────────────
     private void OnLiveKey(string keyName)
     {
-        _sessionKeys++;
-        if (keyName == "Back") _sessionBackspace++;
-        _sessionKeyCounts[keyName] = _sessionKeyCounts.GetValueOrDefault(keyName) + 1;
+        if (_visibleTodayDate != DateTime.Today)
+        {
+            _visibleTodayDate = DateTime.Today;
+            ClicksToday = 0;
+        }
 
-        // Always update displayed values — even when tab is "closed"
-        // (property bindings only render when the view is visible, so no wasted UI work)
-        RefreshDisplayedValues();
+        TotalClicks++;
+        ClicksToday++;
+        if (keyName == "Back")
+            _visibleBackspace++;
+
+        RefreshErrorRate();
     }
 
-    private void RefreshDisplayedValues()
-    {
-        TotalClicks = _dbTotal + (int)_sessionKeys;
-        ClicksToday = _dbToday + (int)_sessionKeys;
-
-        long totalBackspace = _dbBackspace + _sessionBackspace;
-        ErrorRate = TotalClicks > 0
-            ? Math.Round((double)totalBackspace / TotalClicks * 100, 1)
-            : 0;
-
-        // Show session's most frequent if it beats DB champion
-        // Always show the all-time leader from DB.
-        // Session counts are too short (a few minutes) to override the all-time champion.
-        MostFrequentKey = _dbMostFrequent;
-    }
+    private void RefreshErrorRate() => ErrorRate = TotalClicks > 0
+        ? Math.Round((double)_visibleBackspace / TotalClicks * 100, 1)
+        : 0;
 
 
     private void InitChartStyle()

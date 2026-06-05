@@ -136,8 +136,15 @@ public class KeyboardViewModel : INotifyPropertyChanged
     {
         IsLoading = true;
 
-        var stats  = await _dataClickService.GetKeyStatistics();
-        KeyCounts  = stats.ToDictionary(s => s.KeyName, s => s.Count);
+        var stats = await _dataClickService.GetKeyStatistics();
+        var mergedCounts = stats.ToDictionary(s => s.KeyName, s => s.Count);
+        foreach (var (key, liveCount) in KeyCounts)
+        {
+            if (!mergedCounts.TryGetValue(key, out var dbCount) || liveCount > dbCount)
+                mergedCounts[key] = liveCount;
+        }
+
+        KeyCounts  = mergedCounts;
         MaxCount   = KeyCounts.Values.Any() ? KeyCounts.Values.Max() : 1;
 
         var custom = stats

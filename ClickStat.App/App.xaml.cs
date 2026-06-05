@@ -31,6 +31,7 @@ public partial class App : Application
 
         var mouseMonitor = ServiceProvider.GetRequiredService<IMouseMonitorService>();
         var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+        ServiceProvider.GetRequiredService<IInputMonitorService>().InitializeRawInput(hwnd);
         mouseMonitor.InitializeRawInput(hwnd);
     }
 
