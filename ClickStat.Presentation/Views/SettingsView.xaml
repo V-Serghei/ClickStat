@@ -1,0 +1,146 @@
+<UserControl x:Class="ClickStat.Presentation.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        <Style x:Key="SectionCard" TargetType="Border">
+            <Setter Property="Background"      Value="#0E0E1C"/>
+            <Setter Property="CornerRadius"    Value="12"/>
+            <Setter Property="Padding"         Value="20,16"/>
+            <Setter Property="Margin"          Value="0,0,0,16"/>
+            <Setter Property="BorderBrush"     Value="#1A1A3A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="SettingsLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize"   Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="SettingsHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#505070"/>
+            <Setter Property="FontSize"   Value="11"/>
+            <Setter Property="Margin"     Value="0,2,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="600" HorizontalAlignment="Left">
+
+            <TextBlock Text="Настройки" Foreground="White"
+                       FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+
+            <!-- Startup -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="🚀 Запуск с Windows" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="Программа будет стартовать автоматически при входе в систему"
+                               Style="{StaticResource SettingsHint}"/>
+                    <CheckBox IsChecked="{Binding IsInStartup, Mode=TwoWay}"
+                              Foreground="#C0C0E0" Margin="0,14,0,0" FontSize="13">
+                        Запускать ClickStat вместе с Windows
+                    </CheckBox>
+                </StackPanel>
+            </Border>
+
+            <!-- Break reminder -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="⏸️ Напоминание о перерыве" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="Уведомление, если ты работаешь без остановки слишком долго"
+                               Style="{StaticResource SettingsHint}"/>
+
+                    <CheckBox IsChecked="{Binding BreakEnabled, Mode=TwoWay}"
+                              Foreground="#C0C0E0" Margin="0,16,0,12" FontSize="13">
+                        Включить напоминания
+                    </CheckBox>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Интервал (минуты):" Foreground="#7070A0"
+                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <TextBox Text="{Binding BreakInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="60" FontSize="14" Foreground="White"
+                                 Background="#1A1A2E" BorderBrush="#3A3A6A" BorderThickness="1"
+                                 Padding="8,4" CaretBrush="White"
+                                 IsEnabled="{Binding BreakEnabled}"/>
+                        <TextBlock Text="мин" Foreground="#505070" FontSize="12"
+                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="Рекомендуется: каждые 45–60 минут"
+                               Style="{StaticResource SettingsHint}" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Background image -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="🖼️ Фоновое изображение" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="Показывается очень прозрачно, не мешая интерфейсу. По умолчанию — встроенная картинка."
+                               Style="{StaticResource SettingsHint}"/>
+
+                    <!-- Preview -->
+                    <Border Margin="0,14,0,0" CornerRadius="8" ClipToBounds="True"
+                            Width="260" Height="100" HorizontalAlignment="Left">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#0A0A18"/>
+                            </Style>
+                        </Border.Style>
+                        <Image x:Name="BgPreview" Stretch="UniformToFill" Opacity="0.6"/>
+                    </Border>
+
+                    <!-- Buttons -->
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Выбрать изображение…" Click="PickImage_Click"
+                                Background="#6A3FBB" Foreground="White" BorderThickness="0"
+                                Padding="14,8" FontSize="12">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#7A4FCB"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Сбросить" Click="ClearImage_Click"
+                                Background="#2A2A3E" Foreground="#808080" BorderThickness="0"
+                                Padding="14,8" FontSize="12" Margin="10,0,0,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+
+                    <TextBlock x:Name="BgPathLabel" Foreground="#404060" FontSize="10"
+                               Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+
+            <!-- About -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="ℹ️ О программе" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="ClickStat — статистика нажатий клавиатуры и мыши"
+                               Style="{StaticResource SettingsHint}" Margin="0,8,0,2"/>
+                    <TextBlock Text="Все данные хранятся локально в ~/Documents/KeyClick/key_statistics.db"
+                               Style="{StaticResource SettingsHint}"/>
+                    <TextBlock Text="Встроенный словарь: ~1200 распространённых английских слов"
+                               Style="{StaticResource SettingsHint}"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

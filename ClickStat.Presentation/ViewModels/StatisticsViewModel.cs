@@ -78,13 +78,10 @@ namespace ClickStat.Presentation.ViewModels
             var allKeys = await _dataClickService.GetKeyStatistics();
             MostFrequentKey = allKeys.Any() ? allKeys.OrderByDescending(k => k.Count).First().KeyName : "N/A";
 
-            var dates = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-i)).Reverse().ToList();
-            var counts = new List<int>();
-            foreach (var date in dates)
-            {
-                var dayStat = await _dataClickService.GetKeyStatisticsForTheDay(date);
-                counts.Add(dayStat.FirstOrDefault()?.ClickCount ?? 0);
-            }
+            // Single batch query instead of 10 sequential ones
+            var dates  = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-9 + i)).ToList();
+            var lookup = await _dataClickService.GetDailyClickCounts(dates[0], dates[^1]);
+            var counts = dates.Select(d => lookup.TryGetValue(d.Date, out var c) ? c : 0).ToList();
 
             DailyStatsSeries[0].Values = counts;
             XAxes[0].Labels = dates.Select(d => d.ToString("dd MMM")).ToArray();
