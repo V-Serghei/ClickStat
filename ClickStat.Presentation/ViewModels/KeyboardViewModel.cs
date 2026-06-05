@@ -137,7 +137,13 @@ public class KeyboardViewModel : INotifyPropertyChanged
         IsLoading = true;
 
         var stats = await _dataClickService.GetKeyStatistics();
-        var mergedCounts = stats.ToDictionary(s => s.KeyName, s => s.Count);
+        var mergedCounts = new Dictionary<string, int>();
+        foreach (var stat in stats)
+        {
+            foreach (var displayKey in GetDisplayKeys(stat.KeyName))
+                mergedCounts[displayKey] = mergedCounts.GetValueOrDefault(displayKey) + stat.Count;
+        }
+
         foreach (var (key, liveCount) in KeyCounts)
         {
             if (!mergedCounts.TryGetValue(key, out var dbCount) || liveCount > dbCount)
@@ -147,10 +153,10 @@ public class KeyboardViewModel : INotifyPropertyChanged
         KeyCounts  = mergedCounts;
         MaxCount   = KeyCounts.Values.Any() ? KeyCounts.Values.Max() : 1;
 
-        var custom = stats
-            .Where(s => !StandardKeys.Contains(s.KeyName) && s.Count > 0)
-            .OrderByDescending(s => s.Count)
-            .Select(s => new CustomKeyItem { KeyName = s.KeyName, Count = s.Count });
+        var custom = mergedCounts
+            .Where(kv => !StandardKeys.Contains(kv.Key) && !IsIgnoredSyntheticKey(kv.Key) && kv.Value > 0)
+            .OrderByDescending(kv => kv.Value)
+            .Select(kv => new CustomKeyItem { KeyName = kv.Key, Count = kv.Value });
 
         CustomKeys = new ObservableCollection<CustomKeyItem>(custom);
 
@@ -163,20 +169,29 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
     private void OnLiveKeyPress(string keyName)
     {
-        // 1. Update in-memory count (no DB query needed)
-        if (KeyCounts.TryGetValue(keyName, out var current))
-            KeyCounts[keyName] = current + 1;
-        else
-            KeyCounts[keyName] = 1;
+        var displayKeys = GetDisplayKeys(keyName).ToList();
 
-        if (KeyCounts[keyName] > MaxCount)
-            MaxCount = KeyCounts[keyName];
+        // 1. Update in-memory count (no DB query needed)
+        foreach (var displayKey in displayKeys)
+        {
+            if (KeyCounts.TryGetValue(displayKey, out var current))
+                KeyCounts[displayKey] = current + 1;
+            else
+                KeyCounts[displayKey] = 1;
+
+            if (KeyCounts[displayKey] > MaxCount)
+                MaxCount = KeyCounts[displayKey];
+        }
 
         OnPropertyChanged(nameof(KeyCounts)); // refresh heatmap colours
 
         // 2. Flash effect
-        _flashExpiry[keyName] = DateTime.Now.AddMilliseconds(110);
-        FlashingKeys.Add(keyName);
+        var flashUntil = DateTime.Now.AddMilliseconds(110);
+        foreach (var displayKey in displayKeys)
+        {
+            _flashExpiry[displayKey] = flashUntil;
+            FlashingKeys.Add(displayKey);
+        }
         OnPropertyChanged(nameof(FlashingKeys));
         if (!_flashTimer.IsEnabled) _flashTimer.Start();
 
@@ -200,11 +215,11 @@ public class KeyboardViewModel : INotifyPropertyChanged
         }
 
         // 4. Update custom keys if this key isn't in the standard layout
-        if (!StandardKeys.Contains(keyName))
+        if (!StandardKeys.Contains(keyName) && !IsIgnoredSyntheticKey(keyName))
         {
             var existing = CustomKeys.FirstOrDefault(k => k.KeyName == keyName);
             if (existing != null)
-                existing.Count = KeyCounts[keyName];
+                existing.Count = KeyCounts.GetValueOrDefault(keyName);
             else
                 CustomKeys.Insert(0, new CustomKeyItem { KeyName = keyName, Count = 1 });
         }
@@ -235,6 +250,18 @@ public class KeyboardViewModel : INotifyPropertyChanged
         "LControlKey" or "RControlKey" or "ControlKey" or
         "LMenu" or "RMenu" or "Menu"                 or
         "LWin" or "RWin";
+
+    private static IEnumerable<string> GetDisplayKeys(string keyName)
+    {
+        if (IsIgnoredSyntheticKey(keyName))
+            yield break;
+
+        yield return keyName;
+    }
+
+    private static bool IsIgnoredSyntheticKey(string keyName) =>
+        keyName is "None" or "LButton, OemClear" or "LButton,OemClear" or "OemClear"
+            or "ShiftKey" or "ControlKey" or "Menu";
 
     private void UpdateLayoutInfo(bool force = false)
     {
