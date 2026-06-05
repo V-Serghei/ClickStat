@@ -152,7 +152,7 @@
                         <StackPanel>
                             <TextBlock FontWeight="Bold" FontSize="15" Foreground="#AA70FF">
                                 <TextBlock.Text>
-                                    <MultiBinding Converter="{StaticResource KeyLabel}">
+                                    <MultiBinding Converter="{StaticResource KeyLabel}" Mode="OneWay">
                                         <Binding Path="PlacementTarget.Content"
                                                  RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
                                         <Binding Path="PlacementTarget.DataContext.LayoutCode"
@@ -164,7 +164,9 @@
                                 <Run Text="Нажатий: "/>
                                 <Run FontWeight="Bold" Foreground="White">
                                     <Run.Text>
-                                        <MultiBinding Converter="{StaticResource CountToBadgeConverter}">
+                                        <MultiBinding Converter="{StaticResource CountToBadgeConverter}"
+                                                      ConverterParameter="exact"
+                                                      Mode="OneWay">
                                             <Binding Path="PlacementTarget.DataContext.KeyCounts"
                                                      RelativeSource="{RelativeSource AncestorType=ToolTip}"/>
                                             <Binding Path="PlacementTarget.Content"
