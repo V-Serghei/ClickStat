@@ -40,9 +40,17 @@ public class KeyDataProcessor
         _saveTimer.Start();
     }
 
+    // RDP injects control signals as vkey=0 (None) or vkey=255 (LButton|OemClear).
+    // Neither is a real keystroke — filter both before counting.
+    private static bool IsRealKey(Keys key)
+    {
+        int vk = (int)(key & Keys.KeyCode);
+        return vk is > 0 and < 255;
+    }
+
     public Task ProcessKeyPress(Keys key)
     {
-        if (key == Keys.None) return Task.CompletedTask;
+        if (!IsRealKey(key)) return Task.CompletedTask;
 
         lock (_lock)
         {

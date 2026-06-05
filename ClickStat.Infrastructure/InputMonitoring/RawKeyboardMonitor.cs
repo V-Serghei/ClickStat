@@ -19,6 +19,7 @@ public sealed class RawKeyboardMonitor : IDisposable
     private const uint RID_INPUT         = 0x10000003;
     private const uint RIM_TYPEKEYBOARD  = 1;
     private const uint RIDEV_INPUTSINK   = 0x00000100;
+    private const ushort RI_KEY_E0       = 0x0002;
 
     public event Action<Keys>? KeyDown;
     public event Action<Keys>? KeyUp;
@@ -78,13 +79,27 @@ public sealed class RawKeyboardMonitor : IDisposable
 
     private void ProcessKeyboard(RAWKEYBOARD keyboard)
     {
-        var key = (Keys)keyboard.VKey;
+        var key = ResolveSideSpecificKey(keyboard);
         if (key == Keys.None) return;
 
         if (keyboard.Message is WM_KEYDOWN or WM_SYSKEYDOWN)
             KeyDown?.Invoke(key);
         else if (keyboard.Message is WM_KEYUP or WM_SYSKEYUP)
             KeyUp?.Invoke(key);
+    }
+
+    private static Keys ResolveSideSpecificKey(RAWKEYBOARD keyboard)
+    {
+        var key = (Keys)keyboard.VKey;
+        bool extended = (keyboard.Flags & RI_KEY_E0) != 0;
+
+        return key switch
+        {
+            Keys.ShiftKey => keyboard.MakeCode == 0x36 ? Keys.RShiftKey : Keys.LShiftKey,
+            Keys.ControlKey => extended ? Keys.RControlKey : Keys.LControlKey,
+            Keys.Menu => extended ? Keys.RMenu : Keys.LMenu,
+            _ => key
+        };
     }
 
     public void Dispose()
