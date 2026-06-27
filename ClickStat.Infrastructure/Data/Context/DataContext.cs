@@ -26,6 +26,9 @@ public class DataContext : DbContext
     // Apps
     public DbSet<AppUsageStatistics>   AppUsageStatistics   { get; set; }
 
+    // Saved input snippets
+    public DbSet<InputTemplate>         InputTemplates       { get; set; }
+
     private readonly string _dbPath;
 
     public DataContext(string dbPath)
