@@ -35,6 +35,7 @@ public sealed class GamepadMonitorService : IDisposable
         try
         {
             EnsureSchema();
+            LoadPersistedDevices();
         }
         catch
         {
@@ -152,7 +153,9 @@ public sealed class GamepadMonitorService : IDisposable
                 : caps.szPname.Trim();
 
             var type = InferDeviceType(name);
-            if (joystickId < xInputCount || (xInputCount > 0 && type == GamepadDeviceType.Xbox))
+            if (joystickId < xInputCount
+                || (xInputCount > 0 && type == GamepadDeviceType.Xbox)
+                || IsLikelyXInputMirror(name, type, xInputCount))
                 continue;
 
             var device = GetOrCreate(
@@ -361,7 +364,12 @@ public sealed class GamepadMonitorService : IDisposable
 
     private IReadOnlyList<GamepadSnapshot> BuildSnapshotsLocked()
     {
+        var hasXInputDevice = _devices.Values.Any(d => d.Source == GamepadSource.XInput);
+
         return _devices.Values
+            .Where(d => !(hasXInputDevice &&
+                          d.Source == GamepadSource.WinMm &&
+                          IsLikelyXInputMirror(d.DisplayName, d.DeviceType, xInputCount: 1)))
             .OrderByDescending(d => d.IsConnected)
             .ThenBy(d => d.DeviceType)
             .ThenBy(d => d.DisplayName, StringComparer.CurrentCultureIgnoreCase)
@@ -457,6 +465,92 @@ public sealed class GamepadMonitorService : IDisposable
                 TotalStickMoves INTEGER NOT NULL DEFAULT 0
             )";
         deviceCommand.ExecuteNonQuery();
+    }
+
+    private void LoadPersistedDevices()
+    {
+        lock (_gate)
+        {
+            LoadPersistedDevicesLocked();
+        }
+    }
+
+    private void LoadPersistedDevicesLocked()
+    {
+        EnsureSchema();
+        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        connection.Open();
+
+        var saved = new Dictionary<string, PersistedGamepadDevice>(StringComparer.OrdinalIgnoreCase);
+
+        using (var deviceCommand = connection.CreateCommand())
+        {
+            deviceCommand.CommandText = @"
+                SELECT DeviceId, DisplayName, DeviceType, TotalStickMoves
+                FROM GamepadDeviceStatistics";
+
+            using var reader = deviceCommand.ExecuteReader();
+            while (reader.Read())
+            {
+                var deviceId = reader.GetString(0);
+                saved[deviceId] = new PersistedGamepadDevice(
+                    deviceId,
+                    reader.GetString(1),
+                    (GamepadDeviceType)reader.GetInt32(2),
+                    reader.GetInt32(3));
+            }
+        }
+
+        using (var buttonCommand = connection.CreateCommand())
+        {
+            buttonCommand.CommandText = @"
+                SELECT DeviceId, DisplayName, DeviceType, ButtonName, Count
+                FROM GamepadButtonStatistics";
+
+            using var reader = buttonCommand.ExecuteReader();
+            while (reader.Read())
+            {
+                var deviceId = reader.GetString(0);
+                if (!saved.TryGetValue(deviceId, out var persisted))
+                {
+                    persisted = new PersistedGamepadDevice(
+                        deviceId,
+                        reader.GetString(1),
+                        (GamepadDeviceType)reader.GetInt32(2),
+                        0);
+                    saved[deviceId] = persisted;
+                }
+
+                persisted.ButtonCounts[reader.GetString(3)] = reader.GetInt32(4);
+            }
+        }
+
+        foreach (var persisted in saved.Values)
+        {
+            if (_devices.ContainsKey(persisted.DeviceId))
+                continue;
+
+            var device = new GamepadRuntimeState
+            {
+                DeviceId = persisted.DeviceId,
+                DisplayName = persisted.DisplayName,
+                DeviceType = persisted.DeviceType,
+                Source = GetSourceFromDeviceId(persisted.DeviceId),
+                IsConnected = false,
+                TotalStickMoves = persisted.TotalStickMoves,
+                ButtonOrder = persisted.ButtonCounts.Count > 0
+                    ? persisted.ButtonCounts.Keys.ToArray()
+                    : GetButtonNames(persisted.DeviceType)
+            };
+
+            foreach (var (buttonName, count) in persisted.ButtonCounts)
+            {
+                device.ButtonCounts[buttonName] = count;
+                device.TotalButtonPresses += count;
+            }
+
+            _devices[persisted.DeviceId] = device;
+        }
     }
 
     private void LoadSavedState(GamepadRuntimeState device)
@@ -604,6 +698,25 @@ public sealed class GamepadMonitorService : IDisposable
         return GamepadDeviceType.Generic;
     }
 
+    private static bool IsLikelyXInputMirror(string name, GamepadDeviceType type, uint xInputCount)
+    {
+        if (xInputCount == 0)
+            return false;
+
+        var normalized = name.ToLowerInvariant();
+        return type == GamepadDeviceType.Xbox
+            || normalized.Contains("xinput")
+            || normalized.Contains("xbox")
+            || normalized.Contains("pc-joystick")
+            || normalized.Contains("pc joystick")
+            || normalized.Contains("microsoft pc");
+    }
+
+    private static GamepadSource GetSourceFromDeviceId(string deviceId) =>
+        deviceId.StartsWith("xinput:", StringComparison.OrdinalIgnoreCase)
+            ? GamepadSource.XInput
+            : GamepadSource.WinMm;
+
     private static string[] GetButtonNames(GamepadDeviceType type) => type switch
     {
         GamepadDeviceType.Xbox => new[]
@@ -734,6 +847,15 @@ public sealed class GamepadMonitorService : IDisposable
 
     private sealed record GamepadButtonDelta(string DisplayName, GamepadDeviceType DeviceType, int Count);
     private sealed record GamepadMoveDelta(string DisplayName, GamepadDeviceType DeviceType, int Count);
+
+    private sealed record PersistedGamepadDevice(
+        string DeviceId,
+        string DisplayName,
+        GamepadDeviceType DeviceType,
+        int TotalStickMoves)
+    {
+        public Dictionary<string, int> ButtonCounts { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
 
     private enum GamepadSource
     {
