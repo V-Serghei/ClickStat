@@ -2,19 +2,21 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Windows.Input;
 using ClickStat.Core.Helpers;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
 using ClickStat.Presentation.Services;
+using ClickStat.Presentation.Views;
 using System.Windows.Forms;
 
 namespace ClickStat.Presentation.ViewModels
 {
     public enum AppPage
     {
-        Overview, Keyboard, Mouse, Activity, Words, Apps, Settings
+        Overview, Keyboard, Mouse, Activity, Words, Apps, Gamepads, Settings
     }
 
     public class NavItem
@@ -36,7 +38,11 @@ namespace ClickStat.Presentation.ViewModels
         private readonly WordProcessor           _wordProcessor;
         private readonly HourlyActivityProcessor _hourlyProcessor;
         private readonly AppUsageProcessor       _appUsageProcessor;
+        private readonly InputTemplateProcessor  _inputTemplateProcessor;
         private readonly BreakReminderService    _breakReminder;
+        private bool _isTemplatePickerOpen;
+        private InputTemplatePickerDialog? _templatePickerDialog;
+        private bool _isSelectionCaptureInProgress;
 
         // ── ViewModels ──────────────────────────────────────────────────────
         public OverviewViewModel  OverviewVm  { get; }
@@ -45,6 +51,7 @@ namespace ClickStat.Presentation.ViewModels
         public ActivityViewModel  ActivityVm  { get; }
         public WordsViewModel     WordsVm     { get; }
         public AppsViewModel      AppsVm      { get; }
+        public GamepadsViewModel  GamepadsVm  { get; }
         public SettingsViewModel  SettingsVm  { get; }
 
         // ── Navigation ──────────────────────────────────────────────────────
@@ -56,6 +63,7 @@ namespace ClickStat.Presentation.ViewModels
             new NavItem { Icon = "📈", Label = "Активность",   Page = AppPage.Activity  },
             new NavItem { Icon = "📝", Label = "Слова",        Page = AppPage.Words     },
             new NavItem { Icon = "💻", Label = "Приложения",   Page = AppPage.Apps      },
+            new NavItem { Icon = "🎮", Label = "Геймпады",     Page = AppPage.Gamepads  },
             new NavItem { Icon = "⚙️", Label = "Настройки",    Page = AppPage.Settings  },
         };
 
@@ -81,6 +89,7 @@ namespace ClickStat.Presentation.ViewModels
             AppPage.Activity  => ActivityVm,
             AppPage.Words     => WordsVm,
             AppPage.Apps      => AppsVm,
+            AppPage.Gamepads  => GamepadsVm,
             AppPage.Settings  => SettingsVm,
             _                 => OverviewVm
         };
@@ -114,6 +123,7 @@ namespace ClickStat.Presentation.ViewModels
             WordProcessor           wordProcessor,
             HourlyActivityProcessor hourlyProcessor,
             AppUsageProcessor       appUsageProcessor,
+            InputTemplateProcessor  inputTemplateProcessor,
             BreakReminderService    breakReminder,
             OverviewViewModel       overviewVm,
             KeyboardViewModel       keyboardVm,
@@ -121,6 +131,7 @@ namespace ClickStat.Presentation.ViewModels
             ActivityViewModel       activityVm,
             WordsViewModel          wordsVm,
             AppsViewModel           appsVm,
+            GamepadsViewModel       gamepadsVm,
             SettingsViewModel       settingsVm)
         {
             _inputMonitorService    = inputMonitorService;
@@ -132,6 +143,7 @@ namespace ClickStat.Presentation.ViewModels
             _wordProcessor          = wordProcessor;
             _hourlyProcessor        = hourlyProcessor;
             _appUsageProcessor      = appUsageProcessor;
+            _inputTemplateProcessor = inputTemplateProcessor;
             _breakReminder          = breakReminder;
 
             OverviewVm = overviewVm;
@@ -140,6 +152,7 @@ namespace ClickStat.Presentation.ViewModels
             ActivityVm = activityVm;
             WordsVm    = wordsVm;
             AppsVm     = appsVm;
+            GamepadsVm = gamepadsVm;
             SettingsVm = settingsVm;
 
             // Pass break reminder to settings so user can configure it
@@ -193,6 +206,9 @@ namespace ClickStat.Presentation.ViewModels
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
+                    break;
+                case AppPage.Gamepads:
+                    _ = GamepadsVm.LoadAsync();
                     break;
             }
         }
@@ -249,9 +265,136 @@ namespace ClickStat.Presentation.ViewModels
 
             _savingClickService.SaveClick(key);
             _liveBus.PublishKey(key.ToString());
+            if (!MouseButtonCodeHelper.IsModifier(key) && !ctrl && !alt)
+                KeyboardVm.RecordSessionKey(key, shift);
             _hourlyProcessor.Record();
             _appUsageProcessor.RecordKey();
             _breakReminder.RecordActivity();
+        }
+
+        public Task ToggleInputTemplatePickerAsync(IntPtr targetWindow) =>
+            ShowInputTemplatePickerAsync(targetWindow);
+
+        public Task CaptureSelectedTextAsTemplateFromHotkeyAsync(IntPtr targetWindow) =>
+            CaptureSelectedTextAsTemplateAsync(targetWindow);
+
+        private async Task ShowInputTemplatePickerAsync(IntPtr targetWindow)
+        {
+            if (_isTemplatePickerOpen)
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    _templatePickerDialog?.Close());
+                return;
+            }
+
+            _isTemplatePickerOpen = true;
+            try
+            {
+                string? selectedText = null;
+                var shouldPaste = false;
+
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    var dialog = new InputTemplatePickerDialog(_inputTemplateProcessor);
+                    _templatePickerDialog = dialog;
+                    var result = dialog.ShowDialog();
+                    if (result == true && dialog.ShouldPaste)
+                    {
+                        selectedText = dialog.SelectedText;
+                        shouldPaste = true;
+                    }
+                });
+
+                if (shouldPaste && !string.IsNullOrEmpty(selectedText))
+                    await PasteTextIntoTargetAsync(selectedText, targetWindow);
+            }
+            finally
+            {
+                _templatePickerDialog = null;
+                _isTemplatePickerOpen = false;
+            }
+        }
+
+        private static async Task PasteTextIntoTargetAsync(string text, IntPtr targetWindow)
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                System.Windows.Clipboard.SetText(text));
+
+            await Task.Delay(120);
+            if (targetWindow != IntPtr.Zero)
+                SetForegroundWindow(targetWindow);
+
+            await Task.Delay(80);
+            SendKeys.SendWait("^v");
+        }
+
+        private async Task CaptureSelectedTextAsTemplateAsync(IntPtr targetWindow)
+        {
+            if (_isSelectionCaptureInProgress)
+                return;
+
+            _isSelectionCaptureInProgress = true;
+            System.Windows.IDataObject? previousClipboard = null;
+
+            try
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (System.Windows.Clipboard.ContainsData(System.Windows.DataFormats.Text)
+                        || System.Windows.Clipboard.ContainsData(System.Windows.DataFormats.UnicodeText)
+                        || System.Windows.Clipboard.ContainsData(System.Windows.DataFormats.Bitmap)
+                        || System.Windows.Clipboard.ContainsData(System.Windows.DataFormats.FileDrop))
+                    {
+                        previousClipboard = System.Windows.Clipboard.GetDataObject();
+                    }
+                });
+
+                await WaitForHotkeyReleaseAsync();
+
+                if (targetWindow != IntPtr.Zero)
+                    SetForegroundWindow(targetWindow);
+
+                await Task.Delay(80);
+                SendKeys.SendWait("^c");
+                await Task.Delay(180);
+
+                string? selectedText = null;
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (System.Windows.Clipboard.ContainsText())
+                        selectedText = System.Windows.Clipboard.GetText();
+                });
+
+                if (!string.IsNullOrWhiteSpace(selectedText))
+                    await _inputTemplateProcessor.SaveAsync(selectedText);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Capture selected text failed: {ex.Message}");
+            }
+            finally
+            {
+                if (previousClipboard != null)
+                {
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        System.Windows.Clipboard.SetDataObject(previousClipboard, true));
+                }
+
+                _isSelectionCaptureInProgress = false;
+            }
+        }
+
+        private static async Task WaitForHotkeyReleaseAsync()
+        {
+            var deadline = DateTime.UtcNow.AddMilliseconds(900);
+            while (DateTime.UtcNow < deadline
+                   && (IsPhysicalKeyDown(Keys.D)
+                       || IsPhysicalKeyDown(Keys.ControlKey)
+                       || IsPhysicalKeyDown(Keys.ShiftKey)
+                       || IsPhysicalKeyDown(Keys.Menu)))
+            {
+                await Task.Delay(20);
+            }
         }
 
         private void OnKeyUpReceived(Keys key)
@@ -268,6 +411,18 @@ namespace ClickStat.Presentation.ViewModels
 
         private bool IsAltHeld() =>
             _heldModifiers.Contains(Keys.Menu) || _heldModifiers.Contains(Keys.LMenu) || _heldModifiers.Contains(Keys.RMenu);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        private static bool IsPhysicalKeyDown(Keys key) =>
+            (GetAsyncKeyState((int)(key & Keys.KeyCode)) & 0x8000) != 0;
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
 
         // ── Mouse events ─────────────────────────────────────────────────────
 

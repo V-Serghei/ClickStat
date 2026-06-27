@@ -12,24 +12,30 @@ namespace ClickStat.Presentation.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
+            var mode = parameter as string;
             
             if (values.Length < 2
                 || values[0] is not Dictionary<string, int> keyCounts
                 || values[1] is not string keyName)
             {
                 
-                return targetType == typeof(Visibility) ? Visibility.Collapsed : null;
+                return targetType == typeof(Visibility) ? Visibility.Collapsed : mode == "exact" ? "0" : null;
             }
 
             if (!keyCounts.TryGetValue(keyName, out int count) || count == 0)
             {
-                return targetType == typeof(Visibility) ? Visibility.Collapsed : null;
+                return targetType == typeof(Visibility) ? Visibility.Collapsed : mode == "exact" ? "0" : null;
             }
 
             
-            if (parameter is string param && param == "visibility")
+            if (mode == "visibility")
             {
                 return Visibility.Visible;
+            }
+
+            if (mode == "exact")
+            {
+                return count.ToString("N0", culture);
             }
 
             

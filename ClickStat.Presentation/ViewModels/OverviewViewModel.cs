@@ -74,29 +74,27 @@ public class OverviewViewModel : INotifyPropertyChanged
 
         // Always accumulate session keys — even when Overview tab is closed
         _liveBus.KeyPressed += OnLiveKey;
-
-        _ = LoadStatsAsync();
     }
 
-    // ── DB load (called on tab open + constructor) ────────────────────────
+    // ── DB load (called on tab open) ──────────────────────────────────────
     public async Task LoadStatsAsync()
     {
         IsLoading = true;
         try
         {
-            int previousTotal = TotalClicks;
-            int previousToday = _visibleTodayDate == DateTime.Today ? ClicksToday : 0;
-
             var dbTotal = await _dataService.GetKeyStatisticsForTheAllTime();
-            var today = await _dataService.GetKeyStatisticsForTheDay(DateTime.Today);
+            var today   = await _dataService.GetKeyStatisticsForTheDay(DateTime.Today);
             var dbToday = today.FirstOrDefault()?.ClickCount ?? 0;
 
             var allKeys   = await _dataService.GetKeyStatistics();
             var backspace = allKeys.FirstOrDefault(k => k.KeyName == "Back");
             _visibleBackspace = Math.Max(_visibleBackspace, backspace?.Count ?? 0);
 
-            TotalClicks = Math.Max(dbTotal, previousTotal);
-            ClicksToday = Math.Max(dbToday, previousToday);
+            // Read TotalClicks AFTER all awaits — live events (OnLiveKey) may have
+            // incremented it while the DB queries were running. Taking the max ensures
+            // we never show a stale value, and we never lose live increments.
+            TotalClicks = Math.Max(dbTotal, TotalClicks);
+            ClicksToday = Math.Max(dbToday, ClicksToday);
             _visibleTodayDate = DateTime.Today;
 
             MostFrequentKey = allKeys.Any()
