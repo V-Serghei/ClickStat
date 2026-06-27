@@ -255,11 +255,6 @@ namespace ClickStat.Presentation.ViewModels
             bool shift = IsShiftHeld();
             bool alt   = IsAltHeld();
 
-            if (ctrl && alt && shift && IsPhysicalKeyDown(Keys.D))
-                _ = CaptureSelectedTextAsTemplateAsync(GetForegroundWindow());
-            else if (alt && !ctrl && IsPhysicalKeyDown(Keys.D))
-                _ = ShowInputTemplatePickerAsync(GetForegroundWindow());
-
             // Keyboard-mapped mouse button detection
             if (!MouseButtonCodeHelper.IsModifier(key))
             {
@@ -276,6 +271,12 @@ namespace ClickStat.Presentation.ViewModels
             _appUsageProcessor.RecordKey();
             _breakReminder.RecordActivity();
         }
+
+        public Task ToggleInputTemplatePickerAsync(IntPtr targetWindow) =>
+            ShowInputTemplatePickerAsync(targetWindow);
+
+        public Task CaptureSelectedTextAsTemplateFromHotkeyAsync(IntPtr targetWindow) =>
+            CaptureSelectedTextAsTemplateAsync(targetWindow);
 
         private async Task ShowInputTemplatePickerAsync(IntPtr targetWindow)
         {
