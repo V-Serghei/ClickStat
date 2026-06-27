@@ -1,5 +1,7 @@
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using ClickStat.Presentation.ViewModels;
 
 namespace ClickStat.Presentation;
@@ -10,6 +12,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(ClearButtonFocusAfterClick), true);
+    }
+
+    private void ClearButtonFocusAfterClick(object sender, RoutedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() => Keyboard.ClearFocus(), DispatcherPriority.Background);
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -3,7 +3,9 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using ClickStat.Infrastructure.Data;
 
 namespace ClickStat.Presentation.Views;
@@ -22,7 +24,13 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         _templateProcessor = templateProcessor;
         InitializeComponent();
         DataContext = this;
+        AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(ClearButtonFocusAfterClick), true);
         Loaded += OnLoaded;
+    }
+
+    private void ClearButtonFocusAfterClick(object sender, RoutedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() => Keyboard.ClearFocus(), DispatcherPriority.Background);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
