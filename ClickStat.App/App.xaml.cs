@@ -53,6 +53,7 @@ public partial class App : Application
         s.AddSingleton<WordProcessor>();
         s.AddSingleton<HourlyActivityProcessor>();
         s.AddSingleton<AppUsageProcessor>();
+        s.AddSingleton<InputTemplateProcessor>();
         s.AddSingleton<MouseDataProcessor>();  // shared instance for ActivityViewModel
         s.AddSingleton<GamepadMonitorService>();
 

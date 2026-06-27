@@ -103,6 +103,9 @@ public sealed class WordProcessor : IDisposable
         if (virtualKey is <= 0 or > 255) return null;
 
         keyState[virtualKey] = 0x80;
+        if ((GetKeyState((int)Keys.Capital) & 0x0001) != 0)
+            keyState[(int)Keys.Capital] = 0x01;
+
         if (shift)
         {
             keyState[(int)Keys.ShiftKey] = 0x80;
@@ -130,6 +133,9 @@ public sealed class WordProcessor : IDisposable
 
     [DllImport("user32.dll")]
     private static extern uint MapVirtualKeyEx(uint uCode, uint uMapType, IntPtr dwhkl);
+
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
 
     public void ClearBuffer()
     {

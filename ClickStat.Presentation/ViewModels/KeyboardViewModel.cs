@@ -3,10 +3,16 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Forms;
+using System.Windows.Input;
 using System.Windows.Threading;
 using ClickStat.Core.Interfaces;
+using ClickStat.Infrastructure.Data;
 using ClickStat.Infrastructure.Services;
 using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
@@ -17,6 +23,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
 {
     private readonly IGetDataClick _dataClickService;
     private readonly LiveEventBus  _liveBus;
+    private readonly InputTemplateProcessor _inputTemplateProcessor;
 
     // ── Loading state ──────────────────────────────────────────────────────
 
@@ -37,6 +44,35 @@ public class KeyboardViewModel : INotifyPropertyChanged
     // ── Custom keys ────────────────────────────────────────────────────────
 
     public ObservableCollection<CustomKeyItem> CustomKeys { get; private set; } = new();
+
+    // Session input buffer. Kept only while the keyboard tab/window is open.
+    private readonly StringBuilder _sessionInput = new();
+
+    private string _sessionInputText = "";
+    public string SessionInputText
+    {
+        get => _sessionInputText;
+        private set
+        {
+            if (_sessionInputText == value) return;
+            _sessionInputText = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SessionInputLength));
+        }
+    }
+
+    public int SessionInputLength => _sessionInput.Length;
+
+    private string _sessionInputStatus = "";
+    public string SessionInputStatus
+    {
+        get => _sessionInputStatus;
+        private set { _sessionInputStatus = value; OnPropertyChanged(); }
+    }
+
+    public ICommand ClearSessionInputCommand { get; }
+    public ICommand CopySessionInputCommand { get; }
+    public ICommand SaveSessionInputCommand { get; }
 
     // ── Keyboard layout ────────────────────────────────────────────────────
 
@@ -112,10 +148,18 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
     // ── Constructor ────────────────────────────────────────────────────────
 
-    public KeyboardViewModel(IGetDataClick dataClickService, LiveEventBus liveBus)
+    public KeyboardViewModel(
+        IGetDataClick dataClickService,
+        LiveEventBus liveBus,
+        InputTemplateProcessor inputTemplateProcessor)
     {
         _dataClickService = dataClickService;
         _liveBus          = liveBus;
+        _inputTemplateProcessor = inputTemplateProcessor;
+
+        ClearSessionInputCommand = new RelayCommand(_ => ClearSessionInput());
+        CopySessionInputCommand = new RelayCommand(_ => CopySessionInput());
+        SaveSessionInputCommand = new RelayCommand(async _ => await SaveSessionInputAsync());
 
         _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
         _flashTimer.Tick += OnFlashTick;
@@ -225,6 +269,73 @@ public class KeyboardViewModel : INotifyPropertyChanged
         }
     }
 
+    public void RecordSessionKey(Keys key, bool shift)
+    {
+        if (!IsLiveActive)
+            return;
+
+        if (key == Keys.Back)
+        {
+            if (_sessionInput.Length > 0)
+                _sessionInput.Remove(_sessionInput.Length - 1, 1);
+            RefreshSessionInput();
+            return;
+        }
+
+        if (key is Keys.Enter or Keys.Return)
+        {
+            _sessionInput.AppendLine();
+            RefreshSessionInput();
+            return;
+        }
+
+        if (key == Keys.Tab)
+        {
+            _sessionInput.Append('\t');
+            RefreshSessionInput();
+            return;
+        }
+
+        var ch = ResolveChar(key, shift);
+        if (ch.HasValue && !char.IsControl(ch.Value))
+        {
+            _sessionInput.Append(ch.Value);
+            RefreshSessionInput();
+        }
+    }
+
+    private void ClearSessionInput()
+    {
+        _sessionInput.Clear();
+        SessionInputStatus = "";
+        RefreshSessionInput();
+    }
+
+    private void CopySessionInput()
+    {
+        if (_sessionInput.Length == 0)
+            return;
+
+        System.Windows.Clipboard.SetText(SessionInputText);
+        SessionInputStatus = "Скопировано";
+    }
+
+    private async Task SaveSessionInputAsync()
+    {
+        if (_sessionInput.Length == 0)
+            return;
+
+        await _inputTemplateProcessor.SaveAsync(SessionInputText);
+        SessionInputStatus = "Сохранено";
+    }
+
+    private void RefreshSessionInput()
+    {
+        SessionInputText = _sessionInput.ToString();
+        if (_sessionInput.Length == 0)
+            SessionInputStatus = "";
+    }
+
     // ── Flash timer ────────────────────────────────────────────────────────
 
     private void OnFlashTick(object? sender, EventArgs e)
@@ -250,6 +361,46 @@ public class KeyboardViewModel : INotifyPropertyChanged
         "LControlKey" or "RControlKey" or "ControlKey" or
         "LMenu" or "RMenu" or "Menu"                 or
         "LWin" or "RWin";
+
+    private static char? ResolveChar(Keys key, bool shift)
+    {
+        var keyState = new byte[256];
+        var keyCode = key & Keys.KeyCode;
+        int virtualKey = (int)keyCode;
+        if (virtualKey is <= 0 or > 255) return null;
+
+        keyState[virtualKey] = 0x80;
+        if ((GetKeyState((int)Keys.Capital) & 0x0001) != 0)
+            keyState[(int)Keys.Capital] = 0x01;
+
+        if (shift)
+        {
+            keyState[(int)Keys.ShiftKey] = 0x80;
+            keyState[(int)Keys.LShiftKey] = 0x80;
+        }
+
+        var sb = new StringBuilder(4);
+        var layout = LayoutService.GetCurrentKeyboardLayoutHandle();
+        uint scanCode = (uint)MapVirtualKeyEx((uint)virtualKey, 0, layout);
+        int result = ToUnicodeEx((uint)virtualKey, scanCode, keyState, sb, 4, 4, layout);
+        return result > 0 && sb.Length > 0 ? sb[0] : null;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern int ToUnicodeEx(
+        uint wVirtKey,
+        uint wScanCode,
+        byte[] lpKeyState,
+        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
+        int cchBuff,
+        uint wFlags,
+        IntPtr dwhkl);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKeyEx(uint uCode, uint uMapType, IntPtr dwhkl);
+
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
 
     private static IEnumerable<string> GetDisplayKeys(string keyName)
     {
