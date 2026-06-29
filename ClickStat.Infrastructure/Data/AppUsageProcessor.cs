@@ -20,6 +20,8 @@ public sealed class AppUsageProcessor : IDisposable
     private readonly string _dbPath;
     private readonly Timer _flushTimer;
     private readonly object _lock = new();
+    private readonly object _schemaGate = new();
+    private bool _schemaReady;
 
     private readonly Dictionary<string, (string name, int keys, int clicks)> _buffer = new();
     private readonly Dictionary<string, string> _nameCache = new();
@@ -48,17 +50,6 @@ public sealed class AppUsageProcessor : IDisposable
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         _dbPath = Path.Combine(docs, "KeyClick", "key_statistics.db");
-
-        using var ctx = new DataContext(_dbPath);
-        ctx.Database.EnsureCreated();
-
-        ctx.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS AppUsageStatistics (
-                ExeName    TEXT    PRIMARY KEY,
-                AppName    TEXT    NOT NULL DEFAULT '',
-                KeyCount   INTEGER NOT NULL DEFAULT 0,
-                ClickCount INTEGER NOT NULL DEFAULT 0
-            )");
 
         _flushTimer = new Timer(FlushIntervalSeconds * 1000) { AutoReset = true };
         _flushTimer.Elapsed += async (_, _) => await Flush();
@@ -123,6 +114,7 @@ public sealed class AppUsageProcessor : IDisposable
 
     public async Task<List<AppUsageStatistics>> GetTopApps(int limit = 20)
     {
+        EnsureSchema();
         await using var ctx = new DataContext(_dbPath);
         var rows = await ctx.AppUsageStatistics.ToListAsync();
 
@@ -155,6 +147,7 @@ public sealed class AppUsageProcessor : IDisposable
         }
 
         await using var ctx = new DataContext(_dbPath);
+        EnsureSchema(ctx);
         var tx = await ctx.Database.BeginTransactionAsync();
         try
         {
@@ -187,6 +180,31 @@ public sealed class AppUsageProcessor : IDisposable
         catch
         {
             await tx.RollbackAsync();
+        }
+    }
+
+    private void EnsureSchema()
+    {
+        using var ctx = new DataContext(_dbPath);
+        EnsureSchema(ctx);
+    }
+
+    private void EnsureSchema(DataContext ctx)
+    {
+        lock (_schemaGate)
+        {
+            if (_schemaReady)
+                return;
+
+            ctx.Database.EnsureCreated();
+            ctx.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS AppUsageStatistics (
+                    ExeName    TEXT    PRIMARY KEY,
+                    AppName    TEXT    NOT NULL DEFAULT '',
+                    KeyCount   INTEGER NOT NULL DEFAULT 0,
+                    ClickCount INTEGER NOT NULL DEFAULT 0
+                )");
+            _schemaReady = true;
         }
     }
 

@@ -109,7 +109,6 @@ public class MouseViewModel : INotifyPropertyChanged
         _liveBus.MouseButtonPressed += OnButtonPressedAlways;
         _liveBus.MouseScrolled      += OnScrolledAlways;
 
-        _ = LoadDataAsync();
     }
 
     // ── DB load ─────────────────────────────────────────────────────────────

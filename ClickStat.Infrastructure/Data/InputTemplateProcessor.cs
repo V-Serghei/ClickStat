@@ -10,6 +10,8 @@ public sealed class InputTemplateProcessor
     private const int SearchLimit = 80;
     private readonly string _dbPath;
     private readonly string _connectionString;
+    private readonly object _schemaGate = new();
+    private bool _schemaReady;
 
     public InputTemplateProcessor()
     {
@@ -19,7 +21,6 @@ public sealed class InputTemplateProcessor
         _dbPath = Path.Combine(folder, "key_statistics.db");
         _connectionString = BuildConnectionString(_dbPath);
 
-        EnsureTable();
     }
 
     public async Task SaveAsync(string text)
@@ -27,6 +28,7 @@ public sealed class InputTemplateProcessor
         if (string.IsNullOrWhiteSpace(text))
             return;
 
+        EnsureTable();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
@@ -42,6 +44,7 @@ public sealed class InputTemplateProcessor
 
     public async Task<IReadOnlyList<InputTemplateEntry>> SearchAsync(string query = "")
     {
+        EnsureTable();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
@@ -95,6 +98,7 @@ public sealed class InputTemplateProcessor
 
     public async Task<string?> GetTextAsync(int id)
     {
+        EnsureTable();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
@@ -106,6 +110,7 @@ public sealed class InputTemplateProcessor
 
     public async Task DeleteAsync(int id)
     {
+        EnsureTable();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
@@ -116,6 +121,11 @@ public sealed class InputTemplateProcessor
 
     private void EnsureTable()
     {
+        lock (_schemaGate)
+        {
+            if (_schemaReady)
+                return;
+
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
         using var command = connection.CreateCommand();
@@ -135,6 +145,8 @@ public sealed class InputTemplateProcessor
             ON InputTemplates (CreatedAt);
             """;
         command.ExecuteNonQuery();
+            _schemaReady = true;
+        }
     }
 
     private static string BuildConnectionString(string dbPath)

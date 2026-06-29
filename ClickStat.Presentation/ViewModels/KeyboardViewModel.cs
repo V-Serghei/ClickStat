@@ -171,7 +171,6 @@ public class KeyboardViewModel : INotifyPropertyChanged
         // Always subscribe — key presses accumulate in KeyCounts regardless of active tab
         _liveBus.KeyPressed += OnLiveKeyPress;
 
-        _ = LoadKeyCountsAsync();
     }
 
     // ── DB load ────────────────────────────────────────────────────────────
