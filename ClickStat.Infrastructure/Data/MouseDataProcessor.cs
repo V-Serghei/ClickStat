@@ -18,11 +18,11 @@ public class MouseDataProcessor : IDisposable
     // Standard buttons pre-registered on startup
     private static readonly Dictionary<int, string> DefaultButtons = new()
     {
-        { (int)MouseButtons.Left,     "Левая кнопка" },
-        { (int)MouseButtons.Right,    "Правая кнопка" },
-        { (int)MouseButtons.Middle,   "Колесо (клик)" },
-        { (int)MouseButtons.XButton1, "Кнопка назад" },
-        { (int)MouseButtons.XButton2, "Кнопка вперёд" },
+        { (int)MouseButtons.Left,     "Left button" },
+        { (int)MouseButtons.Right,    "Right button" },
+        { (int)MouseButtons.Middle,   "Middle button" },
+        { (int)MouseButtons.XButton1, "Back button" },
+        { (int)MouseButtons.XButton2, "Forward button" },
     };
 
     private const int GridW = 80;  // 1920 / 24

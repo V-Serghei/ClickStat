@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using ClickStat.Infrastructure.Data;
 using ClickStat.Infrastructure.Data.Model;
+using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.ViewModels;
 
@@ -46,17 +47,26 @@ public class ActivityViewModel : INotifyPropertyChanged
     public double  DistanceKm  => Math.Round(_distanceUnits / 100_000_000.0, 2); // 0.01mm → km
     public double  DistanceM   => Math.Round(_distanceUnits / 100_000.0, 0);     // 0.01mm → m
     public string  DistanceLabel => DistanceKm >= 1
-        ? $"{DistanceKm:0.00} км"
-        : $"{DistanceM:0} м";
+        ? $"{DistanceKm:0.00} {LocalizationService.Instance["Units.Km"]}"
+        : $"{DistanceM:0} {LocalizationService.Instance["Units.M"]}";
     public int TotalActivityCount { get; private set; }
-    public string MostActiveDayLabel { get; private set; } = "Нет данных";
-
-    private static readonly string[] DayNames = { "Вс","Пн","Вт","Ср","Чт","Пт","Сб" };
+    public string MostActiveDayLabel { get; private set; } = LocalizationService.Instance["Common.NoData"];
 
     public ActivityViewModel(HourlyActivityProcessor hourlyProcessor, MouseDataProcessor mouseProcessor)
     {
         _hourlyProcessor = hourlyProcessor;
         _mouseProcessor  = mouseProcessor;
+        LocalizationService.Instance.PropertyChanged += OnLocalizationChanged;
+    }
+
+    private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != "Item[]" && e.PropertyName != nameof(LocalizationService.CurrentLanguage))
+            return;
+
+        RelocalizeLoadedData();
+        OnPropertyChanged(nameof(DistanceLabel));
+        OnPropertyChanged(nameof(MostActiveDayLabel));
     }
 
     public async Task LoadAsync()
@@ -74,7 +84,7 @@ public class ActivityViewModel : INotifyPropertyChanged
                 Hour      = r.Hour,
                 Count     = r.Count,
                 Intensity = max > 0 ? (double)r.Count / max : 0,
-                Tooltip   = $"{DayNames[r.DayOfWeek]} {r.Hour:00}:00 — {r.Count} нажатий"
+                Tooltip   = BuildTooltip(r.DayOfWeek, r.Hour, r.Count)
             }).ToList();
 
             TotalActivityCount = rows.Sum(r => r.Count);
@@ -92,7 +102,7 @@ public class ActivityViewModel : INotifyPropertyChanged
                     return new DayActivityVm
                     {
                         DayOfWeek    = day,
-                        DayName      = DayNames[day],
+                        DayName      = DayName(day),
                         Count        = count,
                         Coefficient  = averageDay > 0 ? count / averageDay : 0,
                         SharePercent = TotalActivityCount > 0 ? (double)count / TotalActivityCount * 100.0 : 0,
@@ -104,7 +114,7 @@ public class ActivityViewModel : INotifyPropertyChanged
 
             MostActiveDayLabel = DayStats.FirstOrDefault(d => d.Count > 0) is { } top
                 ? $"{top.DayName} ({top.CoefficientLabel})"
-                : "Нет данных";
+                : LocalizationService.Instance["Common.NoData"];
 
             _distanceUnits = await _mouseProcessor.GetTotalDistanceUnits();
 
@@ -117,6 +127,47 @@ public class ActivityViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(DistanceM));
         }
         finally { IsLoading = false; }
+    }
+
+    private static string DayName(int day) => LocalizationService.Instance[$"Activity.Day{day}"];
+
+    private static string BuildTooltip(int dayOfWeek, int hour, int count) =>
+        $"{DayName(dayOfWeek)} {hour:00}:00 - {count} {LocalizationService.Instance["Activity.PressesShort"]}";
+
+    private void RelocalizeLoadedData()
+    {
+        if (DayStats.Count > 0)
+        {
+            DayStats = DayStats.Select(day => new DayActivityVm
+            {
+                DayOfWeek = day.DayOfWeek,
+                DayName = DayName(day.DayOfWeek),
+                Count = day.Count,
+                Coefficient = day.Coefficient,
+                SharePercent = day.SharePercent,
+                Intensity = day.Intensity
+            }).ToList();
+
+            MostActiveDayLabel = DayStats.FirstOrDefault(d => d.Count > 0) is { } top
+                ? $"{top.DayName} ({top.CoefficientLabel})"
+                : LocalizationService.Instance["Common.NoData"];
+
+            OnPropertyChanged(nameof(DayStats));
+        }
+
+        if (HeatmapCells.Count > 0)
+        {
+            HeatmapCells = HeatmapCells.Select(cell => new HourCellVm
+            {
+                DayOfWeek = cell.DayOfWeek,
+                Hour = cell.Hour,
+                Count = cell.Count,
+                Intensity = cell.Intensity,
+                Tooltip = BuildTooltip(cell.DayOfWeek, cell.Hour, cell.Count)
+            }).ToList();
+
+            OnPropertyChanged(nameof(HeatmapCells));
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

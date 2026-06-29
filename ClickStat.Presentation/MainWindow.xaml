@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:ClickStat.Presentation.Views"
         xmlns:vm="clr-namespace:ClickStat.Presentation.ViewModels"
+        xmlns:services="clr-namespace:ClickStat.Presentation.Services"
         Title="ClickStat" Height="720" Width="1280"
         MinHeight="600" MinWidth="960"
         Icon="Assets/icon.ico"
@@ -33,6 +34,36 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="TopBarMenuItemButton" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#D8D8F0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Body"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Body" Property="Background" Value="#25254A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="CloseBtn" TargetType="Button" BasedOn="{StaticResource WinBtn}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -40,6 +71,50 @@
                     <Setter Property="Foreground" Value="White"/>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <Style x:Key="TopBarPillButton" TargetType="ToggleButton">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinWidth" Value="82"/>
+            <Setter Property="Margin" Value="0,3,8,3"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="#17172C"/>
+            <Setter Property="Foreground" Value="#D8D8F0"/>
+            <Setter Property="BorderBrush" Value="#333366"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Body"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"/>
+                                <TextBlock Text="⌄" Foreground="#AA70FF" Margin="7,-1,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Body" Property="BorderBrush" Value="#AA70FF"/>
+                                <Setter TargetName="Body" Property="Background" Value="#202040"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Body" Property="BorderBrush" Value="#AA70FF"/>
+                                <Setter TargetName="Body" Property="Background" Value="#202040"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
@@ -65,6 +140,7 @@
                     <ColumnDefinition Width="190"/>  <!-- sidebar width -->
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- App name in title bar (sidebar zone) -->
@@ -78,7 +154,39 @@
                            VerticalAlignment="Center" Margin="8,0"/>
 
                 <!-- Window buttons -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Grid Grid.Column="2">
+                    <ToggleButton x:Name="UiLanguageButton"
+                                  Content="{Binding Loc.CurrentLanguageLabel}"
+                                  Style="{StaticResource TopBarPillButton}"
+                                  IsChecked="{Binding IsOpen, ElementName=UiLanguagePopup, Mode=TwoWay}"/>
+
+                    <Popup x:Name="UiLanguagePopup"
+                           PlacementTarget="{Binding ElementName=UiLanguageButton}"
+                           Placement="Bottom"
+                           AllowsTransparency="True"
+                           StaysOpen="False"
+                           PopupAnimation="Fade">
+                        <Border Background="#17172C"
+                                BorderBrush="#333366"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="5"
+                                MinWidth="{Binding ActualWidth, ElementName=UiLanguageButton}">
+                            <ItemsControl ItemsSource="{Binding Loc.Languages}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding DisplayName}"
+                                                Tag="{Binding Code}"
+                                                Style="{StaticResource TopBarMenuItemButton}"
+                                                Click="UiLanguageItem_Click"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+                </Grid>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
                     <Button Content="—" Style="{StaticResource WinBtn}" Click="MinimizeButton_Click"/>
                     <Button Content="🗖" Style="{StaticResource WinBtn}" Click="MaximizeButton_Click"/>
                     <Button Content="✕" Style="{StaticResource CloseBtn}" Click="CloseButton_Click"/>

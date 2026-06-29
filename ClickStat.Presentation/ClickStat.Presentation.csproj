@@ -32,6 +32,7 @@
       <None Remove="Assets\fill.jpg" />
       <Resource Include="Assets\fill.jpg" />
       <Resource Include="Assets\icon.ico" />
+      <Content Include="Localization\*.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

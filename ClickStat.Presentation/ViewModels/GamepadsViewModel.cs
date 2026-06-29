@@ -4,13 +4,14 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ClickStat.Infrastructure.InputMonitoring;
+using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.ViewModels;
 
 public sealed class GamepadsViewModel : INotifyPropertyChanged
 {
     private readonly GamepadMonitorService _monitor;
-    private string _statusText = "Нажмите «Добавить геймпад» или подключите контроллер — он появится здесь.";
+    private string _statusText = LocalizationService.Instance["Gamepads.InitialStatus"];
 
     public ObservableCollection<GamepadDeviceViewModel> Gamepads { get; } = new();
     public ICommand AddGamepadCommand { get; }
@@ -36,6 +37,17 @@ public sealed class GamepadsViewModel : INotifyPropertyChanged
         AddGamepadCommand = new RelayCommand(_ => RefreshDevices());
 
         _monitor.SnapshotsChanged += OnSnapshotsChanged;
+        LocalizationService.Instance.PropertyChanged += OnLocalizationChanged;
+    }
+
+    private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != "Item[]" && e.PropertyName != nameof(LocalizationService.CurrentLanguage))
+            return;
+
+        RefreshStatusText();
+        foreach (var gamepad in Gamepads)
+            gamepad.RefreshLocalization();
     }
 
     public Task LoadAsync()
@@ -91,12 +103,20 @@ public sealed class GamepadsViewModel : INotifyPropertyChanged
                 Gamepads.RemoveAt(i);
         }
 
-        var connected = Gamepads.Count(x => x.IsConnected);
-        StatusText = Gamepads.Count == 0
-            ? "Геймпады пока не найдены. Подключите Xbox, PlayStation или обычный USB/Bluetooth-контроллер и нажмите «Добавить»."
-            : $"Найдено: {Gamepads.Count}, подключено сейчас: {connected}. Профиль выбирается автоматически: Xbox, PlayStation или Generic.";
+        RefreshStatusText();
 
         OnPropertyChanged(nameof(HasGamepads));
+    }
+
+    private void RefreshStatusText()
+    {
+        var connected = Gamepads.Count(x => x.IsConnected);
+        StatusText = Gamepads.Count == 0
+            ? LocalizationService.Instance["Gamepads.NoneStatus"]
+            : string.Format(
+                LocalizationService.Instance["Gamepads.FoundStatus"],
+                Gamepads.Count,
+                connected);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -127,7 +147,11 @@ public sealed class GamepadDeviceViewModel : INotifyPropertyChanged
     public bool IsVisualMode
     {
         get => _isVisualMode;
-        set => Set(ref _isVisualMode, value);
+        set
+        {
+            if (Set(ref _isVisualMode, value))
+                OnPropertyChanged(nameof(ToggleViewText));
+        }
     }
 
     public ICommand ToggleViewCommand { get; }
@@ -160,7 +184,10 @@ public sealed class GamepadDeviceViewModel : INotifyPropertyChanged
         }
     }
 
-    public string ConnectionText => IsConnected ? "LIVE" : "Отключен";
+    public string ConnectionText => IsConnected ? "LIVE" : LocalizationService.Instance["Common.Disconnected"];
+    public string ToggleViewText => IsVisualMode
+        ? LocalizationService.Instance["Gamepads.StatsView"]
+        : LocalizationService.Instance["Gamepads.SchemaView"];
 
     public double LeftX
     {
@@ -257,6 +284,13 @@ public sealed class GamepadDeviceViewModel : INotifyPropertyChanged
         Update(snapshot);
     }
 
+    public void RefreshLocalization()
+    {
+        OnPropertyChanged(nameof(ConnectionText));
+        OnPropertyChanged(nameof(ToggleViewText));
+        OnPropertyChanged(nameof(ProfileDescription));
+    }
+
     public void Update(GamepadSnapshot snapshot)
     {
         DisplayName = snapshot.DisplayName;
@@ -269,9 +303,9 @@ public sealed class GamepadDeviceViewModel : INotifyPropertyChanged
         };
         ProfileDescription = snapshot.DeviceType switch
         {
-            GamepadDeviceType.Xbox => "XInput: точные кнопки A/B/X/Y, бамперы, триггеры и стики.",
-            GamepadDeviceType.PlayStation => "DirectInput/Joystick: профиль PlayStation, включая face-кнопки, L/R и стики.",
-            _ => "Универсальный joystick API: кнопки B1-B16 и основные оси контроллера."
+            GamepadDeviceType.Xbox => LocalizationService.Instance["Gamepads.XboxProfileDescription"],
+            GamepadDeviceType.PlayStation => LocalizationService.Instance["Gamepads.PlayStationProfileDescription"],
+            _ => LocalizationService.Instance["Gamepads.GenericProfileDescription"]
         };
 
         LeftX = snapshot.LeftX;

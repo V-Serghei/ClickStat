@@ -1,6 +1,7 @@
 <UserControl x:Class="ClickStat.Presentation.Views.GamepadsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -40,10 +41,8 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="Background" Value="#2A2A50"/>
-            <Setter Property="Content" Value="Схема 🎮"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsVisualMode}" Value="True">
-                    <Setter Property="Content" Value="Статистика 📊"/>
                     <Setter Property="Background" Value="#3A3070"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -127,12 +126,12 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
-                        <TextBlock Text="Геймпады" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="{services:Loc Nav.Gamepads}" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding StatusText}" Foreground="#68689A" FontSize="12" Margin="0,6,0,0"/>
                     </StackPanel>
 
                     <Button Grid.Column="1"
-                            Content="+ Добавить геймпад"
+                            Content="{services:Loc Gamepads.AddGamepad}"
                             Command="{Binding AddGamepadCommand}"
                             Style="{StaticResource AddButtonStyle}"
                             VerticalAlignment="Top"/>
@@ -149,17 +148,17 @@
 
                         <StackPanel Margin="0,0,16,0">
                             <TextBlock Text="Xbox" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"/>
-                            <TextBlock Text="XInput: точные кнопки, триггеры и оба стика." Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock Text="{services:Loc Gamepads.XboxDescription}" Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Margin="0,0,16,0">
                             <TextBlock Text="PlayStation" Foreground="#70A0FF" FontWeight="Bold" FontSize="13"/>
-                            <TextBlock Text="DirectInput/WinMM: DualSense, DualShock и похожие Bluetooth/USB контроллеры." Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock Text="{services:Loc Gamepads.PlayStationDescription}" Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Generic" Foreground="#50C878" FontWeight="Bold" FontSize="13"/>
-                            <TextBlock Text="Любой обычный joystick HID: кнопки B1-B16 и основные оси." Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock Text="{services:Loc Gamepads.GenericDescription}" Foreground="#6F6FA0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -177,8 +176,8 @@
                         </Style>
                     </Border.Style>
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="Контроллеры пока не найдены" Foreground="White" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Подключи геймпад и нажми «Добавить геймпад». Если Windows его видит, ClickStat покажет профиль, кнопки, триггеры и стики."
+                        <TextBlock Text="{services:Loc Gamepads.NoneTitle}" Foreground="White" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{services:Loc Gamepads.NoneHint}"
                                    Foreground="#6F6FA0" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"
                                    MaxWidth="560" Margin="0,8,0,0"/>
                     </StackPanel>
@@ -209,7 +208,8 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                            <Button Command="{Binding ToggleViewCommand}"
+                                            <Button Content="{Binding ToggleViewText}"
+                                                    Command="{Binding ToggleViewCommand}"
                                                     Style="{StaticResource ToggleViewStyle}"
                                                     HorizontalAlignment="Right" Margin="0,0,0,8"/>
                                             <Border Background="#1A1A3A" BorderBrush="#35357A" BorderThickness="1"
@@ -259,13 +259,13 @@
                                         <WrapPanel Margin="0,0,0,8">
                                             <Border Style="{StaticResource MetricCard}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Нажатий кнопок" Foreground="#606090" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.ButtonPresses}" Foreground="#606090" FontSize="10"/>
                                                     <TextBlock Text="{Binding TotalButtonPresses}" Foreground="#AA70FF" FontSize="19" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MetricCard}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Движений стиков" Foreground="#606090" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.StickMoves}" Foreground="#606090" FontSize="10"/>
                                                     <TextBlock Text="{Binding TotalStickMoves}" Foreground="#70A0FF" FontSize="19" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>
@@ -279,7 +279,7 @@
 
                                             <Border Background="#12122A" CornerRadius="12" Padding="12" Margin="0,0,8,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="Левый стик" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.LeftStick}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding LeftStickText}" Foreground="#8080B0" FontSize="11" Margin="0,4,0,8"/>
                                                     <TextBlock Text="X" Foreground="#56568A" FontSize="10"/>
                                                     <ProgressBar Value="{Binding LeftXBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
@@ -290,7 +290,7 @@
 
                                             <Border Grid.Column="1" Background="#12122A" CornerRadius="12" Padding="12" Margin="8,0,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="Правый стик" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.RightStick}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding RightStickText}" Foreground="#8080B0" FontSize="11" Margin="0,4,0,8"/>
                                                     <TextBlock Text="X" Foreground="#56568A" FontSize="10"/>
                                                     <ProgressBar Value="{Binding RightXBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
@@ -319,7 +319,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <TextBlock Text="Кнопки" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                         <ItemsControl ItemsSource="{Binding Buttons}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -571,7 +571,7 @@
                                                 </Style>
                                             </StackPanel.Style>
 
-                                            <TextBlock Text="Кнопки" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                            <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                             <ItemsControl ItemsSource="{Binding Buttons}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>

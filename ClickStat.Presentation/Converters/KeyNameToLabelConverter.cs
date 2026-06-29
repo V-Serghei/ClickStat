@@ -44,7 +44,7 @@ public class KeyNameToLabelConverter : IValueConverter, IMultiValueConverter
         ["VolumeMute"]="Mute",["VolumeDown"]="Vol−",["VolumeUp"]="Vol+",
     };
 
-    // ── Russian (ЙЦУКЕН) layout — QWERTY key → Cyrillic ──────────────────
+    // Russian (JCUKEN) layout: QWERTY key to Cyrillic label.
     private static readonly Dictionary<string, string> RuLabels = new()
     {
         ["Q"]="Й",["W"]="Ц",["E"]="У",["R"]="К",["T"]="Е",

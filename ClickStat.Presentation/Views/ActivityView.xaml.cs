@@ -3,14 +3,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using ClickStat.Presentation.Converters;
+using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
 
 namespace ClickStat.Presentation.Views;
 
 public partial class ActivityView : UserControl
 {
-    private static readonly string[] DayLabels = { "Вс","Пн","Вт","Ср","Чт","Пт","Сб" };
-
     public ActivityView()
     {
         InitializeComponent();
@@ -50,7 +49,7 @@ public partial class ActivityView : UserControl
             // Day label
             var lbl = new TextBlock
             {
-                Text              = DayLabels[d],
+                Text              = LocalizationService.Instance[$"Activity.Day{d}"],
                 Foreground        = Brushes.DimGray,
                 FontSize          = 10,
                 VerticalAlignment = VerticalAlignment.Center,

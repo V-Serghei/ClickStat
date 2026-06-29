@@ -1,6 +1,7 @@
 <UserControl x:Class="ClickStat.Presentation.Views.MouseView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -109,7 +110,7 @@
 
                             <!-- Left button -->
                             <Border Grid.Column="0" CornerRadius="75,0,0,0"
-                                    ToolTip="{Binding LeftButton.Count, StringFormat='Левая кнопка: {0} кликов'}">
+                                    ToolTip="{services:Loc Mouse.LeftButton}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="#1E1E40"/>
@@ -121,7 +122,7 @@
                                     </Style>
                                 </Border.Style>
                                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8">
-                                    <TextBlock Text="Л" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
+                                    <TextBlock Text="{services:Loc Mouse.LeftShort}" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
                                                HorizontalAlignment="Center"/>
                                     <TextBlock Text="{Binding LeftButton.FormattedCount}" Foreground="#DDD"
                                                FontSize="10" HorizontalAlignment="Center"/>
@@ -133,7 +134,7 @@
 
                             <!-- Right button -->
                             <Border Grid.Column="2" CornerRadius="0,75,0,0"
-                                    ToolTip="{Binding RightButton.Count, StringFormat='Правая кнопка: {0} кликов'}">
+                                    ToolTip="{services:Loc Mouse.RightButton}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="#1E1E40"/>
@@ -145,7 +146,7 @@
                                     </Style>
                                 </Border.Style>
                                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8">
-                                    <TextBlock Text="П" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
+                                    <TextBlock Text="{services:Loc Mouse.RightShort}" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
                                                HorizontalAlignment="Center"/>
                                     <TextBlock Text="{Binding RightButton.FormattedCount}" Foreground="#DDD"
                                                FontSize="10" HorizontalAlignment="Center"/>
@@ -158,7 +159,7 @@
                             <!-- Scroll wheel -->
                             <Border Width="26" Height="52" CornerRadius="13"
                                     Background="#2A2A50" BorderBrush="#5555AA" BorderThickness="1.5"
-                                    ToolTip="{Binding MiddleButton.Count, StringFormat='Клик колеса: {0}'}">
+                                    ToolTip="{services:Loc Mouse.MiddleButton}">
                                 <Grid>
                                     <TextBlock Text="▲" HorizontalAlignment="Center" VerticalAlignment="Top"
                                                Foreground="#6666BB" FontSize="8" Margin="0,4"/>
@@ -178,7 +179,7 @@
                         Background="#252545" BorderBrush="#3C3C6E" BorderThickness="1,1,0,1"
                         HorizontalAlignment="Left" VerticalAlignment="Top"
                         Margin="0,90,0,0"
-                        ToolTip="{Binding BackButton.Count, StringFormat='Кнопка назад: {0}'}">
+                        ToolTip="{services:Loc Mouse.BackButton}">
                     <TextBlock Text="◄" Foreground="#6666AA" FontSize="8"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
@@ -188,7 +189,7 @@
                         Background="#252545" BorderBrush="#3C3C6E" BorderThickness="1,1,0,1"
                         HorizontalAlignment="Left" VerticalAlignment="Top"
                         Margin="0,132,0,0"
-                        ToolTip="{Binding ForwardButton.Count, StringFormat='Кнопка вперёд: {0}'}">
+                        ToolTip="{services:Loc Mouse.ForwardButton}">
                     <TextBlock Text="►" Foreground="#6666AA" FontSize="8"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
@@ -219,7 +220,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Левая кнопка" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Text="{services:Loc Mouse.LeftButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
                             <TextBlock Grid.Column="1" Text="{Binding LeftButton.FormattedCount}"
                                        Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
@@ -239,7 +240,7 @@
                         </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Правая кнопка" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Text="{services:Loc Mouse.RightButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
                             <TextBlock Grid.Column="1" Text="{Binding RightButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
@@ -258,7 +259,7 @@
                         </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Колесо (клик)" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Text="{services:Loc Mouse.MiddleButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
                             <TextBlock Grid.Column="1" Text="{Binding MiddleButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
@@ -277,7 +278,7 @@
                         </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="◄ Назад" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Text="{services:Loc Mouse.BackButtonWithIcon}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
                             <TextBlock Grid.Column="1" Text="{Binding BackButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
@@ -296,7 +297,7 @@
                         </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="► Вперёд" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Text="{services:Loc Mouse.ForwardButtonWithIcon}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
                             <TextBlock Grid.Column="1" Text="{Binding ForwardButton.FormattedCount}" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
@@ -311,7 +312,7 @@
             <StackPanel>
 
                 <!-- Scroll stats header -->
-                <TextBlock Text="Прокрутка колеса" Foreground="White"
+                <TextBlock Text="{services:Loc Mouse.WheelScroll}" Foreground="White"
                            FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
 
                 <!-- Up stats -->
@@ -330,24 +331,28 @@
                         </Border>
 
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Прокрутка ВВЕРХ" Style="{StaticResource CardLabel}"/>
+                            <TextBlock Text="{services:Loc Mouse.ScrollUp}" Style="{StaticResource CardLabel}"/>
                             <WrapPanel>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="Насечки" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{services:Loc Mouse.Notches}" Style="{StaticResource CardLabel}" Margin="0"/>
                                         <TextBlock Text="{Binding ScrollUpNotches}" Style="{StaticResource CardValue}" FontSize="16"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="Оборотов" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{services:Loc Mouse.Rotations}" Style="{StaticResource CardLabel}" Margin="0"/>
                                         <TextBlock Text="{Binding ScrollUpRotations}" Style="{StaticResource CardValue}" FontSize="16"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="Метров пройдено" Style="{StaticResource CardLabel}" Margin="0"/>
-                                        <TextBlock Text="{Binding ScrollUpMeters, StringFormat='{}{0} м'}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                        <TextBlock Text="{services:Loc Mouse.Meters}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource CardValue}" FontSize="16">
+                                            <Run Text="{Binding ScrollUpMeters, Mode=OneWay}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{services:Loc Units.M}"/>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Border>
                             </WrapPanel>
@@ -370,24 +375,28 @@
                         </Border>
 
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Прокрутка ВНИЗ" Style="{StaticResource CardLabel}"/>
+                            <TextBlock Text="{services:Loc Mouse.ScrollDown}" Style="{StaticResource CardLabel}"/>
                             <WrapPanel>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="Насечки" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{services:Loc Mouse.Notches}" Style="{StaticResource CardLabel}" Margin="0"/>
                                         <TextBlock Text="{Binding ScrollDownNotches}" Style="{StaticResource CardValue}" FontSize="16"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="Оборотов" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{services:Loc Mouse.Rotations}" Style="{StaticResource CardLabel}" Margin="0"/>
                                         <TextBlock Text="{Binding ScrollDownRotations}" Style="{StaticResource CardValue}" FontSize="16"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource ScrollChip}" Margin="0,4,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="Метров пройдено" Style="{StaticResource CardLabel}" Margin="0"/>
-                                        <TextBlock Text="{Binding ScrollDownMeters, StringFormat='{}{0} м'}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                        <TextBlock Text="{services:Loc Mouse.Meters}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource CardValue}" FontSize="16">
+                                            <Run Text="{Binding ScrollDownMeters, Mode=OneWay}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{services:Loc Units.M}"/>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Border>
                             </WrapPanel>
@@ -401,16 +410,16 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Дополнительные кнопки" Foreground="White"
+                    <TextBlock Text="{services:Loc Mouse.CustomButtons}" Foreground="White"
                                FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Content="+ Добавить кнопку"
+                    <Button Grid.Column="1" Content="{services:Loc Mouse.AddButton}"
                             Style="{StaticResource AddButtonStyle}"
                             Command="{Binding AddButtonCommand}"/>
                 </Grid>
 
                 <!-- Empty state -->
                 <TextBlock Foreground="#555" FontSize="13" TextAlignment="Center" Margin="0,20"
-                           Text="Нет добавленных кнопок. Нажмите «+ Добавить кнопку»">
+                           Text="{services:Loc Mouse.NoCustomButtons}">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -439,7 +448,7 @@
                                     <TextBlock Text="{Binding FormattedCount}"
                                                Foreground="#AA70FF" FontSize="18" FontWeight="Bold"
                                                HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                    <TextBlock Text="кликов" Foreground="#666" FontSize="10"
+                                    <TextBlock Text="{services:Loc Mouse.ClicksLower}" Foreground="#666" FontSize="10"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
@@ -448,7 +457,7 @@
                 </ItemsControl>
 
                 <!-- Loading overlay -->
-                <TextBlock Text="Загрузка..." Foreground="#555" FontSize="13"
+                <TextBlock Text="{services:Loc Common.Loading}" Foreground="#555" FontSize="13"
                            HorizontalAlignment="Center" Margin="0,20">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">

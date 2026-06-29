@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ClickStat.Infrastructure.Data;
+using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.Views;
 
@@ -93,7 +94,7 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
 
         var text = await LoadFullTextAsync(item);
         System.Windows.Clipboard.SetText(text);
-        StatusText.Text = "Скопировано";
+        StatusText.Text = LocalizationService.Instance["Common.Copied"];
     }
 
     private async void DeleteButton_Click(object sender, RoutedEventArgs e)
@@ -104,7 +105,7 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         await _templateProcessor.DeleteAsync(item.Id);
         Templates.Remove(item);
         EmptyState.Visibility = Templates.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        StatusText.Text = "Удалено";
+        StatusText.Text = LocalizationService.Instance["Common.Deleted"];
     }
 
     private async void ToggleExpandButton_Click(object sender, RoutedEventArgs e)

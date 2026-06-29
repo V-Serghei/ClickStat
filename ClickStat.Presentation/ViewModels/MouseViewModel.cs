@@ -21,11 +21,11 @@ public class MouseViewModel : INotifyPropertyChanged
     private readonly LiveEventBus            _liveBus;
 
     // ── Standard buttons ───────────────────────────────────────────────────
-    public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     "Левая кнопка");
-    public MouseButtonStat RightButton   { get; } = new((int)MouseButtons.Right,    "Правая кнопка");
-    public MouseButtonStat MiddleButton  { get; } = new((int)MouseButtons.Middle,   "Колесо (клик)");
-    public MouseButtonStat BackButton    { get; } = new((int)MouseButtons.XButton1, "Кнопка назад");
-    public MouseButtonStat ForwardButton { get; } = new((int)MouseButtons.XButton2, "Кнопка вперёд");
+    public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     LocalizationService.Instance["Mouse.LeftButton"]);
+    public MouseButtonStat RightButton   { get; } = new((int)MouseButtons.Right,    LocalizationService.Instance["Mouse.RightButton"]);
+    public MouseButtonStat MiddleButton  { get; } = new((int)MouseButtons.Middle,   LocalizationService.Instance["Mouse.MiddleButton"]);
+    public MouseButtonStat BackButton    { get; } = new((int)MouseButtons.XButton1, LocalizationService.Instance["Mouse.BackButton"]);
+    public MouseButtonStat ForwardButton { get; } = new((int)MouseButtons.XButton2, LocalizationService.Instance["Mouse.ForwardButton"]);
 
     // ── Custom buttons ────────────────────────────────────────────────────
     public ObservableCollection<MouseButtonStat> CustomButtons { get; } = new();

@@ -324,7 +324,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             return;
 
         System.Windows.Clipboard.SetText(SessionInputText);
-        SessionInputStatus = "Скопировано";
+        SessionInputStatus = LocalizationService.Instance["Common.Copied"];
     }
 
     private async Task SaveSessionInputAsync()
@@ -333,7 +333,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             return;
 
         await _inputTemplateProcessor.SaveAsync(SessionInputText);
-        SessionInputStatus = "Сохранено";
+        SessionInputStatus = LocalizationService.Instance["Common.Saved"];
     }
 
     private void RefreshSessionInput()
