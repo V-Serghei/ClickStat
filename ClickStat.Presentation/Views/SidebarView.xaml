@@ -4,7 +4,7 @@
              xmlns:presentation="clr-namespace:ClickStat.Presentation"
              xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              xmlns:vm="clr-namespace:ClickStat.Presentation.ViewModels"
-             Background="#0D0D1A">
+             Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=TitleBarBackground}">
 
     <UserControl.Resources>
         <Style x:Key="NavBtn" TargetType="Button">
@@ -44,10 +44,12 @@
                 BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock FontSize="22" FontWeight="Bold">
-                    <Run Text="Click" Foreground="White"/>
+                        <Run Text="Click" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
                     <Run Text="Stat"  Foreground="#AA70FF"/>
                 </TextBlock>
-                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[App.Subtitle]}" Foreground="#404070" FontSize="10" Margin="0,2,0,0"/>
+                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[App.Subtitle]}"
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
+                           FontSize="10" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 

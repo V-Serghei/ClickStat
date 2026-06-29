@@ -4,7 +4,7 @@
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.Wpf"
              xmlns:presentation="clr-namespace:ClickStat.Presentation"
              xmlns:services="clr-namespace:ClickStat.Presentation.Services"
-             Foreground="#D0D0D0">
+             Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -20,7 +20,7 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Nav.Overview]}"
-                       Foreground="White"
+                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                        FontSize="20"
                        FontWeight="Bold"
                        VerticalAlignment="Center"/>
@@ -75,41 +75,41 @@
         </Grid>
 
         <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,20">
-            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
-                    BorderBrush="#1A1A4A" BorderThickness="1">
+            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.TotalClicks]}"
-                               FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                               FontSize="11" FontWeight="SemiBold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                     <TextBlock Text="{Binding TotalClicks, StringFormat='{}{0:N0}'}"
-                               FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,6,0,0"/>
+                               FontSize="32" FontWeight="Bold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 
-            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
-                    BorderBrush="#1A1A4A" BorderThickness="1">
+            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Today]}"
-                               FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                               FontSize="11" FontWeight="SemiBold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                     <TextBlock Text="{Binding ClicksToday, StringFormat='{}{0:N0}'}"
                                FontSize="32" FontWeight="Bold" Foreground="#AA70FF" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 
-            <Border Background="#0E0E1C" CornerRadius="10" Padding="18" Margin="0,0,12,0"
-                    BorderBrush="#1A1A4A" BorderThickness="1">
+            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="18" Margin="0,0,12,0"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.MostFrequent]}"
-                               FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                               FontSize="11" FontWeight="SemiBold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                     <TextBlock Text="{Binding MostFrequentKey}"
-                               FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,6,0,0"/>
+                               FontSize="32" FontWeight="Bold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 
-            <Border Background="#0E0E1C" CornerRadius="10" Padding="18"
-                    BorderBrush="#1A1A4A" BorderThickness="1">
+            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="18"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.ErrorRate]}"
-                               FontSize="11" FontWeight="SemiBold" Foreground="#505080"/>
+                               FontSize="11" FontWeight="SemiBold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                         <TextBlock Text="{Binding ErrorRate, StringFormat='{}{0}%'}"
                                    FontSize="32" FontWeight="Bold" Foreground="#FF8080"/>
@@ -120,15 +120,15 @@
             </Border>
         </UniformGrid>
 
-        <Border Grid.Row="2" Background="#0E0E1C" CornerRadius="10" Padding="16"
-                BorderBrush="#1A1A3A" BorderThickness="1">
+        <Border Grid.Row="2" Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="16"
+                BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Last10Days]}"
-                           Foreground="#505080" FontSize="12" Margin="0,0,0,12"/>
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" Margin="0,0,0,12"/>
                 <lvc:CartesianChart Grid.Row="1"
                                     MinHeight="260"
                                     Series="{Binding DailyStatsSeries}"

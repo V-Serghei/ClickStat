@@ -6,21 +6,21 @@
 
     <UserControl.Resources>
         <Style x:Key="SectionCard" TargetType="Border">
-            <Setter Property="Background"      Value="#0E0E1C"/>
+            <Setter Property="Background"      Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
             <Setter Property="CornerRadius"    Value="12"/>
             <Setter Property="Padding"         Value="20,16"/>
             <Setter Property="Margin"          Value="0,0,0,16"/>
-            <Setter Property="BorderBrush"     Value="#1A1A3A"/>
+            <Setter Property="BorderBrush"     Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style x:Key="SettingsLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
             <Setter Property="FontSize"   Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="SettingsHint" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#505070"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
             <Setter Property="FontSize"   Value="11"/>
             <Setter Property="Margin"     Value="0,2,0,0"/>
         </Style>
@@ -29,8 +29,23 @@
     <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
 
-            <TextBlock Text="{services:Loc Nav.Settings}" Foreground="White"
+            <TextBlock Text="{services:Loc Nav.Settings}"
+                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                        FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+
+            <!-- Appearance -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="{services:Loc Settings.ThemeTitle}" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="{services:Loc Settings.ThemeHint}"
+                               Style="{StaticResource SettingsHint}"/>
+                    <CheckBox IsChecked="{Binding Source={x:Static services:ThemeService.Instance}, Path=IsLightTheme, Mode=TwoWay}"
+                              Content="{services:Loc Settings.LightTheme}"
+                              Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                              Margin="0,14,0,0"
+                              FontSize="13"/>
+                </StackPanel>
+            </Border>
 
             <!-- Startup -->
             <Border Style="{StaticResource SectionCard}">
@@ -40,7 +55,8 @@
                                Style="{StaticResource SettingsHint}"/>
                     <CheckBox IsChecked="{Binding IsInStartup, Mode=TwoWay}"
                               Content="{services:Loc Settings.StartupCheckbox}"
-                              Foreground="#C0C0E0" Margin="0,14,0,0" FontSize="13"/>
+                              Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                              Margin="0,14,0,0" FontSize="13"/>
                 </StackPanel>
             </Border>
 
@@ -53,7 +69,8 @@
 
                     <CheckBox IsChecked="{Binding BreakEnabled, Mode=TwoWay}"
                               Content="{services:Loc Settings.BreakCheckbox}"
-                              Foreground="#C0C0E0" Margin="0,16,0,12" FontSize="13"/>
+                              Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                              Margin="0,16,0,12" FontSize="13"/>
 
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{services:Loc Settings.Interval}"

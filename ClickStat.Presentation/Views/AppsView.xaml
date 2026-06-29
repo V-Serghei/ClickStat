@@ -27,10 +27,10 @@
 
             <StackPanel>
                 <TextBlock Text="{services:Loc Apps.Title}"
-                           Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16"/>
 
-                <Border Background="#0E0E1C" CornerRadius="12" Padding="0"
-                        BorderBrush="#1A1A3A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="0"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <ItemsControl ItemsSource="{Binding Apps}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -44,8 +44,8 @@
 
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{Binding AppName}"
-                                                       Foreground="White" FontSize="14" FontWeight="SemiBold"/>
-                                            <TextBlock Foreground="#404060" FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10" FontFamily="Consolas"
                                                        Margin="0,2,0,0">
                                                 <TextBlock.Text>
                                                     <Binding Path="ExeName" StringFormat="{}📂 {0}"/>

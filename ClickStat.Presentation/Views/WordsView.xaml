@@ -8,25 +8,25 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
         <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
         <Style x:Key="WordChip" TargetType="Border">
-            <Setter Property="Background" Value="#1A1A2E"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="BorderBrush" Value="#2E2E5E"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Margin" Value="0,0,6,6"/>
         </Style>
 
         <Style x:Key="LanguageButton" TargetType="Button">
-            <Setter Property="Background" Value="#1A1A2E"/>
-            <Setter Property="Foreground" Value="#CFCFFF"/>
-            <Setter Property="BorderBrush" Value="#2E2E5E"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Margin" Value="0,0,8,6"/>
@@ -35,6 +35,65 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="MinWidth" Value="92"/>
             <Setter Property="MaxWidth" Value="170"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Body"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Body"
+                                                             Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                             To="1.015"
+                                                             Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="Body"
+                                                             Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                             To="1.015"
+                                                             Duration="0:0:0.08"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Body"
+                                                             Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                             To="1"
+                                                             Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="Body"
+                                                             Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                             To="1"
+                                                             Duration="0:0:0.08"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                                <Setter TargetName="Body" Property="BorderBrush" Value="#AA70FF"/>
+                                <Setter TargetName="Body" Property="Background" Value="#202040"/>
+                                <Setter Property="Foreground" Value="#F4EFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Body" Property="Background" Value="#2A2450"/>
+                                <Setter TargetName="Body" Property="BorderBrush" Value="#C49AFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -57,8 +116,8 @@
             </ScrollViewer.Style>
 
             <StackPanel>
-                <Border Background="#0E0E1C" CornerRadius="12" Padding="16,12"
-                        Margin="0,0,0,20" BorderBrush="#1A1A4A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="16,12"
+                        Margin="0,0,0,20" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="360"/>
@@ -87,20 +146,20 @@
 
                         <UniformGrid Grid.Column="2" Columns="4" HorizontalAlignment="Stretch">
                             <StackPanel Margin="0,0,18,0" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Language]}" Foreground="#606080" FontSize="11"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Language]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
                                 <TextBlock Text="{Binding LanguageTitle}" Foreground="#AA70FF" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="210"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,18,0" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Total]}" Foreground="#606080" FontSize="11"/>
-                                <TextBlock Text="{Binding TotalTyped}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Total]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
+                                <TextBlock Text="{Binding TotalTyped}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,18,0" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Unique]}" Foreground="#606080" FontSize="11"/>
-                                <TextBlock Text="{Binding UniqueCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Unique]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
+                                <TextBlock Text="{Binding UniqueCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Phrases]}" Foreground="#606080" FontSize="11"/>
-                                <TextBlock Text="{Binding PhraseCount}" Foreground="White" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.Phrases]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
+                                <TextBlock Text="{Binding PhraseCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </UniformGrid>
                     </Grid>
@@ -115,7 +174,7 @@
 
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.SelectedWords]}" Style="{StaticResource SectionTitle}"/>
-                        <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
+                        <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="12">
                             <ItemsControl ItemsSource="{Binding TopWords}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
@@ -124,7 +183,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource WordChip}">
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Word}" Foreground="#C0C0E0" FontSize="12"/>
+                                                <TextBlock Text="{Binding Word}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="12"/>
                                                 <TextBlock Text=" " FontSize="12"/>
                                                 <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="12" FontWeight="Bold"/>
                                             </StackPanel>
@@ -137,7 +196,7 @@
 
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Words.SelectedPhrases]}" Style="{StaticResource SectionTitle}"/>
-                        <Border Background="#0E0E1C" CornerRadius="10" Padding="12">
+                        <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Padding="12">
                             <ItemsControl ItemsSource="{Binding TopPhrases}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -146,7 +205,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Phrase}" Foreground="#C0C0E0" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Phrase}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="12" VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Count}" Foreground="#AA70FF" FontSize="13" FontWeight="Bold"/>
                                         </Grid>
                                     </DataTemplate>
