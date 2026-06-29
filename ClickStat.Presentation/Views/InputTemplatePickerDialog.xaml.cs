@@ -76,22 +76,23 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         }
     }
 
-    private void PasteButton_Click(object sender, RoutedEventArgs e)
+    private async void PasteButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
-        SelectedText = item.Text;
+        SelectedText = await LoadFullTextAsync(item);
         ShouldPaste = true;
         DialogResult = true;
     }
 
-    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    private async void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
-        System.Windows.Clipboard.SetText(item.Text);
+        var text = await LoadFullTextAsync(item);
+        System.Windows.Clipboard.SetText(text);
         StatusText.Text = "Скопировано";
     }
 
@@ -106,12 +107,25 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         StatusText.Text = "Удалено";
     }
 
-    private void ToggleExpandButton_Click(object sender, RoutedEventArgs e)
+    private async void ToggleExpandButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
+        if (!item.IsExpanded)
+            await LoadFullTextAsync(item);
+
         item.IsExpanded = !item.IsExpanded;
+    }
+
+    private async Task<string> LoadFullTextAsync(InputTemplateItem item)
+    {
+        if (item.HasFullText)
+            return item.Text;
+
+        var text = await _templateProcessor.GetTextAsync(item.Id) ?? item.Text;
+        item.SetFullText(text);
+        return text;
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
@@ -138,9 +152,10 @@ public sealed class InputTemplateItem : INotifyPropertyChanged
 {
     public int Id { get; }
     public string Title { get; }
-    public string Text { get; }
+    public string Text { get; private set; }
     public string Preview { get; }
     public string CreatedAtLabel { get; }
+    public bool HasFullText { get; private set; }
 
     private bool _isExpanded;
     public bool IsExpanded
@@ -170,6 +185,14 @@ public sealed class InputTemplateItem : INotifyPropertyChanged
         CreatedAtLabel = DateTimeOffset.TryParse(entry.CreatedAt, out var createdAt)
             ? createdAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
             : entry.CreatedAt;
+    }
+
+    public void SetFullText(string text)
+    {
+        Text = text;
+        HasFullText = true;
+        OnPropertyChanged(nameof(Text));
+        OnPropertyChanged(nameof(DisplayText));
     }
 
     private static string MakePreview(string text)

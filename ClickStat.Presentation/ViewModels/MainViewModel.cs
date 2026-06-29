@@ -185,6 +185,8 @@ namespace ClickStat.Presentation.ViewModels
             OverviewVm.IsLiveActive = (page == AppPage.Overview);
             KeyboardVm.IsLiveActive = (page == AppPage.Keyboard);
             MouseVm.IsLiveActive    = (page == AppPage.Mouse);
+            if (page != AppPage.Gamepads)
+                GamepadsVm.StopMonitoring();
 
             // Flush buffer → load fresh DB data. Order matters: flush first, then read.
             switch (page)

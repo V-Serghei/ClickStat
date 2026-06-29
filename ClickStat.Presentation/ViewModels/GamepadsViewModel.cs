@@ -36,7 +36,6 @@ public sealed class GamepadsViewModel : INotifyPropertyChanged
         AddGamepadCommand = new RelayCommand(_ => RefreshDevices());
 
         _monitor.SnapshotsChanged += OnSnapshotsChanged;
-        _monitor.Start();
     }
 
     public Task LoadAsync()
@@ -50,6 +49,11 @@ public sealed class GamepadsViewModel : INotifyPropertyChanged
     {
         _monitor.Start();
         _monitor.ScanNow();
+    }
+
+    public void StopMonitoring()
+    {
+        _monitor.Stop();
     }
 
     private void OnSnapshotsChanged(object? sender, IReadOnlyList<GamepadSnapshot> snapshots)

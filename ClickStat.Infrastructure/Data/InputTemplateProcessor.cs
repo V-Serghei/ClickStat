@@ -9,6 +9,7 @@ public sealed class InputTemplateProcessor
 {
     private const int SearchLimit = 80;
     private readonly string _dbPath;
+    private readonly string _connectionString;
 
     public InputTemplateProcessor()
     {
@@ -16,6 +17,7 @@ public sealed class InputTemplateProcessor
         var folder = Path.Combine(docs, "KeyClick");
         Directory.CreateDirectory(folder);
         _dbPath = Path.Combine(folder, "key_statistics.db");
+        _connectionString = BuildConnectionString(_dbPath);
 
         EnsureTable();
     }
@@ -25,7 +27,7 @@ public sealed class InputTemplateProcessor
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = """
@@ -40,14 +42,19 @@ public sealed class InputTemplateProcessor
 
     public async Task<IReadOnlyList<InputTemplateEntry>> SearchAsync(string query = "")
     {
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
 
         if (string.IsNullOrWhiteSpace(query))
         {
             command.CommandText = """
-                SELECT Id, Title, Text, CreatedAt
+                SELECT Id, Title,
+                       CASE
+                           WHEN length(Text) <= 220 THEN Text
+                           ELSE substr(Text, 1, 220) || '...'
+                       END AS Preview,
+                       CreatedAt
                 FROM InputTemplates
                 ORDER BY Id DESC
                 LIMIT $limit;
@@ -56,7 +63,12 @@ public sealed class InputTemplateProcessor
         else
         {
             command.CommandText = """
-                SELECT Id, Title, Text, CreatedAt
+                SELECT Id, Title,
+                       CASE
+                           WHEN length(Text) <= 220 THEN Text
+                           ELSE substr(Text, 1, 220) || '...'
+                       END AS Preview,
+                       CreatedAt
                 FROM InputTemplates
                 WHERE Title LIKE $query OR Text LIKE $query
                 ORDER BY Id DESC
@@ -81,9 +93,20 @@ public sealed class InputTemplateProcessor
         return result;
     }
 
+    public async Task<string?> GetTextAsync(int id)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Text FROM InputTemplates WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        var value = await command.ExecuteScalarAsync();
+        return value == null || value == DBNull.Value ? null : Convert.ToString(value);
+    }
+
     public async Task DeleteAsync(int id)
     {
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM InputTemplates WHERE Id = $id;";
@@ -93,10 +116,14 @@ public sealed class InputTemplateProcessor
 
     private void EnsureTable()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_connectionString);
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
+            PRAGMA busy_timeout = 5000;
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
+
             CREATE TABLE IF NOT EXISTS InputTemplates (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Title TEXT NOT NULL,
@@ -108,6 +135,19 @@ public sealed class InputTemplateProcessor
             ON InputTemplates (CreatedAt);
             """;
         command.ExecuteNonQuery();
+    }
+
+    private static string BuildConnectionString(string dbPath)
+    {
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Shared,
+            DefaultTimeout = 5
+        };
+
+        return builder.ToString();
     }
 
     private static string BuildTitle(string text)
