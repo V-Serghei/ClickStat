@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
 
 namespace ClickStat.Presentation;
@@ -48,6 +49,15 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
         => Close();
+
+    private void UiLanguageItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string languageCode })
+            LocalizationService.Instance.SetLanguage(languageCode);
+
+        UiLanguagePopup.IsOpen = false;
+    }
+
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {

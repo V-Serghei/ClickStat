@@ -17,16 +17,14 @@ public sealed class HourlyActivityProcessor : IDisposable
     private readonly string _dbPath;
     private readonly Timer  _timer;
     private readonly object _lock = new();
+    private readonly object _schemaGate = new();
     private readonly Dictionary<int, int> _buffer = new(); // Id → count delta
+    private bool _schemaReady;
 
     public HourlyActivityProcessor()
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         _dbPath  = Path.Combine(docs, "KeyClick", "key_statistics.db");
-
-        using var ctx = new DataContext(_dbPath);
-        ctx.Database.EnsureCreated();
-        EnsureAllSlots(ctx);
 
         _timer = new Timer(FlushIntervalSeconds * 1000) { AutoReset = true };
         _timer.Elapsed += async (_, _) => await Flush();
@@ -44,28 +42,36 @@ public sealed class HourlyActivityProcessor : IDisposable
     public async Task<List<HourlyActivity>> GetAll()
     {
         await using var ctx = new DataContext(_dbPath);
+        EnsureAllSlots(ctx);
         return await ctx.HourlyActivities.OrderBy(h => h.Id).ToListAsync();
     }
 
-    private static void EnsureAllSlots(DataContext ctx)
+    private void EnsureAllSlots(DataContext ctx)
     {
-        ctx.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS HourlyActivities (
-                Id        INTEGER PRIMARY KEY,
-                DayOfWeek INTEGER NOT NULL,
-                Hour      INTEGER NOT NULL,
-                Count     INTEGER NOT NULL DEFAULT 0
-            )");
-
-        // INSERT OR IGNORE is idempotent — safe to call every startup
-        // Avoids EF Change Tracker conflicts with explicit integer PKs
-        for (int d = 0; d < 7; d++)
-        for (int h = 0; h < 24; h++)
+        lock (_schemaGate)
         {
-            int id = d * 24 + h;
-            ctx.Database.ExecuteSqlRaw(
-                "INSERT OR IGNORE INTO HourlyActivities (Id, DayOfWeek, Hour, Count) VALUES ({0}, {1}, {2}, 0)",
-                id, d, h);
+            if (_schemaReady)
+                return;
+
+            ctx.Database.EnsureCreated();
+            ctx.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS HourlyActivities (
+                    Id        INTEGER PRIMARY KEY,
+                    DayOfWeek INTEGER NOT NULL,
+                    Hour      INTEGER NOT NULL,
+                    Count     INTEGER NOT NULL DEFAULT 0
+                )");
+
+            for (int d = 0; d < 7; d++)
+            for (int h = 0; h < 24; h++)
+            {
+                int id = d * 24 + h;
+                ctx.Database.ExecuteSqlRaw(
+                    "INSERT OR IGNORE INTO HourlyActivities (Id, DayOfWeek, Hour, Count) VALUES ({0}, {1}, {2}, 0)",
+                    id, d, h);
+            }
+
+            _schemaReady = true;
         }
     }
 
@@ -80,6 +86,7 @@ public sealed class HourlyActivityProcessor : IDisposable
         }
 
         await using var ctx = new DataContext(_dbPath);
+        EnsureAllSlots(ctx);
         var tx = await ctx.Database.BeginTransactionAsync();
         try
         {

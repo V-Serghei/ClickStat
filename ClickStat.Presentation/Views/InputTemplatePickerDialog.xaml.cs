@@ -1,18 +1,22 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ClickStat.Infrastructure.Data;
+using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.Views;
 
 public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
 {
     private readonly InputTemplateProcessor _templateProcessor;
+    private CancellationTokenSource? _searchDebounceCts;
+    private int _loadVersion;
 
     public ObservableCollection<InputTemplateItem> Templates { get; } = new();
 
@@ -41,7 +45,11 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
 
     private async Task LoadTemplatesAsync()
     {
+        var version = Interlocked.Increment(ref _loadVersion);
         var entries = await _templateProcessor.SearchAsync(SearchTextBox.Text);
+        if (version != _loadVersion)
+            return;
+
         Templates.Clear();
         foreach (var entry in entries)
             Templates.Add(new InputTemplateItem(entry));
@@ -55,26 +63,38 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         if (!IsLoaded)
             return;
 
-        await LoadTemplatesAsync();
+        _searchDebounceCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(180, cts.Token);
+            await LoadTemplatesAsync();
+        }
+        catch (TaskCanceledException)
+        {
+        }
     }
 
-    private void PasteButton_Click(object sender, RoutedEventArgs e)
+    private async void PasteButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
-        SelectedText = item.Text;
+        SelectedText = await LoadFullTextAsync(item);
         ShouldPaste = true;
         DialogResult = true;
     }
 
-    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    private async void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
-        System.Windows.Clipboard.SetText(item.Text);
-        StatusText.Text = "Скопировано";
+        var text = await LoadFullTextAsync(item);
+        System.Windows.Clipboard.SetText(text);
+        StatusText.Text = LocalizationService.Instance["Common.Copied"];
     }
 
     private async void DeleteButton_Click(object sender, RoutedEventArgs e)
@@ -85,18 +105,38 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         await _templateProcessor.DeleteAsync(item.Id);
         Templates.Remove(item);
         EmptyState.Visibility = Templates.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        StatusText.Text = "Удалено";
+        StatusText.Text = LocalizationService.Instance["Common.Deleted"];
     }
 
-    private void ToggleExpandButton_Click(object sender, RoutedEventArgs e)
+    private async void ToggleExpandButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InputTemplateItem item)
             return;
 
+        if (!item.IsExpanded)
+            await LoadFullTextAsync(item);
+
         item.IsExpanded = !item.IsExpanded;
     }
 
+    private async Task<string> LoadFullTextAsync(InputTemplateItem item)
+    {
+        if (item.HasFullText)
+            return item.Text;
+
+        var text = await _templateProcessor.GetTextAsync(item.Id) ?? item.Text;
+        item.SetFullText(text);
+        return text;
+    }
+
     private void CloseButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        base.OnClosed(e);
+    }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -113,9 +153,10 @@ public sealed class InputTemplateItem : INotifyPropertyChanged
 {
     public int Id { get; }
     public string Title { get; }
-    public string Text { get; }
+    public string Text { get; private set; }
     public string Preview { get; }
     public string CreatedAtLabel { get; }
+    public bool HasFullText { get; private set; }
 
     private bool _isExpanded;
     public bool IsExpanded
@@ -145,6 +186,14 @@ public sealed class InputTemplateItem : INotifyPropertyChanged
         CreatedAtLabel = DateTimeOffset.TryParse(entry.CreatedAt, out var createdAt)
             ? createdAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
             : entry.CreatedAt;
+    }
+
+    public void SetFullText(string text)
+    {
+        Text = text;
+        HasFullText = true;
+        OnPropertyChanged(nameof(Text));
+        OnPropertyChanged(nameof(DisplayText));
     }
 
     private static string MakePreview(string text)

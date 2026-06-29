@@ -21,11 +21,11 @@ public class MouseViewModel : INotifyPropertyChanged
     private readonly LiveEventBus            _liveBus;
 
     // ── Standard buttons ───────────────────────────────────────────────────
-    public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     "Левая кнопка");
-    public MouseButtonStat RightButton   { get; } = new((int)MouseButtons.Right,    "Правая кнопка");
-    public MouseButtonStat MiddleButton  { get; } = new((int)MouseButtons.Middle,   "Колесо (клик)");
-    public MouseButtonStat BackButton    { get; } = new((int)MouseButtons.XButton1, "Кнопка назад");
-    public MouseButtonStat ForwardButton { get; } = new((int)MouseButtons.XButton2, "Кнопка вперёд");
+    public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     LocalizationService.Instance["Mouse.LeftButton"]);
+    public MouseButtonStat RightButton   { get; } = new((int)MouseButtons.Right,    LocalizationService.Instance["Mouse.RightButton"]);
+    public MouseButtonStat MiddleButton  { get; } = new((int)MouseButtons.Middle,   LocalizationService.Instance["Mouse.MiddleButton"]);
+    public MouseButtonStat BackButton    { get; } = new((int)MouseButtons.XButton1, LocalizationService.Instance["Mouse.BackButton"]);
+    public MouseButtonStat ForwardButton { get; } = new((int)MouseButtons.XButton2, LocalizationService.Instance["Mouse.ForwardButton"]);
 
     // ── Custom buttons ────────────────────────────────────────────────────
     public ObservableCollection<MouseButtonStat> CustomButtons { get; } = new();
@@ -109,17 +109,21 @@ public class MouseViewModel : INotifyPropertyChanged
         _liveBus.MouseButtonPressed += OnButtonPressedAlways;
         _liveBus.MouseScrolled      += OnScrolledAlways;
 
-        _ = LoadDataAsync();
     }
 
     // ── DB load ─────────────────────────────────────────────────────────────
     public async Task LoadDataAsync()
     {
         IsLoading = true;
+        await Task.Yield();
         try
         {
-            var buttons = await _statisticsService.GetButtonStatistics();
-            var scroll  = await _statisticsService.GetScrollStatistics();
+            var loaded = await Task.Run(async () =>
+            {
+                var buttons = await _statisticsService.GetButtonStatistics();
+                var scroll = await _statisticsService.GetScrollStatistics();
+                return (Buttons: buttons, Scroll: scroll);
+            });
 
             // Reset session deltas — we now have fresh DB data
             lock (_sessionClicks) { _sessionClicks.Clear(); }
@@ -133,24 +137,26 @@ public class MouseViewModel : INotifyPropertyChanged
             };
 
             // Set DB baseline for standard buttons
-            foreach (var btn in buttons)
+            foreach (var btn in loaded.Buttons)
             {
                 var stat = FindButton(btn.ButtonCode);
                 if (stat != null) stat.Count = btn.Count;
             }
 
             CustomButtons.Clear();
-            foreach (var btn in buttons.Where(b => !standardCodes.Contains(b.ButtonCode) && b.IsRegistered))
+            foreach (var btn in loaded.Buttons.Where(b => !standardCodes.Contains(b.ButtonCode) && b.IsRegistered))
                 CustomButtons.Add(new MouseButtonStat(btn.ButtonCode, btn.ButtonName) { Count = btn.Count });
 
             // DB baseline for scroll
-            _dbScrollUp   = scroll?.ScrollUpNotches   ?? 0;
-            _dbScrollDown = scroll?.ScrollDownNotches ?? 0;
+            _dbScrollUp   = loaded.Scroll?.ScrollUpNotches   ?? 0;
+            _dbScrollDown = loaded.Scroll?.ScrollDownNotches ?? 0;
             ScrollUpNotches   = _dbScrollUp;
             ScrollDownNotches = _dbScrollDown;
         }
         finally { IsLoading = false; }
     }
+
+    public void BeginLoading() => IsLoading = true;
 
     // ── Always-on live handlers (accumulate session regardless of active tab) ──
 

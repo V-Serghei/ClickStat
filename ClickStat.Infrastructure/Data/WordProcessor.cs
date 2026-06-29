@@ -36,14 +36,14 @@ public sealed class WordProcessor : IDisposable
     private readonly Dictionary<string, int>   _words    = new();
     private readonly Dictionary<string, int>   _bigrams  = new();
     private readonly Dictionary<string, int>   _phrases  = new();
+    private readonly object _schemaGate = new();
+    private bool _schemaReady;
+    private bool _historyCleaned;
 
     public WordProcessor()
     {
         var docs   = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         _dbPath    = Path.Combine(docs, "KeyClick", "key_statistics.db");
-
-        EnsureSchema();
-        CleanInvalidHistory();
 
         _timer = new Timer(FlushIntervalSeconds * 1000) { AutoReset = true };
         _timer.Elapsed += async (_, _) => await Flush();
@@ -150,6 +150,7 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<List<WordStatistics>> GetTopWords(int limit = 50)
     {
+        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
         var words = await ctx.WordStatistics
             .OrderByDescending(w => w.Count)
@@ -163,6 +164,7 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<List<KeyBigram>> GetTopBigrams(int limit = 30)
     {
+        EnsureSchema();
         await using var ctx = new DataContext(_dbPath);
         return await ctx.KeyBigrams
             .OrderByDescending(b => b.Count)
@@ -172,6 +174,7 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<List<WordPhrase>> GetTopPhrases(int limit = 30)
     {
+        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
         var phrases = await ctx.WordPhrases
             .OrderByDescending(p => p.Count)
@@ -185,6 +188,7 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<int> GetTotalWordsTyped()
     {
+        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
         var words = await ctx.WordStatistics.ToListAsync();
         return words.Where(w => IsAcceptableWord(w.Word)).Sum(w => w.Count);
@@ -192,6 +196,7 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<int> GetUniqueWordsCount()
     {
+        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
         var words = await ctx.WordStatistics.ToListAsync();
         return words.Count(w => IsAcceptableWord(w.Word));
@@ -403,6 +408,7 @@ public sealed class WordProcessor : IDisposable
         }
 
         await using var ctx = new DataContext(_dbPath);
+        EnsureSchema();
         var tx = await ctx.Database.BeginTransactionAsync();
         try
         {
@@ -457,6 +463,11 @@ public sealed class WordProcessor : IDisposable
 
     private void EnsureSchema()
     {
+        lock (_schemaGate)
+        {
+            if (_schemaReady)
+                return;
+
         using var ctx = new DataContext(_dbPath);
         ctx.Database.EnsureCreated();
 
@@ -477,6 +488,28 @@ public sealed class WordProcessor : IDisposable
                 Phrase TEXT    PRIMARY KEY,
                 Count  INTEGER NOT NULL DEFAULT 0
             )");
+            _schemaReady = true;
+        }
+    }
+
+    private void EnsureHistoryCleaned()
+    {
+        lock (_schemaGate)
+        {
+            if (_historyCleaned)
+                return;
+        }
+
+        EnsureSchema();
+
+        lock (_schemaGate)
+        {
+            if (_historyCleaned)
+                return;
+
+            CleanInvalidHistory();
+            _historyCleaned = true;
+        }
     }
 
     private void CleanInvalidHistory()

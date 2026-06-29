@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -22,13 +22,14 @@ namespace ClickStat.Presentation.ViewModels
     public class NavItem
     {
         public string  Icon  { get; init; } = "";
-        public string  Label { get; init; } = "";
+        public string  LabelKey { get; init; } = "";
+        public string  Label => LocalizationService.Instance[LabelKey];
         public AppPage Page  { get; init; }
     }
 
     public class MainViewModel : INotifyPropertyChanged
     {
-        // ── Services ────────────────────────────────────────────────────────
+        // â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private readonly IInputMonitorService    _inputMonitorService;
         private readonly IMouseMonitorService    _mouseMonitorService;
         private readonly ISavingClick            _savingClickService;
@@ -44,7 +45,7 @@ namespace ClickStat.Presentation.ViewModels
         private InputTemplatePickerDialog? _templatePickerDialog;
         private bool _isSelectionCaptureInProgress;
 
-        // ── ViewModels ──────────────────────────────────────────────────────
+        // â”€â”€ ViewModels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public OverviewViewModel  OverviewVm  { get; }
         public KeyboardViewModel  KeyboardVm  { get; }
         public MouseViewModel     MouseVm     { get; }
@@ -53,18 +54,20 @@ namespace ClickStat.Presentation.ViewModels
         public AppsViewModel      AppsVm      { get; }
         public GamepadsViewModel  GamepadsVm  { get; }
         public SettingsViewModel  SettingsVm  { get; }
+        public LocalizationService Loc => LocalizationService.Instance;
+        public ICommand SetUiLanguageCommand { get; } = new SetUiLanguageCommand();
 
-        // ── Navigation ──────────────────────────────────────────────────────
+        // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public ObservableCollection<NavItem> NavItems { get; } = new()
         {
-            new NavItem { Icon = "📊", Label = "Обзор",        Page = AppPage.Overview  },
-            new NavItem { Icon = "⌨️", Label = "Клавиатура",   Page = AppPage.Keyboard  },
-            new NavItem { Icon = "🖱️", Label = "Мышь",         Page = AppPage.Mouse     },
-            new NavItem { Icon = "📈", Label = "Активность",   Page = AppPage.Activity  },
-            new NavItem { Icon = "📝", Label = "Слова",        Page = AppPage.Words     },
-            new NavItem { Icon = "💻", Label = "Приложения",   Page = AppPage.Apps      },
-            new NavItem { Icon = "🎮", Label = "Геймпады",     Page = AppPage.Gamepads  },
-            new NavItem { Icon = "⚙️", Label = "Настройки",    Page = AppPage.Settings  },
+            new NavItem { Icon = "\U0001F4CA", LabelKey = "Nav.Overview", Page = AppPage.Overview },
+            new NavItem { Icon = "\u2328", LabelKey = "Nav.Keyboard", Page = AppPage.Keyboard },
+            new NavItem { Icon = "\U0001F5B1", LabelKey = "Nav.Mouse", Page = AppPage.Mouse },
+            new NavItem { Icon = "\U0001F4C8", LabelKey = "Nav.Activity", Page = AppPage.Activity },
+            new NavItem { Icon = "\U0001F4DD", LabelKey = "Nav.Words", Page = AppPage.Words },
+            new NavItem { Icon = "\U0001F4BB", LabelKey = "Nav.Apps", Page = AppPage.Apps },
+            new NavItem { Icon = "\U0001F3AE", LabelKey = "Nav.Gamepads", Page = AppPage.Gamepads },
+            new NavItem { Icon = "\u2699", LabelKey = "Nav.Settings", Page = AppPage.Settings },
         };
 
         private AppPage _activePage = AppPage.Overview;
@@ -94,7 +97,7 @@ namespace ClickStat.Presentation.ViewModels
             _                 => OverviewVm
         };
 
-        // ── Startup ─────────────────────────────────────────────────────────
+        // â”€â”€ Startup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private bool _isInStartup;
         public bool IsInStartup
         {
@@ -112,7 +115,7 @@ namespace ClickStat.Presentation.ViewModels
         public ICommand RefreshCommand  { get; }
         public ICommand NavigateCommand { get; }
 
-        // ── Constructor ─────────────────────────────────────────────────────
+        // â”€â”€ Constructor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public MainViewModel(
             IInputMonitorService    inputMonitorService,
             IMouseMonitorService    mouseMonitorService,
@@ -176,7 +179,7 @@ namespace ClickStat.Presentation.ViewModels
             UpdateLiveMode(_activePage);
         }
 
-        // ── Navigation ───────────────────────────────────────────────────────
+        // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void NavigateTo(AppPage page) => ActivePage = page;
 
@@ -185,24 +188,26 @@ namespace ClickStat.Presentation.ViewModels
             OverviewVm.IsLiveActive = (page == AppPage.Overview);
             KeyboardVm.IsLiveActive = (page == AppPage.Keyboard);
             MouseVm.IsLiveActive    = (page == AppPage.Mouse);
+            if (page != AppPage.Gamepads)
+                GamepadsVm.StopMonitoring();
 
-            // Flush buffer → load fresh DB data. Order matters: flush first, then read.
+            // Flush buffer â†’ load fresh DB data. Order matters: flush first, then read.
             switch (page)
             {
                 case AppPage.Overview:
                     _ = FlushThenLoad(_savingClickService.FlushAsync, OverviewVm.LoadStatsAsync);
                     break;
                 case AppPage.Keyboard:
-                    _ = FlushThenLoad(_savingClickService.FlushAsync, KeyboardVm.LoadKeyCountsAsync);
+                    _ = FlushThenLoad(KeyboardVm.BeginLoading, _savingClickService.FlushAsync, KeyboardVm.LoadKeyCountsAsync);
                     break;
                 case AppPage.Mouse:
-                    _ = FlushThenLoad(_mouseStatisticsService.FlushAsync, MouseVm.LoadDataAsync);
+                    _ = FlushThenLoad(MouseVm.BeginLoading, _mouseStatisticsService.FlushAsync, MouseVm.LoadDataAsync);
                     break;
                 case AppPage.Activity:
                     _ = ActivityVm.LoadAsync();
                     break;
                 case AppPage.Words:
-                    _ = FlushThenLoad(_wordProcessor.FlushAsync, WordsVm.LoadAsync);
+                    _ = FlushThenLoad(WordsVm.BeginLoading, _wordProcessor.FlushAsync, WordsVm.LoadAsync);
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
@@ -226,7 +231,22 @@ namespace ClickStat.Presentation.ViewModels
             }
         }
 
-        // ── Keyboard events ──────────────────────────────────────────────────
+        private static async Task FlushThenLoad(Action beginLoading, Func<Task> flush, Func<Task> load)
+        {
+            try
+            {
+                beginLoading();
+                await Task.Yield();
+                await flush();
+                await load();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Flush/load failed: {ex.Message}");
+            }
+        }
+
+        // â”€â”€ Keyboard events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private readonly HashSet<Keys> _heldModifiers = new();
 
@@ -424,7 +444,7 @@ namespace ClickStat.Presentation.ViewModels
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
 
-        // ── Mouse events ─────────────────────────────────────────────────────
+        // â”€â”€ Mouse events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private void OnMouseButtonPressed(MouseButtons button, int buttonCode)
         {
@@ -432,12 +452,12 @@ namespace ClickStat.Presentation.ViewModels
             {
                 var name = button switch
                 {
-                    MouseButtons.Left     => "Левая кнопка",
-                    MouseButtons.Right    => "Правая кнопка",
-                    MouseButtons.Middle   => "Колесо (клик)",
-                    MouseButtons.XButton1 => "Кнопка назад",
-                    MouseButtons.XButton2 => "Кнопка вперёд",
-                    _                     => $"Кнопка {buttonCode}"
+                    MouseButtons.Left     => "Ð›ÐµÐ²Ð°Ñ ÐºÐ½Ð¾Ð¿ÐºÐ°",
+                    MouseButtons.Right    => "ÐŸÑ€Ð°Ð²Ð°Ñ ÐºÐ½Ð¾Ð¿ÐºÐ°",
+                    MouseButtons.Middle   => "ÐšÐ¾Ð»ÐµÑÐ¾ (ÐºÐ»Ð¸Ðº)",
+                    MouseButtons.XButton1 => "ÐšÐ½Ð¾Ð¿ÐºÐ° Ð½Ð°Ð·Ð°Ð´",
+                    MouseButtons.XButton2 => "ÐšÐ½Ð¾Ð¿ÐºÐ° Ð²Ð¿ÐµÑ€Ñ‘Ð´",
+                    _                     => $"ÐšÐ½Ð¾Ð¿ÐºÐ° {buttonCode}"
                 };
                 _mouseStatisticsService.TrackButtonClick(buttonCode, name);
                 _mouseStatisticsService.TrackClickPosition();
@@ -452,21 +472,21 @@ namespace ClickStat.Presentation.ViewModels
             _liveBus.PublishMouseScroll(notches);
         }
 
-        // ── Break reminder ────────────────────────────────────────────────────
+        // â”€â”€ Break reminder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private void OnBreakReminder(int minutes)
         {
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 System.Windows.MessageBox.Show(
-                    $"Ты работаешь {minutes} минут без перерыва. Сделай паузу! 🧘",
-                    "ClickStat — Напоминание о перерыве",
+                    $"Ð¢Ñ‹ Ñ€Ð°Ð±Ð¾Ñ‚Ð°ÐµÑˆÑŒ {minutes} Ð¼Ð¸Ð½ÑƒÑ‚ Ð±ÐµÐ· Ð¿ÐµÑ€ÐµÑ€Ñ‹Ð²Ð°. Ð¡Ð´ÐµÐ»Ð°Ð¹ Ð¿Ð°ÑƒÐ·Ñƒ! ðŸ§˜",
+                    "ClickStat â€” ÐÐ°Ð¿Ð¾Ð¼Ð¸Ð½Ð°Ð½Ð¸Ðµ Ð¾ Ð¿ÐµÑ€ÐµÑ€Ñ‹Ð²Ðµ",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Information);
             });
         }
 
-        // ── Refresh ───────────────────────────────────────────────────────────
+        // â”€â”€ Refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private async void ExecuteRefresh(object _)
         {
@@ -477,7 +497,7 @@ namespace ClickStat.Presentation.ViewModels
             await MouseVm.LoadDataAsync();
         }
 
-        // ── INotifyPropertyChanged ────────────────────────────────────────────
+        // â”€â”€ INotifyPropertyChanged â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string? p = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));

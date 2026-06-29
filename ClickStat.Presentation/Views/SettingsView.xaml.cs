@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
 using Microsoft.Win32;
 
@@ -13,6 +14,12 @@ public partial class SettingsView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        LocalizationService.Instance.PropertyChanged += (_, args) =>
+        {
+            if ((args.PropertyName == "Item[]" || args.PropertyName == nameof(LocalizationService.CurrentLanguage))
+                && DataContext is SettingsViewModel vm)
+                RefreshPreview(vm);
+        };
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -35,7 +42,9 @@ public partial class SettingsView : UserControl
         {
             string uri = vm.BackgroundUri;
             BgPreview.Source = string.IsNullOrEmpty(uri) ? null : new BitmapImage(new System.Uri(uri, System.UriKind.RelativeOrAbsolute));
-            BgPathLabel.Text = string.IsNullOrEmpty(vm.BackgroundPath) ? "Стандартная картинка" : vm.BackgroundPath;
+            BgPathLabel.Text = string.IsNullOrEmpty(vm.BackgroundPath)
+                ? LocalizationService.Instance["Settings.DefaultImage"]
+                : vm.BackgroundPath;
         }
         catch { BgPreview.Source = null; }
     }
@@ -44,8 +53,8 @@ public partial class SettingsView : UserControl
     {
         var dlg = new OpenFileDialog
         {
-            Title  = "Выберите фоновое изображение",
-            Filter = "Изображения|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|Все файлы|*.*"
+            Title  = LocalizationService.Instance["Settings.PickImageDialogTitle"],
+            Filter = LocalizationService.Instance["Settings.ImageFilter"]
         };
         if (dlg.ShowDialog() == true && DataContext is SettingsViewModel vm)
             vm.BackgroundPath = dlg.FileName;

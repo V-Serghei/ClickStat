@@ -19,12 +19,12 @@ public class TrayService : ITrayService
         _notifyIcon = new NotifyIcon
         {
             Icon = new Icon(Application.GetResourceStream(new Uri("pack://application:,,,/icon.ico")).Stream),
-            Text = "ClickStat - Статистика активности",
+            Text = "ClickStat - Input statistics",
             Visible = false
         };
         _notifyIcon.ContextMenuStrip = new ContextMenuStrip();
-        _notifyIcon.ContextMenuStrip.Items.Add("Показать", null, OnShowClick);
-        _notifyIcon.ContextMenuStrip.Items.Add("Выход", null, OnExitClick);
+        _notifyIcon.ContextMenuStrip.Items.Add("Show", null, OnShowClick);
+        _notifyIcon.ContextMenuStrip.Items.Add("Exit", null, OnExitClick);
 
         _notifyIcon.DoubleClick += (s, e) => OnShowClick(s, e);
     }

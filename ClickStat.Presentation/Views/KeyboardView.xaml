@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
              xmlns:conv="clr-namespace:ClickStat.Presentation.Converters"
+             xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:KeyboardViewModel, IsDesignTimeCreatable=True}"
              d:DesignHeight="700" d:DesignWidth="1260">
@@ -162,7 +163,7 @@
                                 </TextBlock.Text>
                             </TextBlock>
                             <TextBlock Foreground="#A0A0C0" FontSize="11" Margin="0,2,0,0">
-                                <Run Text="Нажатий: "/>
+                                <Run Text="{services:Loc Keyboard.PressesTooltip}"/>
                                 <Run FontWeight="Bold" Foreground="White">
                                     <Run.Text>
                                         <MultiBinding Converter="{StaticResource CountToBadgeConverter}"
@@ -207,9 +208,9 @@
 
         <!-- Custom key chip -->
         <Style x:Key="CustomKeyChip" TargetType="Border">
-            <Setter Property="Background"     Value="#1E1E32"/>
+            <Setter Property="Background"     Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
             <Setter Property="CornerRadius"   Value="8"/>
-            <Setter Property="BorderBrush"    Value="#3C3C60"/>
+            <Setter Property="BorderBrush"    Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"        Value="12,8"/>
             <Setter Property="Margin"         Value="0,0,8,8"/>
@@ -268,7 +269,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <Grid>
         <!-- Loading -->
-        <TextBlock Text="Загрузка данных…" Foreground="#A0A0C0" FontSize="20"
+        <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.LoadingData]}" Foreground="#A0A0C0" FontSize="20"
                    HorizontalAlignment="Center" VerticalAlignment="Center"
                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
 
@@ -288,8 +289,8 @@
             <StackPanel>
 
                 <!-- Session input -->
-                <Border Background="#0E142A" CornerRadius="10" Margin="20,12,20,8" Padding="14,12"
-                        BorderBrush="#2A2A5A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="10" Margin="20,12,20,8" Padding="14,12"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -308,15 +309,15 @@
                                      AcceptsReturn="True"
                                      VerticalScrollBarVisibility="Auto"
                                      IsReadOnly="True"
-                                     Background="#111126"
-                                     Foreground="#F2F2FF"
-                                     BorderBrush="#333366"
+                                     Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                     Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                                     BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
                                      BorderThickness="1"
                                      Padding="12,9,136,9"
                                      FontSize="13"
                                      FontFamily="Segoe UI"/>
-                            <TextBlock Text="Текущий ввод"
-                                       Foreground="#505070"
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.CurrentInput]}"
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                                        FontSize="12"
                                        Margin="13,0,0,0"
                                        VerticalAlignment="Center"
@@ -341,21 +342,21 @@
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding ClearSessionInputCommand}">
                                 <Button.ToolTip>
-                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="Удалить"/>
+                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Delete]}"/>
                                 </Button.ToolTip>
                             </Button>
                             <Button Content="&#xE8C8;"
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding CopySessionInputCommand}">
                                 <Button.ToolTip>
-                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="Копировать"/>
+                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Copy]}"/>
                                 </Button.ToolTip>
                             </Button>
                             <Button Content="&#xE74E;"
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding SaveSessionInputCommand}">
                                 <Button.ToolTip>
-                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="Сохранить"/>
+                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Save]}"/>
                                 </Button.ToolTip>
                             </Button>
                         </StackPanel>
@@ -364,21 +365,24 @@
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Top"
                                     Visibility="Collapsed">
-                            <Button Content="Удалить"
+                            <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Delete]}"
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding ClearSessionInputCommand}"/>
-                            <Button Content="Копировать"
+                            <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Copy]}"
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding CopySessionInputCommand}"/>
-                            <Button Content="Сохранить"
+                            <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Save]}"
                                     Style="{StaticResource SessionInputButton}"
                                     Command="{Binding SaveSessionInputCommand}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal"
                                     HorizontalAlignment="Right" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding SessionInputLength, StringFormat='{}{0} симв.'}"
-                                       Foreground="#7070A0" FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" VerticalAlignment="Center">
+                                <Run Text="{Binding SessionInputLength, Mode=OneWay}"/>
+                                <Run Text=" "/>
+                                <Run Text="{services:Loc Keyboard.Chars}"/>
+                            </TextBlock>
                             <TextBlock Text="{Binding SessionInputStatus, StringFormat='  {0}'}"
                                        Foreground="#AA70FF" FontSize="11" FontWeight="SemiBold"
                                        VerticalAlignment="Center"/>
@@ -387,12 +391,12 @@
                 </Border>
 
                 <!-- ── Legend ──────────────────────────────────────── -->
-                <Border Background="#14142A" CornerRadius="8" Margin="20,12,20,4" Padding="14,8">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="8" Margin="20,12,20,4" Padding="14,8">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="Интенсивность:" Foreground="#7070A0"
+                        <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.Intensity]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                                    VerticalAlignment="Center" FontSize="12" Margin="0,0,6,0"/>
                         <Border Style="{StaticResource LegendDot}" Background="#262638"/>
-                        <TextBlock Text="0" Foreground="#7070A0" VerticalAlignment="Center" FontSize="11"/>
+                        <TextBlock Text="0" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" VerticalAlignment="Center" FontSize="11"/>
                         <Border Style="{StaticResource LegendDot}" Background="#4299E1" Margin="16,0,4,0"/>
                         <Border Style="{StaticResource LegendDot}" Background="#48BB78"/>
                         <Border Style="{StaticResource LegendDot}" Background="#E9D52D"/>
@@ -404,8 +408,8 @@
 
                 <!-- ── Layout badge ──────────────────────────────────── -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="20,0,20,4">
-                    <Border Background="#14142E" CornerRadius="6" Padding="12,5"
-                            BorderBrush="#2A2A5A" BorderThickness="1">
+                    <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="6" Padding="12,5"
+                            BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="⌨️ " FontSize="12" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding LayoutCode}"
@@ -420,7 +424,7 @@
 
                 <!-- ── Live WPM panel (visible only when tab is active) ── -->
                 <Border Margin="20,0,20,4" Padding="14,10" CornerRadius="8"
-                        Background="#0E142A" BorderBrush="#2A2A5A" BorderThickness="1">
+                        Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -468,24 +472,24 @@
                         <!-- Current WPM -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,24,0"
                                     VerticalAlignment="Center">
-                            <TextBlock Text="Скорость: " Foreground="#7070A0" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.Speed]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding CurrentWpm, StringFormat='{}{0:0}'}"
-                                       Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <TextBlock Text=" зн/мин" Foreground="#7070A0" FontSize="11" VerticalAlignment="Center"/>
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.Cpm]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Peak WPM -->
                         <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Рекорд: " Foreground="#7070A0" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.Record]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding PeakWpm, StringFormat='{}{0:0}'}"
                                        Foreground="#AA70FF" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <TextBlock Text=" зн/мин" Foreground="#7070A0" FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.Cpm]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <!-- ── Keyboard ─────────────────────────────────────── -->
-                <Border Background="#0E0E1C" CornerRadius="12" Margin="16,8" Padding="14,12">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Margin="16,8" Padding="14,12">
                     <Viewbox Stretch="Uniform">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -704,25 +708,26 @@
                 </Border>
 
                 <!-- ── Custom / Extra Keys ──────────────────────────── -->
-                <Border Background="#0E0E1C" CornerRadius="12" Margin="16,0,16,16" Padding="16,14">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Margin="16,0,16,16" Padding="16,14">
                     <StackPanel>
                         <!-- Header -->
                         <Grid Margin="0,0,0,12">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Нестандартные клавиши"
-                                           Foreground="White" FontSize="14" FontWeight="SemiBold"/>
-                                <Border Background="#1E1E38" CornerRadius="10" Padding="8,2" Margin="10,0,0,0"
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.CustomKeys]}"
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="14" FontWeight="SemiBold"/>
+                                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" CornerRadius="10" Padding="8,2" Margin="10,0,0,0"
+                                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1"
                                         VerticalAlignment="Center">
                                     <TextBlock Text="{Binding CustomKeys.Count}" Foreground="#AA70FF" FontSize="12"/>
                                 </Border>
                             </StackPanel>
                             <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
-                                       Foreground="#505070" FontSize="11"
-                                       Text="Нажмите нестандартную клавишу — она появится здесь автоматически"/>
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"
+                                       Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.CustomKeysHint]}"/>
                         </Grid>
 
                         <!-- Empty state -->
-                        <Border Background="#12121E" CornerRadius="8" Padding="20" Margin="0,4">
+                        <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" CornerRadius="8" Padding="20" Margin="0,4">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -733,8 +738,8 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <TextBlock Text="Нестандартных клавиш не обнаружено"
-                                       Foreground="#404060" FontSize="13"
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.NoCustomKeys]}"
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </Border>
 
@@ -751,13 +756,13 @@
                                         <StackPanel>
                                             <!-- Key name -->
                                             <TextBlock Text="{Binding KeyName}"
-                                                       Foreground="#A0A0C8" FontSize="11"
+                                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="11"
                                                        HorizontalAlignment="Center" FontWeight="SemiBold"/>
                                             <!-- Count -->
                                             <TextBlock Text="{Binding FormattedCount}"
                                                        Foreground="#AA70FF" FontSize="18" FontWeight="Bold"
                                                        HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                                            <TextBlock Text="нажатий" Foreground="#404060" FontSize="10"
+                                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.PressesLower]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"
                                                        HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
