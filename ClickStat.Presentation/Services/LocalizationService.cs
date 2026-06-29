@@ -11,6 +11,9 @@ namespace ClickStat.Presentation.Services;
 public sealed class LocalizationService : INotifyPropertyChanged
 {
     private readonly Dictionary<string, Dictionary<string, string>> _languages = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly string SettingsDir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "KeyClick");
+    private static readonly string LanguageFile = Path.Combine(SettingsDir, "ui-language.txt");
     private string _currentLanguage = "ru";
 
     public static LocalizationService Instance { get; } = new();
@@ -58,7 +61,10 @@ public sealed class LocalizationService : INotifyPropertyChanged
     public void SetLanguage(string code)
     {
         if (_languages.ContainsKey(code))
+        {
             CurrentLanguage = code;
+            SaveLanguage(code);
+        }
     }
 
     private void LoadLanguages()
@@ -86,10 +92,38 @@ public sealed class LocalizationService : INotifyPropertyChanged
             }
         }
 
-        if (_languages.ContainsKey("ru"))
+        var savedLanguage = LoadSavedLanguage();
+        if (!string.IsNullOrWhiteSpace(savedLanguage) && _languages.ContainsKey(savedLanguage))
+            _currentLanguage = savedLanguage;
+        else if (_languages.ContainsKey("ru"))
             _currentLanguage = "ru";
         else if (_languages.Count > 0)
             _currentLanguage = _languages.Keys.First();
+    }
+
+    private static string? LoadSavedLanguage()
+    {
+        try
+        {
+            return File.Exists(LanguageFile) ? File.ReadAllText(LanguageFile).Trim() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SaveLanguage(string code)
+    {
+        try
+        {
+            Directory.CreateDirectory(SettingsDir);
+            File.WriteAllText(LanguageFile, code);
+        }
+        catch
+        {
+            // Language selection is a convenience setting; failing to save it must not break the app.
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
