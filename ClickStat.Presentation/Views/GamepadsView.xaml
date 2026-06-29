@@ -49,8 +49,8 @@
         </Style>
 
         <Style x:Key="DeviceCard" TargetType="Border">
-            <Setter Property="Background" Value="#0E0E1C"/>
-            <Setter Property="BorderBrush" Value="#202052"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Padding" Value="18"/>
@@ -58,8 +58,8 @@
         </Style>
 
         <Style x:Key="MetricCard" TargetType="Border">
-            <Setter Property="Background" Value="#171732"/>
-            <Setter Property="BorderBrush" Value="#2A2A60"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="12,9"/>
@@ -76,8 +76,8 @@
         </Style>
 
         <Style x:Key="ButtonChip" TargetType="Border">
-            <Setter Property="Background" Value="#1C1C38"/>
-            <Setter Property="BorderBrush" Value="#34346E"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="9"/>
             <Setter Property="Padding" Value="10,7"/>
@@ -98,8 +98,8 @@
         <!-- Shared style for buttons in the visual controller layout.
              DataContext must be GamepadButtonViewModel so IsPressed DataTrigger works. -->
         <Style x:Key="CtrlBtn" TargetType="Border">
-            <Setter Property="Background" Value="#1C1C38"/>
-            <Setter Property="BorderBrush" Value="#34346E"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Style.Triggers>
@@ -126,8 +126,8 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
-                        <TextBlock Text="{services:Loc Nav.Gamepads}" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding StatusText}" Foreground="#68689A" FontSize="12" Margin="0,6,0,0"/>
+                        <TextBlock Text="{services:Loc Nav.Gamepads}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding StatusText}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" Margin="0,6,0,0"/>
                     </StackPanel>
 
                     <Button Grid.Column="1"

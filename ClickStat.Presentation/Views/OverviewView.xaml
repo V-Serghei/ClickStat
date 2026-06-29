@@ -38,8 +38,8 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="#0E142A" CornerRadius="8"
-                        Padding="12,5" BorderBrush="#2A2A5A" BorderThickness="1"
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="8"
+                        Padding="12,5" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1"
                         VerticalAlignment="Center">
                     <Border.Visibility>
                         <Binding Path="LiveIndicatorVisible">

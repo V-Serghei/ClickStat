@@ -74,14 +74,16 @@
 
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{services:Loc Settings.Interval}"
-                                   Foreground="#7070A0"
+                                   Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                                    FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <TextBox Text="{Binding BreakInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="60" FontSize="14" Foreground="White"
-                                 Background="#1A1A2E" BorderBrush="#3A3A6A" BorderThickness="1"
-                                 Padding="8,4" CaretBrush="White"
+                                 Width="60" FontSize="14"
+                                 Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                                 Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                 BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1"
+                                 Padding="8,4"
                                  IsEnabled="{Binding BreakEnabled}"/>
-                        <TextBlock Text="{services:Loc Settings.MinutesShort}" Foreground="#505070" FontSize="12"
+                        <TextBlock Text="{services:Loc Settings.MinutesShort}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
                     <TextBlock Text="{services:Loc Settings.IntervalHint}"
@@ -101,7 +103,7 @@
                             Width="260" Height="100" HorizontalAlignment="Left">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Background" Value="#0A0A18"/>
+                                <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
                             </Style>
                         </Border.Style>
                         <Image x:Name="BgPreview" Stretch="UniformToFill" Opacity="0.6"/>

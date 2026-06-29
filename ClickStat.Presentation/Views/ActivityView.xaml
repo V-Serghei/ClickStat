@@ -30,38 +30,38 @@
             <StackPanel>
 
                 <TextBlock Text="{services:Loc Activity.Title}"
-                           Foreground="White" FontSize="16" FontWeight="SemiBold"
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="SemiBold"
                            Margin="0,0,0,16"/>
 
                 <!-- Distance card -->
-                <Border Background="#0E0E1C" CornerRadius="12" Padding="20,16"
-                        Margin="0,0,0,24" BorderBrush="#2A2A5A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="20,16"
+                        Margin="0,0,0,24" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="🖱️" FontSize="28" VerticalAlignment="Center" Margin="0,0,16,0"/>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{services:Loc Activity.DistanceAllTime}"
-                                       Foreground="#7070A0" FontSize="12"/>
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12"/>
                             <TextBlock Text="{Binding DistanceLabel}"
-                                       Foreground="White" FontSize="30" FontWeight="Bold"/>
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="30" FontWeight="Bold"/>
                             <TextBlock Text="{services:Loc Activity.DistanceHint}"
-                                       Foreground="#303060" FontSize="11"/>
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- All-time weekday coefficients -->
-                <Border Background="#0E0E1C" CornerRadius="12" Padding="16"
-                        Margin="0,0,0,24" BorderBrush="#1A1A3A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="16"
+                        Margin="0,0,0,24" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <StackPanel>
                         <Grid Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="{services:Loc Activity.WeekdayActivity}"
-                                           Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBlock Text="{services:Loc Activity.WeekdayHint}"
-                                           Foreground="#505070" FontSize="11" Margin="0,3,0,0"/>
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" Margin="0,3,0,0"/>
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Right">
-                                <TextBlock Text="{services:Loc Activity.MostActiveDay}" Foreground="#505070" FontSize="11"/>
+                                <TextBlock Text="{services:Loc Activity.MostActiveDay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/>
                                 <TextBlock Text="{Binding MostActiveDayLabel}"
                                            Foreground="#AA70FF" FontSize="16" FontWeight="Bold"
                                            HorizontalAlignment="Right"/>
@@ -76,22 +76,22 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#14142A" CornerRadius="9" Padding="10,9"
-                                            Margin="0,0,8,0" BorderBrush="#2A2A5A" BorderThickness="1">
+                                    <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" CornerRadius="9" Padding="10,9"
+                                            Margin="0,0,8,0" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DayName}"
-                                                       Foreground="White" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="13" FontWeight="SemiBold"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="{Binding CoefficientLabel}"
                                                        Foreground="#AA70FF" FontSize="20" FontWeight="Bold"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                            <TextBlock Foreground="#606080" FontSize="10"
+                                            <TextBlock Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"
                                                        HorizontalAlignment="Center">
                                                 <Run Text="{services:Loc Activity.Share}"/>
                                                 <Run Text=" "/>
                                                 <Run Text="{Binding ShareLabel, Mode=OneWay}"/>
                                             </TextBlock>
-                                            <TextBlock Foreground="#404060" FontSize="10"
+                                            <TextBlock Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,3,0,0">
                                                 <Run Text="{Binding Count, Mode=OneWay, StringFormat={}{0:N0}}"/>
                                                 <Run Text=" "/>
@@ -106,11 +106,11 @@
                 </Border>
 
                 <!-- Heatmap section -->
-                <Border Background="#0E0E1C" CornerRadius="12" Padding="16"
-                        BorderBrush="#1A1A3A" BorderThickness="1">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="16"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <StackPanel>
                         <TextBlock Text="{services:Loc Activity.HeatmapTitle}"
-                                   Foreground="#7070A0" FontSize="12" Margin="0,0,0,12"/>
+                                   Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" Margin="0,0,0,12"/>
 
                         <!-- Hour axis labels -->
                         <Grid Margin="50,0,0,4">
