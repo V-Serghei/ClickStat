@@ -62,6 +62,7 @@ public class ActivityViewModel : INotifyPropertyChanged
     public async Task LoadAsync()
     {
         IsLoading = true;
+        await Task.Yield();
         try
         {
             var rows = await _hourlyProcessor.GetAll();

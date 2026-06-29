@@ -195,16 +195,16 @@ namespace ClickStat.Presentation.ViewModels
                     _ = FlushThenLoad(_savingClickService.FlushAsync, OverviewVm.LoadStatsAsync);
                     break;
                 case AppPage.Keyboard:
-                    _ = FlushThenLoad(_savingClickService.FlushAsync, KeyboardVm.LoadKeyCountsAsync);
+                    _ = FlushThenLoad(KeyboardVm.BeginLoading, _savingClickService.FlushAsync, KeyboardVm.LoadKeyCountsAsync);
                     break;
                 case AppPage.Mouse:
-                    _ = FlushThenLoad(_mouseStatisticsService.FlushAsync, MouseVm.LoadDataAsync);
+                    _ = FlushThenLoad(MouseVm.BeginLoading, _mouseStatisticsService.FlushAsync, MouseVm.LoadDataAsync);
                     break;
                 case AppPage.Activity:
                     _ = ActivityVm.LoadAsync();
                     break;
                 case AppPage.Words:
-                    _ = FlushThenLoad(_wordProcessor.FlushAsync, WordsVm.LoadAsync);
+                    _ = FlushThenLoad(WordsVm.BeginLoading, _wordProcessor.FlushAsync, WordsVm.LoadAsync);
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
@@ -219,6 +219,21 @@ namespace ClickStat.Presentation.ViewModels
         {
             try
             {
+                await flush();
+                await load();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Flush/load failed: {ex.Message}");
+            }
+        }
+
+        private static async Task FlushThenLoad(Action beginLoading, Func<Task> flush, Func<Task> load)
+        {
+            try
+            {
+                beginLoading();
+                await Task.Yield();
                 await flush();
                 await load();
             }

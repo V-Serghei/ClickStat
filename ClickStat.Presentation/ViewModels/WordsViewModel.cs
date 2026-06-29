@@ -62,15 +62,25 @@ public class WordsViewModel : INotifyPropertyChanged
     public async Task LoadAsync()
     {
         IsLoading = true;
+        await Task.Yield();
         try
         {
-            await _wordProcessor.FlushAsync();
-            _allWords = await _wordProcessor.GetTopWords(1000);
-            _allPhrases = await _wordProcessor.GetTopPhrases(300);
+            var loaded = await Task.Run(async () =>
+            {
+                await _wordProcessor.FlushAsync();
+                var words = await _wordProcessor.GetTopWords(1000);
+                var phrases = await _wordProcessor.GetTopPhrases(300);
+                return (Words: words, Phrases: phrases);
+            });
+
+            _allWords = loaded.Words;
+            _allPhrases = loaded.Phrases;
             ApplyLanguageFilter();
         }
         finally { IsLoading = false; }
     }
+
+    public void BeginLoading() => IsLoading = true;
 
     private void SetLanguage(string language)
     {

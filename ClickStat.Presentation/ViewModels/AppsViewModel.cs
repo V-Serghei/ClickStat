@@ -24,9 +24,10 @@ public class AppsViewModel : INotifyPropertyChanged
     public async Task LoadAsync()
     {
         IsLoading = true;
+        await Task.Yield();
         try
         {
-            var list = await _appProcessor.GetTopApps(30);
+            var list = await Task.Run(async () => await _appProcessor.GetTopApps(30));
             Apps.Clear();
             foreach (var app in list) Apps.Add(app);
         }
