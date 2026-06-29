@@ -163,7 +163,9 @@
                     </Grid>
                 </Border>
 
-                <Border Background="#0E0E1C" BorderBrush="#202052" BorderThickness="1"
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                        BorderThickness="1"
                         CornerRadius="16" Padding="28" Margin="0,0,0,16">
                     <Border.Style>
                         <Style TargetType="Border">
@@ -176,9 +178,9 @@
                         </Style>
                     </Border.Style>
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="{services:Loc Gamepads.NoneTitle}" Foreground="White" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{services:Loc Gamepads.NoneTitle}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                         <TextBlock Text="{services:Loc Gamepads.NoneHint}"
-                                   Foreground="#6F6FA0" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"
                                    MaxWidth="560" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
@@ -202,8 +204,8 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel>
-                                            <TextBlock Text="{Binding DisplayName}" Foreground="White" FontSize="17" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding ProfileDescription}" Foreground="#69699A" FontSize="11"
+                                            <TextBlock Text="{Binding DisplayName}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="17" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding ProfileDescription}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"
                                                        TextWrapping="Wrap" Margin="0,4,10,0"/>
                                         </StackPanel>
 
@@ -212,7 +214,9 @@
                                                     Command="{Binding ToggleViewCommand}"
                                                     Style="{StaticResource ToggleViewStyle}"
                                                     HorizontalAlignment="Right" Margin="0,0,0,8"/>
-                                            <Border Background="#1A1A3A" BorderBrush="#35357A" BorderThickness="1"
+                                            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                                                    BorderThickness="1"
                                                     CornerRadius="10" Padding="10,6" HorizontalAlignment="Right">
                                                 <TextBlock Text="{Binding ProfileName}" Foreground="#CCAAFF" FontSize="12" FontWeight="Bold"/>
                                             </Border>
@@ -259,13 +263,13 @@
                                         <WrapPanel Margin="0,0,0,8">
                                             <Border Style="{StaticResource MetricCard}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{services:Loc Gamepads.ButtonPresses}" Foreground="#606090" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.ButtonPresses}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"/>
                                                     <TextBlock Text="{Binding TotalButtonPresses}" Foreground="#AA70FF" FontSize="19" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MetricCard}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{services:Loc Gamepads.StickMoves}" Foreground="#606090" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.StickMoves}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"/>
                                                     <TextBlock Text="{Binding TotalStickMoves}" Foreground="#70A0FF" FontSize="19" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </Border>
@@ -277,30 +281,40 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <Border Background="#12122A" CornerRadius="12" Padding="12" Margin="0,0,8,0">
+                                            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12" Padding="12" Margin="0,0,8,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="{services:Loc Gamepads.LeftStick}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding LeftStickText}" Foreground="#8080B0" FontSize="11" Margin="0,4,0,8"/>
-                                                    <TextBlock Text="X" Foreground="#56568A" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.LeftStick}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="12" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding LeftStickText}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" Margin="0,4,0,8"/>
+                                                    <TextBlock Text="X" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"/>
                                                     <ProgressBar Value="{Binding LeftXBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
-                                                    <TextBlock Text="Y" Foreground="#56568A" FontSize="10" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Y" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10" Margin="0,8,0,0"/>
                                                     <ProgressBar Value="{Binding LeftYBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
                                                 </StackPanel>
                                             </Border>
 
-                                            <Border Grid.Column="1" Background="#12122A" CornerRadius="12" Padding="12" Margin="8,0,0,0">
+                                            <Border Grid.Column="1"
+                                                    Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12" Padding="12" Margin="8,0,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="{services:Loc Gamepads.RightStick}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding RightStickText}" Foreground="#8080B0" FontSize="11" Margin="0,4,0,8"/>
-                                                    <TextBlock Text="X" Foreground="#56568A" FontSize="10"/>
+                                                    <TextBlock Text="{services:Loc Gamepads.RightStick}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="12" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding RightStickText}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11" Margin="0,4,0,8"/>
+                                                    <TextBlock Text="X" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"/>
                                                     <ProgressBar Value="{Binding RightXBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
-                                                    <TextBlock Text="Y" Foreground="#56568A" FontSize="10" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Y" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10" Margin="0,8,0,0"/>
                                                     <ProgressBar Value="{Binding RightYBar, Mode=OneWay}" Style="{StaticResource AxisBar}"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
 
-                                        <Border Background="#12122A" CornerRadius="12" Padding="12" Margin="0,0,0,14">
+                                        <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                                                BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="12" Padding="12" Margin="0,0,0,14">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -308,18 +322,18 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <StackPanel Margin="0,0,10,0">
-                                                    <TextBlock Text="{Binding LeftTriggerText, StringFormat='LT / L2  {0}'}" Foreground="#A8A8D0" FontSize="11"/>
+                                                    <TextBlock Text="{Binding LeftTriggerText, StringFormat='LT / L2  {0}'}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="11"/>
                                                     <ProgressBar Value="{Binding LeftTriggerBar, Mode=OneWay}" Style="{StaticResource AxisBar}" Margin="0,6,0,0"/>
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                    <TextBlock Text="{Binding RightTriggerText, StringFormat='RT / R2  {0}'}" Foreground="#A8A8D0" FontSize="11"/>
+                                                    <TextBlock Text="{Binding RightTriggerText, StringFormat='RT / R2  {0}'}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="11"/>
                                                     <ProgressBar Value="{Binding RightTriggerBar, Mode=OneWay}" Style="{StaticResource AxisBar}" Margin="0,6,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
 
-                                        <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                         <ItemsControl ItemsSource="{Binding Buttons}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -330,7 +344,7 @@
                                                 <DataTemplate>
                                                     <Border Style="{StaticResource ButtonChip}">
                                                         <StackPanel>
-                                                            <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                                             <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         </StackPanel>
                                                     </Border>
@@ -377,7 +391,7 @@
                                             <Border Canvas.Left="5" Canvas.Top="2" Width="76" Height="32" CornerRadius="8"
                                                     DataContext="{Binding BtnLT}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -386,7 +400,7 @@
                                             <Border Canvas.Left="5" Canvas.Top="38" Width="76" Height="22" CornerRadius="6"
                                                     DataContext="{Binding BtnLB}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="10" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -395,7 +409,7 @@
                                             <Border Canvas.Left="339" Canvas.Top="2" Width="76" Height="32" CornerRadius="8"
                                                     DataContext="{Binding BtnRT}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -404,7 +418,7 @@
                                             <Border Canvas.Left="339" Canvas.Top="38" Width="76" Height="22" CornerRadius="6"
                                                     DataContext="{Binding BtnRB}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="10" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -413,7 +427,7 @@
                                             <Border Canvas.Left="168" Canvas.Top="74" Width="36" Height="22" CornerRadius="7"
                                                     DataContext="{Binding BtnBack}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#C0C0E0" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="8" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -422,15 +436,15 @@
                                             <Border Canvas.Left="216" Canvas.Top="74" Width="36" Height="22" CornerRadius="7"
                                                     DataContext="{Binding BtnStart}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#C0C0E0" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="8" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
 
                                             <!-- Left Stick (68×68 circle canvas, positioned at 95,58) -->
                                             <Canvas Canvas.Left="95" Canvas.Top="58" Width="68" Height="68">
-                                                <Ellipse Width="68" Height="68" Fill="#0D0D20" Stroke="#2A2A5A" StrokeThickness="2"/>
-                                                <Ellipse Width="18" Height="18" Canvas.Left="25" Canvas.Top="25" Fill="#181838"/>
+                                                <Ellipse Width="68" Height="68" Fill="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" Stroke="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" StrokeThickness="2"/>
+                                                <Ellipse Width="18" Height="18" Canvas.Left="25" Canvas.Top="25" Fill="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
                                                 <Ellipse Width="14" Height="14"
                                                          Canvas.Left="{Binding LeftStickDotX}"
                                                          Canvas.Top="{Binding LeftStickDotY}"
@@ -445,15 +459,15 @@
                                             <Border Canvas.Left="97" Canvas.Top="131" Width="60" Height="18" CornerRadius="5"
                                                     DataContext="{Binding BtnLS}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#C0C0E0" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="8" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
 
                                             <!-- Right Stick (68×68 circle canvas, positioned at 255,65) -->
                                             <Canvas Canvas.Left="255" Canvas.Top="65" Width="68" Height="68">
-                                                <Ellipse Width="68" Height="68" Fill="#0D0D20" Stroke="#2A2A5A" StrokeThickness="2"/>
-                                                <Ellipse Width="18" Height="18" Canvas.Left="25" Canvas.Top="25" Fill="#181838"/>
+                                                <Ellipse Width="68" Height="68" Fill="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" Stroke="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" StrokeThickness="2"/>
+                                                <Ellipse Width="18" Height="18" Canvas.Left="25" Canvas.Top="25" Fill="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
                                                 <Ellipse Width="14" Height="14"
                                                          Canvas.Left="{Binding RightStickDotX}"
                                                          Canvas.Top="{Binding RightStickDotY}"
@@ -468,7 +482,7 @@
                                             <Border Canvas.Left="257" Canvas.Top="138" Width="60" Height="18" CornerRadius="5"
                                                     DataContext="{Binding BtnRS}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Name}" Foreground="#C0C0E0" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="8" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -477,7 +491,7 @@
                                             <Border Canvas.Left="36" Canvas.Top="108" Width="24" Height="24" CornerRadius="4"
                                                     DataContext="{Binding BtnDUp}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="▲" Foreground="#C0C0E0" FontSize="9" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="▲" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="9" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="7" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -486,7 +500,7 @@
                                             <Border Canvas.Left="36" Canvas.Top="156" Width="24" Height="24" CornerRadius="4"
                                                     DataContext="{Binding BtnDDown}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="▼" Foreground="#C0C0E0" FontSize="9" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="▼" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="9" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="7" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -495,7 +509,7 @@
                                             <Border Canvas.Left="12" Canvas.Top="132" Width="24" Height="24" CornerRadius="4"
                                                     DataContext="{Binding BtnDLeft}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="◀" Foreground="#C0C0E0" FontSize="9" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="◀" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="9" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="7" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -504,7 +518,7 @@
                                             <Border Canvas.Left="60" Canvas.Top="132" Width="24" Height="24" CornerRadius="4"
                                                     DataContext="{Binding BtnDRight}" Style="{StaticResource CtrlBtn}">
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock Text="▶" Foreground="#C0C0E0" FontSize="9" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="▶" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="9" HorizontalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="7" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Border>
@@ -547,12 +561,12 @@
 
                                             <!-- Trigger analog fill bars -->
                                             <StackPanel Canvas.Left="5" Canvas.Top="190" Width="76" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="L" Foreground="#56568A" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <TextBlock Text="L" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                 <ProgressBar Value="{Binding LeftTriggerBar, Mode=OneWay}"
                                                              Style="{StaticResource AxisBar}" Width="58" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel Canvas.Left="339" Canvas.Top="190" Width="76" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="R" Foreground="#56568A" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <TextBlock Text="R" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                 <ProgressBar Value="{Binding RightTriggerBar, Mode=OneWay}"
                                                              Style="{StaticResource AxisBar}" Width="58" VerticalAlignment="Center"/>
                                             </StackPanel>
@@ -571,7 +585,7 @@
                                                 </Style>
                                             </StackPanel.Style>
 
-                                            <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                            <TextBlock Text="{services:Loc Gamepads.Buttons}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                             <ItemsControl ItemsSource="{Binding Buttons}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
@@ -582,7 +596,7 @@
                                                     <DataTemplate>
                                                         <Border Style="{StaticResource ButtonChip}">
                                                             <StackPanel>
-                                                                <TextBlock Text="{Binding Name}" Foreground="#E8E8FF" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding Name}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                                                 <TextBlock Text="{Binding Count}" Foreground="#AA70FF" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                             </StackPanel>
                                                         </Border>
