@@ -74,6 +74,13 @@ public class OverviewViewModel : INotifyPropertyChanged
 
         // Always accumulate session keys — even when Overview tab is closed
         _liveBus.KeyPressed += OnLiveKey;
+        LocalizationService.Instance.PropertyChanged += OnLocalizationChanged;
+    }
+
+    private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "Item[]" || e.PropertyName == nameof(LocalizationService.CurrentLanguage))
+            RefreshLocalizedChartText();
     }
 
     // ── DB load (called on tab open) ──────────────────────────────────────
@@ -127,7 +134,7 @@ public class OverviewViewModel : INotifyPropertyChanged
         {
             new ColumnSeries<int>
             {
-                Name   = "Нажатия",
+                Name   = LocalizationService.Instance["Overview.Presses"],
                 Values = counts,
                 Fill   = new SolidColorPaint(new SKColor(170, 112, 255))
             }
@@ -147,6 +154,17 @@ public class OverviewViewModel : INotifyPropertyChanged
     }
 
     // ── Live event handler (UI thread via LiveEventBus) ───────────────────
+    private void RefreshLocalizedChartText()
+    {
+        if (DailyStatsSeries is null)
+            return;
+
+        foreach (var series in DailyStatsSeries)
+            series.Name = LocalizationService.Instance["Overview.Presses"];
+
+        OnPropertyChanged(nameof(DailyStatsSeries));
+    }
+
     private void OnLiveKey(string keyName)
     {
         if (_visibleTodayDate != DateTime.Today)

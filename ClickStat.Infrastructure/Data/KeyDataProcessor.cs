@@ -32,9 +32,6 @@ public class KeyDataProcessor
 
         _dbPath = Path.Combine(folderPath, "key_statistics.db");
 
-        using var ctx = new DataContext(_dbPath);
-        ctx.Database.EnsureCreated();
-
         _saveTimer = new Timer(SaveIntervalSeconds * 1000) { AutoReset = true };
         _saveTimer.Elapsed += async (_, _) => await SaveToDatabaseBuffered();
         _saveTimer.Start();
@@ -95,6 +92,7 @@ public class KeyDataProcessor
         }
 
         await using var context = new DataContext(_dbPath);
+        await context.Database.EnsureCreatedAsync();
         var transaction = await context.Database.BeginTransactionAsync();
         try
         {

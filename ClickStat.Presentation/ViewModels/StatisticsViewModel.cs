@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using ClickStat.Core.Interfaces;
+using ClickStat.Presentation.Services;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -42,7 +43,16 @@ namespace ClickStat.Presentation.ViewModels
         {
             _dataClickService = dataClickService;
             InitializeChart();
+            LocalizationService.Instance.PropertyChanged += OnLocalizationChanged;
             _ = LoadStatsAsync();
+        }
+
+        private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != "Item[]" && e.PropertyName != nameof(LocalizationService.CurrentLanguage))
+                return;
+
+            RefreshLocalizedChartText();
         }
 
         private void InitializeChart()
@@ -50,21 +60,37 @@ namespace ClickStat.Presentation.ViewModels
             var textColor = new SKColor(200, 200, 200);
             var separatorColor = new SKColor(100, 100, 100);
 
-            DailyStatsSeries = new ISeries[] { new ColumnSeries<int> { Name = "Нажатия", Values = new int[] { }, Fill = new SolidColorPaint(new SKColor(170, 112, 255)) } };
+            DailyStatsSeries = new ISeries[] { new ColumnSeries<int> { Name = LocalizationService.Instance["Overview.Presses"], Values = new int[] { }, Fill = new SolidColorPaint(new SKColor(170, 112, 255)) } };
             
             XAxes = new Axis[]
             {
-                new Axis { Name = "Дата", LabelsRotation = 15, TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
+                new Axis { Name = LocalizationService.Instance["Statistics.Date"], LabelsRotation = 15, TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
             };
 
             YAxes = new Axis[]
             {
-                new Axis { Name = "Количество нажатий", TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
+                new Axis { Name = LocalizationService.Instance["Statistics.PressCount"], TextSize = 12, NamePaint = new SolidColorPaint(textColor), LabelsPaint = new SolidColorPaint(textColor), SeparatorsPaint = new SolidColorPaint(separatorColor) }
             };
 
             LegendTextPaint = new SolidColorPaint(textColor);
             TooltipBackgroundPaint = new SolidColorPaint(new SKColor(40, 40, 40));
             TooltipTextPaint = new SolidColorPaint(textColor);
+        }
+
+        private void RefreshLocalizedChartText()
+        {
+            if (DailyStatsSeries.Length > 0)
+                DailyStatsSeries[0].Name = LocalizationService.Instance["Overview.Presses"];
+
+            if (XAxes.Length > 0)
+                XAxes[0].Name = LocalizationService.Instance["Statistics.Date"];
+
+            if (YAxes.Length > 0)
+                YAxes[0].Name = LocalizationService.Instance["Statistics.PressCount"];
+
+            OnPropertyChanged(nameof(DailyStatsSeries));
+            OnPropertyChanged(nameof(XAxes));
+            OnPropertyChanged(nameof(YAxes));
         }
 
         public async Task LoadStatsAsync()

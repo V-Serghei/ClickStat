@@ -25,6 +25,8 @@ public class InputMonitorService : IInputMonitorService
     private readonly Dictionary<Keys, Keys> _genericModifierSide = new();
     private readonly Channel<Action> _eventQueue = Channel.CreateUnbounded<Action>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    private readonly bool _compatibilityPollingEnabled =
+        string.Equals(Environment.GetEnvironmentVariable("CLICKSTAT_KEYBOARD_POLLING"), "1", StringComparison.Ordinal);
 
     private bool _hookActive;
     private bool _pollingActive;
@@ -68,7 +70,7 @@ public class InputMonitorService : IInputMonitorService
             InputLog.Info("WH_KEYBOARD_LL hook subscribed");
         }
 
-        if (!_pollingActive)
+        if (_compatibilityPollingEnabled && !_pollingActive)
         {
             _pollMonitor.Start();
             _pollingActive = true;

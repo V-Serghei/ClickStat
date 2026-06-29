@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using ClickStat.Core.Helpers;
+using ClickStat.Presentation.Services;
 using Gma.System.MouseKeyHook;
 
 namespace ClickStat.Presentation.Views;
@@ -62,12 +63,12 @@ public partial class AddMouseButtonDialog : Window
 
     private static string DefaultMouseName(MouseButtons button) => button switch
     {
-        MouseButtons.Left     => "Левая кнопка",
-        MouseButtons.Right    => "Правая кнопка",
-        MouseButtons.Middle   => "Средняя кнопка",
-        MouseButtons.XButton1 => "Кнопка назад",
-        MouseButtons.XButton2 => "Кнопка вперёд",
-        _                     => $"Кнопка мыши {(int)button}"
+        MouseButtons.Left     => LocalizationService.Instance["Mouse.LeftButton"],
+        MouseButtons.Right    => LocalizationService.Instance["Mouse.RightButton"],
+        MouseButtons.Middle   => LocalizationService.Instance["Mouse.MiddleButton"],
+        MouseButtons.XButton1 => LocalizationService.Instance["Mouse.BackButton"],
+        MouseButtons.XButton2 => LocalizationService.Instance["Mouse.ForwardButton"],
+        _                     => $"{LocalizationService.Instance["Mouse.Button"]} {(int)button}"
     };
 
     // ── Keyboard shortcut capture ───────────────────────────────────────────
@@ -133,8 +134,8 @@ public partial class AddMouseButtonDialog : Window
 
         bool isKeyboard = MouseButtonCodeHelper.IsKeyboardMapped(_capturedCode);
         DetectedLabel.Text = isKeyboard
-            ? $"Клавиатурное сочетание: {MouseButtonCodeHelper.FormatShortcut(_capturedCode)}"
-            : $"Кнопка мыши: код {_capturedCode}";
+            ? $"{LocalizationService.Instance["AddMouse.KeyboardShortcut"]}: {MouseButtonCodeHelper.FormatShortcut(_capturedCode)}"
+            : $"{LocalizationService.Instance["AddMouse.MouseButtonCode"]}: {_capturedCode}";
 
         NameTextBox.Text  = _capturedName;
         OkButton.IsEnabled = true;

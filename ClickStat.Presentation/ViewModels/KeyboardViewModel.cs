@@ -171,7 +171,6 @@ public class KeyboardViewModel : INotifyPropertyChanged
         // Always subscribe — key presses accumulate in KeyCounts regardless of active tab
         _liveBus.KeyPressed += OnLiveKeyPress;
 
-        _ = LoadKeyCountsAsync();
     }
 
     // ── DB load ────────────────────────────────────────────────────────────
@@ -179,14 +178,20 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public async Task LoadKeyCountsAsync()
     {
         IsLoading = true;
+        await Task.Yield();
 
-        var stats = await _dataClickService.GetKeyStatistics();
-        var mergedCounts = new Dictionary<string, int>();
-        foreach (var stat in stats)
+        var stats = await Task.Run(async () => await _dataClickService.GetKeyStatistics());
+        var mergedCounts = await Task.Run(() =>
         {
-            foreach (var displayKey in GetDisplayKeys(stat.KeyName))
-                mergedCounts[displayKey] = mergedCounts.GetValueOrDefault(displayKey) + stat.Count;
-        }
+            var counts = new Dictionary<string, int>();
+            foreach (var stat in stats)
+            {
+                foreach (var displayKey in GetDisplayKeys(stat.KeyName))
+                    counts[displayKey] = counts.GetValueOrDefault(displayKey) + stat.Count;
+            }
+
+            return counts;
+        });
 
         foreach (var (key, liveCount) in KeyCounts)
         {
@@ -208,6 +213,8 @@ public class KeyboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(string.Empty);
         IsLoading = false;
     }
+
+    public void BeginLoading() => IsLoading = true;
 
     // ── Live key press handler (always on UI thread via LiveEventBus) ──────
 
@@ -317,7 +324,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             return;
 
         System.Windows.Clipboard.SetText(SessionInputText);
-        SessionInputStatus = "Скопировано";
+        SessionInputStatus = LocalizationService.Instance["Common.Copied"];
     }
 
     private async Task SaveSessionInputAsync()
@@ -326,7 +333,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             return;
 
         await _inputTemplateProcessor.SaveAsync(SessionInputText);
-        SessionInputStatus = "Сохранено";
+        SessionInputStatus = LocalizationService.Instance["Common.Saved"];
     }
 
     private void RefreshSessionInput()

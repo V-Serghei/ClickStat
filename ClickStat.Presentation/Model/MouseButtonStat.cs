@@ -22,8 +22,8 @@ public class MouseButtonStat : INotifyPropertyChanged
 
     public string FormattedCount => _count switch
     {
-        >= 1_000_000 => $"{_count / 1_000_000.0:F1}М",
-        >= 1_000     => $"{_count / 1_000.0:F1}к",
+        >= 1_000_000 => $"{_count / 1_000_000.0:F1}M",
+        >= 1_000     => $"{_count / 1_000.0:F1}K",
         _            => _count.ToString()
     };
 

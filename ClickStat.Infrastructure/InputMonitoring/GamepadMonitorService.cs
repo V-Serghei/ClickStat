@@ -6,7 +6,9 @@ namespace ClickStat.Infrastructure.InputMonitoring;
 
 public sealed class GamepadMonitorService : IDisposable
 {
-    private const int PollIntervalMs = 33;
+    private const int PollIntervalMs = 50;
+    private const int ScanIntervalMs = 1000;
+    private const int SnapshotPublishIntervalMs = 100;
     private const int SaveIntervalMs = 5000;
     private const uint ErrorSuccess = 0;
     private const uint JoyReturnAll = 0x000000FF;
@@ -19,8 +21,12 @@ public sealed class GamepadMonitorService : IDisposable
     private readonly Dictionary<(string DeviceId, string ButtonName), GamepadButtonDelta> _buttonBuffer = new();
     private readonly Dictionary<string, GamepadMoveDelta> _moveBuffer = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _dbPath;
+    private readonly string _connectionString;
     private Timer? _timer;
     private Timer? _saveTimer;
+    private DateTime _lastScanUtc = DateTime.MinValue;
+    private DateTime _lastSnapshotPublishUtc = DateTime.MinValue;
+    private bool _isInitialized;
 
     public event EventHandler<IReadOnlyList<GamepadSnapshot>>? SnapshotsChanged;
 
@@ -32,15 +38,7 @@ public sealed class GamepadMonitorService : IDisposable
         var folder = Path.Combine(documents, "KeyClick");
         Directory.CreateDirectory(folder);
         _dbPath = Path.Combine(folder, "key_statistics.db");
-        try
-        {
-            EnsureSchema();
-            LoadPersistedDevices();
-        }
-        catch
-        {
-            // The app can still show live gamepad data; persistence will retry on later flushes.
-        }
+        _connectionString = BuildConnectionString(_dbPath);
     }
 
     public void Start()
@@ -50,6 +48,7 @@ public sealed class GamepadMonitorService : IDisposable
             if (IsRunning)
                 return;
 
+            EnsureInitializedLocked();
             IsRunning = true;
             ScanNowCore();
             _timer = new Timer(_ => PollSafely(), null, 0, PollIntervalMs);
@@ -81,6 +80,7 @@ public sealed class GamepadMonitorService : IDisposable
         IReadOnlyList<GamepadSnapshot> snapshots;
         lock (_gate)
         {
+            EnsureInitializedLocked();
             ScanNowCore();
             PollKnownDevicesCore();
             snapshots = BuildSnapshotsLocked();
@@ -93,6 +93,7 @@ public sealed class GamepadMonitorService : IDisposable
     {
         lock (_gate)
         {
+            EnsureInitializedLocked();
             return BuildSnapshotsLocked();
         }
     }
@@ -101,14 +102,22 @@ public sealed class GamepadMonitorService : IDisposable
 
     private void PollSafely()
     {
-        IReadOnlyList<GamepadSnapshot> snapshots;
+        IReadOnlyList<GamepadSnapshot>? snapshots = null;
         try
         {
             lock (_gate)
             {
-                ScanNowCore();
+                var now = DateTime.UtcNow;
+                if ((now - _lastScanUtc).TotalMilliseconds >= ScanIntervalMs)
+                    ScanNowCore();
+
                 PollKnownDevicesCore();
-                snapshots = BuildSnapshotsLocked();
+
+                if ((now - _lastSnapshotPublishUtc).TotalMilliseconds >= SnapshotPublishIntervalMs)
+                {
+                    snapshots = BuildSnapshotsLocked();
+                    _lastSnapshotPublishUtc = now;
+                }
             }
         }
         catch
@@ -116,11 +125,14 @@ public sealed class GamepadMonitorService : IDisposable
             return;
         }
 
-        SnapshotsChanged?.Invoke(this, snapshots);
+        if (snapshots != null)
+            SnapshotsChanged?.Invoke(this, snapshots);
     }
 
     private void ScanNowCore()
     {
+        _lastScanUtc = DateTime.UtcNow;
+
         foreach (var device in _devices.Values)
             device.SeenOnLastScan = false;
 
@@ -177,6 +189,23 @@ public sealed class GamepadMonitorService : IDisposable
         }
     }
 
+    private void EnsureInitializedLocked()
+    {
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+        try
+        {
+            EnsureSchema();
+            LoadPersistedDevicesLocked();
+        }
+        catch
+        {
+            // The app can still show live gamepad data; persistence will retry on later flushes.
+        }
+    }
+
     private GamepadRuntimeState GetOrCreate(
         string id,
         string displayName,
@@ -206,7 +235,12 @@ public sealed class GamepadMonitorService : IDisposable
     private void PollKnownDevicesCore()
     {
         foreach (var device in _devices.Values)
+        {
+            if (!device.IsConnected)
+                continue;
+
             PollDevice(device);
+        }
     }
 
     private void PollDevice(GamepadRuntimeState device)
@@ -441,8 +475,16 @@ public sealed class GamepadMonitorService : IDisposable
 
     private void EnsureSchema()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_connectionString);
         connection.Open();
+
+        using var pragmaCommand = connection.CreateCommand();
+        pragmaCommand.CommandText = """
+            PRAGMA busy_timeout = 5000;
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
+            """;
+        pragmaCommand.ExecuteNonQuery();
 
         using var buttonCommand = connection.CreateCommand();
         buttonCommand.CommandText = @"
@@ -478,7 +520,7 @@ public sealed class GamepadMonitorService : IDisposable
     private void LoadPersistedDevicesLocked()
     {
         EnsureSchema();
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
         var saved = new Dictionary<string, PersistedGamepadDevice>(StringComparer.OrdinalIgnoreCase);
@@ -558,7 +600,7 @@ public sealed class GamepadMonitorService : IDisposable
         try
         {
             EnsureSchema();
-            using var connection = new SqliteConnection($"Data Source={_dbPath}");
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
             using (var buttonCommand = connection.CreateCommand())
@@ -617,7 +659,7 @@ public sealed class GamepadMonitorService : IDisposable
         try
         {
             EnsureSchema();
-            using var connection = new SqliteConnection($"Data Source={_dbPath}");
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             using var transaction = connection.BeginTransaction();
 
@@ -696,6 +738,19 @@ public sealed class GamepadMonitorService : IDisposable
             return GamepadDeviceType.PlayStation;
 
         return GamepadDeviceType.Generic;
+    }
+
+    private static string BuildConnectionString(string dbPath)
+    {
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Shared,
+            DefaultTimeout = 5
+        };
+
+        return builder.ToString();
     }
 
     private static bool IsLikelyXInputMirror(string name, GamepadDeviceType type, uint xInputCount)

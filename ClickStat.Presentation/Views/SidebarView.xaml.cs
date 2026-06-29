@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using ClickStat.Presentation.Services;
 using ClickStat.Presentation.ViewModels;
 
 namespace ClickStat.Presentation.Views;
@@ -16,6 +17,11 @@ public partial class SidebarView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        LocalizationService.Instance.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == "Item[]")
+                BuildNavButtons();
+        };
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

@@ -1,7 +1,8 @@
 <Window x:Class="ClickStat.Presentation.Views.InputTemplatePickerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Шаблоны ввода"
+        xmlns:services="clr-namespace:ClickStat.Presentation.Services"
+        Title="{services:Loc Templates.Title}"
         Width="560" Height="440"
         MinWidth="500" MinHeight="360"
         WindowStartupLocation="CenterScreen"
@@ -15,9 +16,9 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="Margin" Value="4,0,0,0"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="#AA17172C"/>
-            <Setter Property="Foreground" Value="#D8D8F0"/>
-            <Setter Property="BorderBrush" Value="#333366"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="12"/>
@@ -49,9 +50,9 @@
         </Style>
 
         <Style x:Key="TinyTip" TargetType="ToolTip">
-            <Setter Property="Background" Value="#17172C"/>
-            <Setter Property="Foreground" Value="#E8E8FF"/>
-            <Setter Property="BorderBrush" Value="#333366"/>
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontSize" Value="11"/>
@@ -59,7 +60,10 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="12" Background="#12121E" BorderBrush="#2A2A5A" BorderThickness="1">
+    <Border CornerRadius="12"
+            Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=WindowBackground}"
+            BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=WindowBorder}"
+            BorderThickness="1">
         <Grid Margin="14">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -74,9 +78,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="Шаблоны ввода" Foreground="White"
+                    <TextBlock Text="{services:Loc Templates.Title}"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                                FontSize="18" FontWeight="Bold"/>
-                    <TextBlock Text="Alt + D" Foreground="#7070A0"
+                    <TextBlock Text="Alt + D"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                                FontSize="11" Margin="0,2,0,0"/>
                 </StackPanel>
                 <Button Grid.Column="1"
@@ -84,19 +90,22 @@
                         Style="{StaticResource IconButton}"
                         Click="CloseButton_Click">
                     <Button.ToolTip>
-                        <ToolTip Style="{StaticResource TinyTip}" Content="Закрыть"/>
+                        <ToolTip Style="{StaticResource TinyTip}" Content="{services:Loc Common.Close}"/>
                     </Button.ToolTip>
                 </Button>
             </Grid>
 
-            <Border Grid.Row="1" Background="#111126" CornerRadius="8"
-                    BorderBrush="#333366" BorderThickness="1"
+            <Border Grid.Row="1"
+                    Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                    CornerRadius="8"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                    BorderThickness="1"
                     Padding="10,6" Margin="0,0,0,10">
                 <TextBox x:Name="SearchTextBox"
                          TextChanged="SearchTextBox_TextChanged"
                          Background="Transparent"
                          BorderThickness="0"
-                         Foreground="#F2F2FF"
+                         Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                          CaretBrush="#AA70FF"
                          FontSize="13"
                          Padding="0"
@@ -109,6 +118,9 @@
                      Background="Transparent"
                      BorderThickness="0"
                      HorizontalContentAlignment="Stretch"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.CanContentScroll="True"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemContainerStyle>
@@ -128,8 +140,8 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="#0E0E1C" CornerRadius="8"
-                                BorderBrush="#24244A" BorderThickness="1"
+                        <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="8"
+                                BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1"
                                 Padding="10">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -140,7 +152,7 @@
 
                                 <TextBlock Grid.Row="0"
                                            Text="{Binding Title}"
-                                           Foreground="White"
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                                            FontSize="13"
                                            FontWeight="SemiBold"
                                            Margin="0,0,118,0"
@@ -154,7 +166,7 @@
                                             Style="{StaticResource IconButton}"
                                             Click="PasteButton_Click">
                                         <Button.ToolTip>
-                                            <ToolTip Style="{StaticResource TinyTip}" Content="Вставить"/>
+                                            <ToolTip Style="{StaticResource TinyTip}" Content="{services:Loc Common.Paste}"/>
                                         </Button.ToolTip>
                                     </Button>
                                     <Button Content="&#xE8C8;"
@@ -162,7 +174,7 @@
                                             Style="{StaticResource IconButton}"
                                             Click="CopyButton_Click">
                                         <Button.ToolTip>
-                                            <ToolTip Style="{StaticResource TinyTip}" Content="Копировать"/>
+                                            <ToolTip Style="{StaticResource TinyTip}" Content="{services:Loc Common.Copy}"/>
                                         </Button.ToolTip>
                                     </Button>
                                     <Button Content="{Binding ExpandIcon}"
@@ -170,7 +182,7 @@
                                             Style="{StaticResource IconButton}"
                                             Click="ToggleExpandButton_Click">
                                         <Button.ToolTip>
-                                            <ToolTip Style="{StaticResource TinyTip}" Content="Развернуть"/>
+                                            <ToolTip Style="{StaticResource TinyTip}" Content="{services:Loc Common.Expand}"/>
                                         </Button.ToolTip>
                                     </Button>
                                     <Button Content="&#xE74D;"
@@ -180,14 +192,14 @@
                                             BorderBrush="#683040"
                                             Click="DeleteButton_Click">
                                         <Button.ToolTip>
-                                            <ToolTip Style="{StaticResource TinyTip}" Content="Удалить"/>
+                                            <ToolTip Style="{StaticResource TinyTip}" Content="{services:Loc Common.Delete}"/>
                                         </Button.ToolTip>
                                     </Button>
                                 </StackPanel>
 
                                 <TextBlock Grid.Row="1"
                                            Text="{Binding DisplayText}"
-                                           Foreground="#A0A0C0"
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
                                            FontSize="12"
                                            Margin="0,7,0,0"
                                            TextWrapping="Wrap"
@@ -195,7 +207,7 @@
 
                                 <TextBlock Grid.Row="2"
                                            Text="{Binding CreatedAtLabel}"
-                                           Foreground="#505070"
+                                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                                            FontSize="10"
                                            Margin="0,6,0,0"/>
                             </Grid>
@@ -206,14 +218,14 @@
 
             <Border x:Name="EmptyState"
                     Grid.Row="2"
-                    Background="#0E0E1C"
+                    Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
                     CornerRadius="8"
-                    BorderBrush="#24244A"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
                     BorderThickness="1"
                     Padding="18"
                     Visibility="Collapsed">
-                <TextBlock Text="Пока нет сохранённых шаблонов"
-                           Foreground="#606080"
+                <TextBlock Text="{services:Loc Templates.Empty}"
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
