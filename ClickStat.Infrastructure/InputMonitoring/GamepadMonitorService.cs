@@ -6,7 +6,9 @@ namespace ClickStat.Infrastructure.InputMonitoring;
 
 public sealed class GamepadMonitorService : IDisposable
 {
-    private const int PollIntervalMs = 33;
+    private const int PollIntervalMs = 50;
+    private const int ScanIntervalMs = 1000;
+    private const int SnapshotPublishIntervalMs = 100;
     private const int SaveIntervalMs = 5000;
     private const uint ErrorSuccess = 0;
     private const uint JoyReturnAll = 0x000000FF;
@@ -21,6 +23,8 @@ public sealed class GamepadMonitorService : IDisposable
     private readonly string _dbPath;
     private Timer? _timer;
     private Timer? _saveTimer;
+    private DateTime _lastScanUtc = DateTime.MinValue;
+    private DateTime _lastSnapshotPublishUtc = DateTime.MinValue;
 
     public event EventHandler<IReadOnlyList<GamepadSnapshot>>? SnapshotsChanged;
 
@@ -101,14 +105,22 @@ public sealed class GamepadMonitorService : IDisposable
 
     private void PollSafely()
     {
-        IReadOnlyList<GamepadSnapshot> snapshots;
+        IReadOnlyList<GamepadSnapshot>? snapshots = null;
         try
         {
             lock (_gate)
             {
-                ScanNowCore();
+                var now = DateTime.UtcNow;
+                if ((now - _lastScanUtc).TotalMilliseconds >= ScanIntervalMs)
+                    ScanNowCore();
+
                 PollKnownDevicesCore();
-                snapshots = BuildSnapshotsLocked();
+
+                if ((now - _lastSnapshotPublishUtc).TotalMilliseconds >= SnapshotPublishIntervalMs)
+                {
+                    snapshots = BuildSnapshotsLocked();
+                    _lastSnapshotPublishUtc = now;
+                }
             }
         }
         catch
@@ -116,11 +128,14 @@ public sealed class GamepadMonitorService : IDisposable
             return;
         }
 
-        SnapshotsChanged?.Invoke(this, snapshots);
+        if (snapshots != null)
+            SnapshotsChanged?.Invoke(this, snapshots);
     }
 
     private void ScanNowCore()
     {
+        _lastScanUtc = DateTime.UtcNow;
+
         foreach (var device in _devices.Values)
             device.SeenOnLastScan = false;
 
@@ -206,7 +221,12 @@ public sealed class GamepadMonitorService : IDisposable
     private void PollKnownDevicesCore()
     {
         foreach (var device in _devices.Values)
+        {
+            if (!device.IsConnected)
+                continue;
+
             PollDevice(device);
+        }
     }
 
     private void PollDevice(GamepadRuntimeState device)

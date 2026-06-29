@@ -58,7 +58,7 @@ public sealed class PollingKeyboardMonitor : IDisposable
 
             try
             {
-                await Task.Delay(8, token);
+                await Task.Delay(25, token);
             }
             catch (TaskCanceledException)
             {

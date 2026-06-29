@@ -7,6 +7,7 @@ public sealed record InputTemplateEntry(int Id, string Title, string Text, strin
 
 public sealed class InputTemplateProcessor
 {
+    private const int SearchLimit = 80;
     private readonly string _dbPath;
 
     public InputTemplateProcessor()
@@ -48,7 +49,8 @@ public sealed class InputTemplateProcessor
             command.CommandText = """
                 SELECT Id, Title, Text, CreatedAt
                 FROM InputTemplates
-                ORDER BY Id DESC;
+                ORDER BY Id DESC
+                LIMIT $limit;
                 """;
         }
         else
@@ -57,10 +59,13 @@ public sealed class InputTemplateProcessor
                 SELECT Id, Title, Text, CreatedAt
                 FROM InputTemplates
                 WHERE Title LIKE $query OR Text LIKE $query
-                ORDER BY Id DESC;
+                ORDER BY Id DESC
+                LIMIT $limit;
                 """;
             command.Parameters.AddWithValue("$query", $"%{query.Trim()}%");
         }
+
+        command.Parameters.AddWithValue("$limit", SearchLimit);
 
         var result = new List<InputTemplateEntry>();
         await using var reader = await command.ExecuteReaderAsync();
@@ -98,6 +103,9 @@ public sealed class InputTemplateProcessor
                 Text TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL
             );
+
+            CREATE INDEX IF NOT EXISTS IX_InputTemplates_CreatedAt
+            ON InputTemplates (CreatedAt);
             """;
         command.ExecuteNonQuery();
     }

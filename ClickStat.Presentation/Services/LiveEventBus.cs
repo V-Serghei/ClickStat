@@ -41,6 +41,6 @@ public sealed class LiveEventBus
         if (_ui.CheckAccess())
             action();
         else
-            _ui.BeginInvoke(action, DispatcherPriority.Send);
+            _ui.BeginInvoke(action, DispatcherPriority.Background);
     }
 }

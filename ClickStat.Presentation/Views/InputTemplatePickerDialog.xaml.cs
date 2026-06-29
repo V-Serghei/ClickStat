@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -13,6 +14,8 @@ namespace ClickStat.Presentation.Views;
 public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
 {
     private readonly InputTemplateProcessor _templateProcessor;
+    private CancellationTokenSource? _searchDebounceCts;
+    private int _loadVersion;
 
     public ObservableCollection<InputTemplateItem> Templates { get; } = new();
 
@@ -41,7 +44,11 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
 
     private async Task LoadTemplatesAsync()
     {
+        var version = Interlocked.Increment(ref _loadVersion);
         var entries = await _templateProcessor.SearchAsync(SearchTextBox.Text);
+        if (version != _loadVersion)
+            return;
+
         Templates.Clear();
         foreach (var entry in entries)
             Templates.Add(new InputTemplateItem(entry));
@@ -55,7 +62,18 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
         if (!IsLoaded)
             return;
 
-        await LoadTemplatesAsync();
+        _searchDebounceCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+
+        try
+        {
+            await Task.Delay(180, cts.Token);
+            await LoadTemplatesAsync();
+        }
+        catch (TaskCanceledException)
+        {
+        }
     }
 
     private void PasteButton_Click(object sender, RoutedEventArgs e)
@@ -97,6 +115,13 @@ public partial class InputTemplatePickerDialog : Window, INotifyPropertyChanged
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        base.OnClosed(e);
+    }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
