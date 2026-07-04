@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ClickStat.Infrastructure.Data;
+using ClickStat.Infrastructure.Services;
 using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.ViewModels;
@@ -34,6 +35,8 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private readonly LiveEventBus _liveBus;
     private readonly TypingTrainingProcessor _processor;
     private readonly DispatcherTimer _timer;
+    private readonly DispatcherTimer _keyFlashTimer;
+    private readonly DispatcherTimer _layoutTimer;
     private readonly Dictionary<string, TrainingKeyStat> _keyStats = new(StringComparer.OrdinalIgnoreCase);
     private DateTime _startedAt;
     private TimeSpan _pausedElapsed;
@@ -50,6 +53,17 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _timer.Tick += (_, _) => RefreshTiming();
+        _keyFlashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
+        _keyFlashTimer.Tick += (_, _) =>
+        {
+            _keyFlashTimer.Stop();
+            ActiveKeyName = "";
+            ActiveKeyIsError = false;
+        };
+        _layoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _layoutTimer.Tick += (_, _) => UpdateLayoutInfo();
+        _layoutTimer.Start();
+        UpdateLayoutInfo(force: true);
         _liveBus.KeyInput += OnKeyInput;
         UpdatePreview();
     }
@@ -200,6 +214,28 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     public bool IsTextLocked => IsRunning || IsPaused;
     public string DetectedLanguage => DetectLanguage(SourceText);
     public ObservableCollection<TrainingKeyStat> KeyStats { get; } = new();
+    public Dictionary<string, int> SessionKeyCounts { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    private string _layoutCode = "EN";
+    public string LayoutCode
+    {
+        get => _layoutCode;
+        private set { if (_layoutCode == value) return; _layoutCode = value; OnPropertyChanged(); }
+    }
+
+    private string _activeKeyName = "";
+    public string ActiveKeyName
+    {
+        get => _activeKeyName;
+        private set { if (_activeKeyName == value) return; _activeKeyName = value; OnPropertyChanged(); }
+    }
+
+    private bool _activeKeyIsError;
+    public bool ActiveKeyIsError
+    {
+        get => _activeKeyIsError;
+        private set { if (_activeKeyIsError == value) return; _activeKeyIsError = value; OnPropertyChanged(); }
+    }
 
     public ICommand StartCommand { get; }
     public ICommand PauseCommand { get; }
@@ -286,13 +322,15 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         if (!actual.HasValue)
             return;
 
+        var keyName = key.ToString();
         var expected = SourceText[Position];
         if (actual.Value == expected)
         {
+            FlashKey(keyName, isError: false);
             LastError = "";
             CorrectChars++;
             Position++;
-            AddKeyStat(key.ToString());
+            AddKeyStat(keyName);
             UpdatePreview();
             RefreshTiming();
 
@@ -301,6 +339,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         }
         else
         {
+            FlashKey(keyName, isError: true);
             Errors++;
             LastError = $"Expected '{DisplayChar(expected)}', got '{DisplayChar(actual.Value)}'";
         }
@@ -324,6 +363,16 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         }
 
         stat.Count++;
+        SessionKeyCounts[keyName] = stat.Count;
+        OnPropertyChanged(nameof(SessionKeyCounts));
+    }
+
+    private void FlashKey(string keyName, bool isError)
+    {
+        ActiveKeyName = keyName;
+        ActiveKeyIsError = isError;
+        _keyFlashTimer.Stop();
+        _keyFlashTimer.Start();
     }
 
     private void RefreshTiming()
@@ -339,6 +388,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private void ResetProgressOnly()
     {
         _keyStats.Clear();
+        SessionKeyCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         KeyStats.Clear();
         Position = 0;
         CorrectChars = 0;
@@ -348,6 +398,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         ElapsedSeconds = 0;
         LastError = "";
         OnPropertyChanged(nameof(TotalCharacters));
+        OnPropertyChanged(nameof(SessionKeyCounts));
         OnPropertyChanged(nameof(RemainingCharacters));
         OnPropertyChanged(nameof(ProgressPercent));
         OnPropertyChanged(nameof(Accuracy));
@@ -395,11 +446,20 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         return cyrillic > latin ? "Russian" : "English";
     }
 
+    private void UpdateLayoutInfo(bool force = false)
+    {
+        var (code, _) = LayoutService.GetCurrent();
+        if (!force && code == LayoutCode) return;
+        LayoutCode = code;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
         _timer.Stop();
+        _keyFlashTimer.Stop();
+        _layoutTimer.Stop();
         _liveBus.KeyInput -= OnKeyInput;
     }
 

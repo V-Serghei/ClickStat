@@ -235,4 +235,4 @@ UI preferences are also saved under `~/Documents/KeyClick`, including theme and 
 
 ## Status
 
-ClickStat is under active development. The current UI version shown in the app is `v1.15`.
+ClickStat is under active development. The current UI version shown in the app is `v1.16`.
