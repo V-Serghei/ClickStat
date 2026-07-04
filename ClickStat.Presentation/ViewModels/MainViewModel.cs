@@ -16,7 +16,7 @@ namespace ClickStat.Presentation.ViewModels
 {
     public enum AppPage
     {
-        Overview, Keyboard, Mouse, Activity, Words, Apps, Gamepads, Settings
+        Overview, Keyboard, Mouse, Activity, Words, Apps, Gamepads, Training, Settings
     }
 
     public class NavItem
@@ -53,6 +53,7 @@ namespace ClickStat.Presentation.ViewModels
         public WordsViewModel     WordsVm     { get; }
         public AppsViewModel      AppsVm      { get; }
         public GamepadsViewModel  GamepadsVm  { get; }
+        public TrainingProgressViewModel TrainingVm { get; }
         public SettingsViewModel  SettingsVm  { get; }
         public LocalizationService Loc => LocalizationService.Instance;
         public ICommand SetUiLanguageCommand { get; } = new SetUiLanguageCommand();
@@ -67,6 +68,7 @@ namespace ClickStat.Presentation.ViewModels
             new NavItem { Icon = "\U0001F4DD", LabelKey = "Nav.Words", Page = AppPage.Words },
             new NavItem { Icon = "\U0001F4BB", LabelKey = "Nav.Apps", Page = AppPage.Apps },
             new NavItem { Icon = "\U0001F3AE", LabelKey = "Nav.Gamepads", Page = AppPage.Gamepads },
+            new NavItem { Icon = "\uE7C1", LabelKey = "Nav.Training", Page = AppPage.Training },
             new NavItem { Icon = "\u2699", LabelKey = "Nav.Settings", Page = AppPage.Settings },
         };
 
@@ -93,6 +95,7 @@ namespace ClickStat.Presentation.ViewModels
             AppPage.Words     => WordsVm,
             AppPage.Apps      => AppsVm,
             AppPage.Gamepads  => GamepadsVm,
+            AppPage.Training  => TrainingVm,
             AppPage.Settings  => SettingsVm,
             _                 => OverviewVm
         };
@@ -135,6 +138,7 @@ namespace ClickStat.Presentation.ViewModels
             WordsViewModel          wordsVm,
             AppsViewModel           appsVm,
             GamepadsViewModel       gamepadsVm,
+            TrainingProgressViewModel trainingVm,
             SettingsViewModel       settingsVm)
         {
             _inputMonitorService    = inputMonitorService;
@@ -156,6 +160,7 @@ namespace ClickStat.Presentation.ViewModels
             WordsVm    = wordsVm;
             AppsVm     = appsVm;
             GamepadsVm = gamepadsVm;
+            TrainingVm = trainingVm;
             SettingsVm = settingsVm;
 
             // Pass break reminder to settings so user can configure it
@@ -214,6 +219,9 @@ namespace ClickStat.Presentation.ViewModels
                     break;
                 case AppPage.Gamepads:
                     _ = GamepadsVm.LoadAsync();
+                    break;
+                case AppPage.Training:
+                    _ = TrainingVm.LoadAsync();
                     break;
             }
         }
@@ -285,6 +293,7 @@ namespace ClickStat.Presentation.ViewModels
 
             _savingClickService.SaveClick(key);
             _liveBus.PublishKey(key.ToString());
+            _liveBus.PublishKeyInput(key, shift);
             if (!MouseButtonCodeHelper.IsModifier(key) && !ctrl && !alt)
                 KeyboardVm.RecordSessionKey(key, shift);
             _hourlyProcessor.Record();

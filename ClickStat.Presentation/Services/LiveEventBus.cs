@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Forms;
 using System.Windows.Threading;
 
 namespace ClickStat.Presentation.Services;
@@ -15,6 +16,7 @@ public sealed class LiveEventBus
     public LiveEventBus(Dispatcher uiDispatcher) => _ui = uiDispatcher;
 
     public event Action<string>? KeyPressed;        // keyName (Keys.ToString())
+    public event Action<Keys, bool>? KeyInput;       // physical key and shift state
     public event Action<int>?    MouseButtonPressed; // button code (MouseButtons int value or keyboard-encoded)
     public event Action<int>?    MouseScrolled;      // notches
 
@@ -22,6 +24,12 @@ public sealed class LiveEventBus
     {
         if (KeyPressed == null) return;
         Dispatch(() => KeyPressed?.Invoke(keyName));
+    }
+
+    public void PublishKeyInput(Keys key, bool shift)
+    {
+        if (KeyInput == null) return;
+        Dispatch(() => KeyInput?.Invoke(key, shift));
     }
 
     public void PublishMouseButton(int buttonCode)

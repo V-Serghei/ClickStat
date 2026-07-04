@@ -313,7 +313,7 @@
                                      Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                                      BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
                                      BorderThickness="1"
-                                     Padding="12,9,136,9"
+                                     Padding="12,9,176,9"
                                      FontSize="13"
                                      FontFamily="Segoe UI"/>
                             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Keyboard.CurrentInput]}"
@@ -357,6 +357,13 @@
                                     Command="{Binding SaveSessionInputCommand}">
                                 <Button.ToolTip>
                                     <ToolTip Style="{StaticResource SessionInputTip}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Save]}"/>
+                                </Button.ToolTip>
+                            </Button>
+                            <Button Content="&#xE768;"
+                                    Style="{StaticResource SessionInputButton}"
+                                    Command="{Binding OpenTypingTrainerCommand}">
+                                <Button.ToolTip>
+                                    <ToolTip Style="{StaticResource SessionInputTip}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.OpenTrainer]}"/>
                                 </Button.ToolTip>
                             </Button>
                         </StackPanel>
