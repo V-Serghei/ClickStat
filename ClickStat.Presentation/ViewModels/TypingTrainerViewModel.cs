@@ -216,7 +216,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     public double ProgressPercent => TotalCharacters == 0 ? 0 : Math.Round(Position * 100.0 / TotalCharacters, 1);
     public double Accuracy => CorrectChars + Errors == 0 ? 100 : Math.Round(CorrectChars * 100.0 / (CorrectChars + Errors), 1);
     public bool CanStart => !IsRunning && !string.IsNullOrEmpty(SourceText);
-    public bool IsTextLocked => IsRunning || IsPaused;
+    public bool IsTextLocked => IsRunning || IsPaused || _resultSaved;
     public string DetectedLanguage => DetectLanguage(SourceText);
     public ObservableCollection<TrainingKeyStat> KeyStats { get; } = new();
     public Dictionary<string, int> SessionKeyCounts { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -318,6 +318,8 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
         Status = "Result saved";
         _resultSaved = true;
+        OnPropertyChanged(nameof(IsTextLocked));
+        OnPropertyChanged(nameof(CanStart));
     }
 
     private async void OnKeyInput(Keys key, bool shift)
@@ -401,6 +403,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         SessionKeyCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         KeyStats.Clear();
         _resultSaved = false;
+        OnPropertyChanged(nameof(IsTextLocked));
         Position = 0;
         CorrectChars = 0;
         Errors = 0;
