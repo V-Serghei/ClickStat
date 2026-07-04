@@ -41,6 +41,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private DateTime _startedAt;
     private TimeSpan _pausedElapsed;
     private bool _disposed;
+    private bool _resultSaved;
 
     public TypingTrainerViewModel(LiveEventBus liveBus, TypingTrainingProcessor processor)
     {
@@ -77,9 +78,13 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             if (_sourceText == value) return;
             _sourceText = value ?? "";
             OnPropertyChanged();
+            OnPropertyChanged(nameof(TotalCharacters));
+            OnPropertyChanged(nameof(RemainingCharacters));
+            OnPropertyChanged(nameof(ProgressPercent));
+            OnPropertyChanged(nameof(DetectedLanguage));
             OnPropertyChanged(nameof(CanStart));
-            if (!IsRunning && !IsPaused)
-                ResetProgressOnly();
+            if (Position == 0)
+                UpdatePreview();
         }
     }
 
@@ -247,6 +252,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         if (!CanStart) return;
 
         ResetProgressOnly();
+        _resultSaved = false;
         _startedAt = DateTime.Now;
         _pausedElapsed = TimeSpan.Zero;
         IsRunning = true;
@@ -292,6 +298,9 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         if (Position == 0)
             return;
 
+        if (_resultSaved)
+            return;
+
         RefreshTiming();
         IsRunning = false;
         IsPaused = false;
@@ -308,6 +317,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             Math.Max(ElapsedSeconds, 1));
 
         Status = "Result saved";
+        _resultSaved = true;
     }
 
     private async void OnKeyInput(Keys key, bool shift)
@@ -323,6 +333,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             return;
 
         var keyName = key.ToString();
+        AddKeyStat(keyName);
         var expected = SourceText[Position];
         if (actual.Value == expected)
         {
@@ -330,7 +341,6 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             LastError = "";
             CorrectChars++;
             Position++;
-            AddKeyStat(keyName);
             UpdatePreview();
             RefreshTiming();
 
@@ -390,6 +400,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         _keyStats.Clear();
         SessionKeyCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         KeyStats.Clear();
+        _resultSaved = false;
         Position = 0;
         CorrectChars = 0;
         Errors = 0;
