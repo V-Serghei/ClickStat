@@ -16,6 +16,7 @@ using ClickStat.Infrastructure.Data;
 using ClickStat.Infrastructure.Services;
 using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
+using ClickStat.Presentation.Views;
 
 namespace ClickStat.Presentation.ViewModels;
 
@@ -24,6 +25,8 @@ public class KeyboardViewModel : INotifyPropertyChanged
     private readonly IGetDataClick _dataClickService;
     private readonly LiveEventBus  _liveBus;
     private readonly InputTemplateProcessor _inputTemplateProcessor;
+    private readonly TypingTrainingProcessor _typingTrainingProcessor;
+    private TypingTrainerWindow? _typingTrainerWindow;
 
     // ── Loading state ──────────────────────────────────────────────────────
 
@@ -73,6 +76,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public ICommand ClearSessionInputCommand { get; }
     public ICommand CopySessionInputCommand { get; }
     public ICommand SaveSessionInputCommand { get; }
+    public ICommand OpenTypingTrainerCommand { get; }
 
     // ── Keyboard layout ────────────────────────────────────────────────────
 
@@ -151,15 +155,18 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public KeyboardViewModel(
         IGetDataClick dataClickService,
         LiveEventBus liveBus,
-        InputTemplateProcessor inputTemplateProcessor)
+        InputTemplateProcessor inputTemplateProcessor,
+        TypingTrainingProcessor typingTrainingProcessor)
     {
         _dataClickService = dataClickService;
         _liveBus          = liveBus;
         _inputTemplateProcessor = inputTemplateProcessor;
+        _typingTrainingProcessor = typingTrainingProcessor;
 
         ClearSessionInputCommand = new RelayCommand(_ => ClearSessionInput());
         CopySessionInputCommand = new RelayCommand(_ => CopySessionInput());
         SaveSessionInputCommand = new RelayCommand(async _ => await SaveSessionInputAsync());
+        OpenTypingTrainerCommand = new RelayCommand(_ => OpenTypingTrainer());
 
         _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
         _flashTimer.Tick += OnFlashTick;
@@ -171,6 +178,25 @@ public class KeyboardViewModel : INotifyPropertyChanged
         // Always subscribe — key presses accumulate in KeyCounts regardless of active tab
         _liveBus.KeyPressed += OnLiveKeyPress;
 
+    }
+
+    private void OpenTypingTrainer()
+    {
+        if (_typingTrainerWindow is { IsVisible: true })
+        {
+            _typingTrainerWindow.Activate();
+            return;
+        }
+
+        var vm = new TypingTrainerViewModel(_liveBus, _typingTrainingProcessor);
+        var window = new TypingTrainerWindow
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+            DataContext = vm
+        };
+        window.Closed += (_, _) => _typingTrainerWindow = null;
+        _typingTrainerWindow = window;
+        window.Show();
     }
 
     // ── DB load ────────────────────────────────────────────────────────────
@@ -303,7 +329,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             return;
         }
 
-        var ch = ResolveChar(key, shift);
+        var ch = KeyTextResolver.ResolveChar(key, shift);
         if (ch.HasValue && !char.IsControl(ch.Value))
         {
             _sessionInput.Append(ch.Value);
