@@ -54,6 +54,7 @@ public partial class App : Application
         s.AddSingleton<HourlyActivityProcessor>();
         s.AddSingleton<AppUsageProcessor>();
         s.AddSingleton<InputTemplateProcessor>();
+        s.AddSingleton<TypingTrainingProcessor>();
         s.AddSingleton<MouseDataProcessor>();  // shared instance for ActivityViewModel
         s.AddSingleton<GamepadMonitorService>();
 
@@ -71,6 +72,7 @@ public partial class App : Application
         s.AddTransient<WordsViewModel>();
         s.AddTransient<AppsViewModel>();
         s.AddTransient<GamepadsViewModel>();
+        s.AddTransient<TrainingProgressViewModel>();
         s.AddTransient<SettingsViewModel>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<MainWindow>();
