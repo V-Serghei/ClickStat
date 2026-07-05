@@ -13,6 +13,7 @@ ClickStat is a Windows desktop app for people who want to understand how they us
 - **Application usage**: input activity grouped by foreground application.
 - **Gamepad tracking**: Xbox, PlayStation/DirectInput, and generic controller statistics with per-device history.
 - **Input templates**: save snippets, search them with `Alt + D`, paste or copy entries, and capture selected text with `Ctrl + Alt + Shift + D`.
+- **Typing trainer**: practice custom text with live key feedback, session-only keyboard counters, CPM/WPM, accuracy, errors, and saved progress by language.
 - **Themes and localization**: light/dark themes, Russian/English UI language switching, and JSON-backed translations.
 - **Local-first storage**: data is stored on the current machine under `~/Documents/KeyClick/key_statistics.db`.
 
@@ -91,6 +92,18 @@ The template system turns typed or selected text into reusable snippets.
 - Templates support search, preview, expand/collapse, paste, copy, and delete.
 - Full text can be loaded only when needed, keeping the picker lightweight.
 
+### Typing Trainer
+
+ClickStat includes a separate training window for focused typing practice.
+
+- Open it from the Keyboard tab or the Training page.
+- Paste any text, including Russian, English, mixed, or other Unicode content.
+- The exercise advances only when the expected character is typed.
+- Correct keys flash green; wrong keys flash red and count as errors.
+- The session keyboard starts from zero and counts every valid press, including mistakes, until the next Start/Reset or window close.
+- Result cards stay visible after completion so you can review speed, accuracy, errors, time, and remaining text.
+- Finished results are saved locally for language progress and recent-session history.
+
 ### Mouse Tracking
 
 Mouse statistics include:
@@ -121,6 +134,16 @@ The gamepad view is designed for both live feedback and long-term history:
 - connected/disconnected state;
 - visual controller layout and compact statistics mode.
 
+### Training Progress
+
+Typing trainer results are grouped into progress views:
+
+- per-language progress summaries;
+- recent training sessions;
+- best and average speed metrics;
+- accuracy and error trends;
+- local SQLite storage for completed training results.
+
 ### Themes, Language, and Settings
 
 The interface supports:
@@ -142,6 +165,8 @@ ClickStat is local-first. It does not need a server to work and stores its data 
 ```
 
 The app records input statistics and optional text templates. This is useful, but it also means the local database can contain sensitive personal data. If you save snippets or capture selected text, that content remains stored locally until you delete it.
+
+Typing trainer results store summary metrics such as language, text length, speed, accuracy, errors, duration, and completion time. The original training text is not stored as part of the saved result.
 
 ## Tech Stack
 
