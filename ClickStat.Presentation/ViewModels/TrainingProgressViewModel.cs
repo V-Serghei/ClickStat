@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using ClickStat.Infrastructure.Data;
 using ClickStat.Presentation.Services;
-using ClickStat.Presentation.Views;
 
 namespace ClickStat.Presentation.ViewModels;
 
@@ -30,13 +29,15 @@ public sealed class TrainingSessionChartItem
 public sealed class TrainingProgressViewModel : INotifyPropertyChanged
 {
     private readonly TypingTrainingProcessor _processor;
-    private readonly LiveEventBus _liveBus;
-    private TypingTrainerWindow? _typingTrainerWindow;
+    private readonly ITypingTrainerWindowService _typingTrainerWindowService;
 
-    public TrainingProgressViewModel(TypingTrainingProcessor processor, LiveEventBus liveBus)
+    public TrainingProgressViewModel(
+        TypingTrainingProcessor processor,
+        ITypingTrainerWindowService typingTrainerWindowService)
     {
         _processor = processor;
-        _liveBus = liveBus;
+        _typingTrainerWindowService = typingTrainerWindowService;
+        _typingTrainerWindowService.TrainerClosed += async (_, _) => await LoadAsync();
         OpenTypingTrainerCommand = new RelayCommand(_ => OpenTypingTrainer());
     }
 
@@ -61,27 +62,7 @@ public sealed class TrainingProgressViewModel : INotifyPropertyChanged
 
     private void OpenTypingTrainer()
     {
-        if (_typingTrainerWindow is { IsVisible: true })
-        {
-            _typingTrainerWindow.Activate();
-            return;
-        }
-
-        var vm = new TypingTrainerViewModel(_liveBus, _processor);
-        var window = new TypingTrainerWindow
-        {
-            Owner = System.Windows.Application.Current.MainWindow,
-            DataContext = vm
-        };
-
-        window.Closed += async (_, _) =>
-        {
-            _typingTrainerWindow = null;
-            await LoadAsync();
-        };
-
-        _typingTrainerWindow = window;
-        window.Show();
+        _typingTrainerWindowService.Show();
     }
 
     public async Task LoadAsync()

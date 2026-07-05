@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -16,7 +16,6 @@ using ClickStat.Infrastructure.Data;
 using ClickStat.Infrastructure.Services;
 using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
-using ClickStat.Presentation.Views;
 
 namespace ClickStat.Presentation.ViewModels;
 
@@ -25,10 +24,9 @@ public class KeyboardViewModel : INotifyPropertyChanged
     private readonly IGetDataClick _dataClickService;
     private readonly LiveEventBus  _liveBus;
     private readonly InputTemplateProcessor _inputTemplateProcessor;
-    private readonly TypingTrainingProcessor _typingTrainingProcessor;
-    private TypingTrainerWindow? _typingTrainerWindow;
+    private readonly ITypingTrainerWindowService _typingTrainerWindowService;
 
-    // ── Loading state ──────────────────────────────────────────────────────
+    // Loading state
 
     private bool _isLoading = true;
     public bool IsLoading
@@ -37,14 +35,14 @@ public class KeyboardViewModel : INotifyPropertyChanged
         set { _isLoading = value; OnPropertyChanged(); }
     }
 
-    // ── Key counts (live-updated in active mode) ───────────────────────────
+    // Key counts
 
     public Dictionary<string, int> KeyCounts { get; private set; } = new();
 
     private int _maxCount;
     public int MaxCount { get => _maxCount; set { _maxCount = value; OnPropertyChanged(); } }
 
-    // ── Custom keys ────────────────────────────────────────────────────────
+    // Custom keys
 
     public ObservableCollection<CustomKeyItem> CustomKeys { get; private set; } = new();
 
@@ -78,7 +76,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
     public ICommand SaveSessionInputCommand { get; }
     public ICommand OpenTypingTrainerCommand { get; }
 
-    // ── Keyboard layout ────────────────────────────────────────────────────
+    // Keyboard layout
 
     private string _layoutCode = "EN";
     private string _layoutName = "";
@@ -94,14 +92,14 @@ public class KeyboardViewModel : INotifyPropertyChanged
         private set { _layoutName = value; OnPropertyChanged(); }
     }
 
-    // ── Flash state (real-time key press highlight) ─────────────────────────
+    // Flash state
 
     public HashSet<string> FlashingKeys { get; } = new();
     private readonly Dictionary<string, DateTime> _flashExpiry = new();
     private readonly DispatcherTimer _flashTimer;
     private readonly DispatcherTimer _layoutTimer;
 
-    // ── WPM tracking ───────────────────────────────────────────────────────
+    // WPM tracking
 
     private readonly Queue<DateTime> _wpmWindow = new();
     private const int WpmWindowSeconds = 10;
@@ -120,7 +118,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
         private set { _peakWpm = value; OnPropertyChanged(); }
     }
 
-    // ── Live mode ──────────────────────────────────────────────────────────
+    // Live mode
 
     private bool _isLiveActive;
     public bool IsLiveActive
@@ -136,7 +134,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             {
                 UpdateLayoutInfo(force: true);
                 _layoutTimer.Start();
-                // Note: KeyPressed subscription is permanent (set in constructor)
+    // Constructor
             }
             else
             {
@@ -150,18 +148,18 @@ public class KeyboardViewModel : INotifyPropertyChanged
         }
     }
 
-    // ── Constructor ────────────────────────────────────────────────────────
+    // Constructor
 
     public KeyboardViewModel(
         IGetDataClick dataClickService,
         LiveEventBus liveBus,
         InputTemplateProcessor inputTemplateProcessor,
-        TypingTrainingProcessor typingTrainingProcessor)
+        ITypingTrainerWindowService typingTrainerWindowService)
     {
         _dataClickService = dataClickService;
         _liveBus          = liveBus;
         _inputTemplateProcessor = inputTemplateProcessor;
-        _typingTrainingProcessor = typingTrainingProcessor;
+        _typingTrainerWindowService = typingTrainerWindowService;
 
         ClearSessionInputCommand = new RelayCommand(_ => ClearSessionInput());
         CopySessionInputCommand = new RelayCommand(_ => CopySessionInput());
@@ -175,31 +173,17 @@ public class KeyboardViewModel : INotifyPropertyChanged
         _layoutTimer.Tick += (_, _) => UpdateLayoutInfo();
         UpdateLayoutInfo(force: true);
 
-        // Always subscribe — key presses accumulate in KeyCounts regardless of active tab
+        // Always subscribe so key presses accumulate regardless of the active tab.
         _liveBus.KeyPressed += OnLiveKeyPress;
 
     }
 
     private void OpenTypingTrainer()
     {
-        if (_typingTrainerWindow is { IsVisible: true })
-        {
-            _typingTrainerWindow.Activate();
-            return;
-        }
-
-        var vm = new TypingTrainerViewModel(_liveBus, _typingTrainingProcessor);
-        var window = new TypingTrainerWindow
-        {
-            Owner = System.Windows.Application.Current.MainWindow,
-            DataContext = vm
-        };
-        window.Closed += (_, _) => _typingTrainerWindow = null;
-        _typingTrainerWindow = window;
-        window.Show();
+        _typingTrainerWindowService.Show();
     }
 
-    // ── DB load ────────────────────────────────────────────────────────────
+    // Database load
 
     public async Task LoadKeyCountsAsync()
     {
@@ -229,7 +213,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
         MaxCount   = KeyCounts.Values.Any() ? KeyCounts.Values.Max() : 1;
 
         var custom = mergedCounts
-            .Where(kv => !StandardKeys.Contains(kv.Key) && !IsIgnoredSyntheticKey(kv.Key) && kv.Value > 0)
+            .Where(kv => !KeyboardLayoutDefinition.StandardKeyNames.Contains(kv.Key) && !IsIgnoredSyntheticKey(kv.Key) && kv.Value > 0)
             .OrderByDescending(kv => kv.Value)
             .Select(kv => new CustomKeyItem { KeyName = kv.Key, Count = kv.Value });
 
@@ -242,7 +226,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
     public void BeginLoading() => IsLoading = true;
 
-    // ── Live key press handler (always on UI thread via LiveEventBus) ──────
+    // Live key press handler
 
     private void OnLiveKeyPress(string keyName)
     {
@@ -275,7 +259,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
         // 2b. Update layout immediately on input; timer also catches layout hotkeys.
         UpdateLayoutInfo();
 
-        // 3. WPM (skip pure modifiers — they don't count as typed characters)
+        // 3. WPM (skip pure modifiers because they do not count as typed characters)
         if (!IsModifierName(keyName))
         {
             var now = DateTime.Now;
@@ -285,14 +269,14 @@ public class KeyboardViewModel : INotifyPropertyChanged
             while (_wpmWindow.Count > 0 && _wpmWindow.Peek() < cutoff)
                 _wpmWindow.Dequeue();
 
-            // WPM = (chars / 5) × (60 / window_seconds)
-            double wpm = Math.Round(_wpmWindow.Count / 5.0 * (60.0 / WpmWindowSeconds), 1);
+            // WPM = (chars / 5) * (60 / window_seconds)
+            var wpm = Math.Round(_wpmWindow.Count / 5.0 * (60.0 / WpmWindowSeconds), 1);
             CurrentWpm = wpm;
             if (wpm > PeakWpm) PeakWpm = wpm;
         }
 
-        // 4. Update custom keys if this key isn't in the standard layout
-        if (!StandardKeys.Contains(keyName) && !IsIgnoredSyntheticKey(keyName))
+        // Custom keys
+        if (!KeyboardLayoutDefinition.StandardKeyNames.Contains(keyName) && !IsIgnoredSyntheticKey(keyName))
         {
             var existing = CustomKeys.FirstOrDefault(k => k.KeyName == keyName);
             if (existing != null)
@@ -369,7 +353,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
             SessionInputStatus = "";
     }
 
-    // ── Flash timer ────────────────────────────────────────────────────────
+    // Flash timer
 
     private void OnFlashTick(object? sender, EventArgs e)
     {
@@ -387,7 +371,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
         if (_flashExpiry.Count == 0) _flashTimer.Stop();
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+    // Helpers
 
     private static bool IsModifierName(string name) => name is
         "LShiftKey" or "RShiftKey" or "ShiftKey"    or
@@ -457,30 +441,8 @@ public class KeyboardViewModel : INotifyPropertyChanged
         Converters.KeyNameToLabelConverter.CurrentLayoutCode = code;
     }
 
-    // All key names shown in the XAML keyboard layout
-    private static readonly HashSet<string> StandardKeys = new()
-    {
-        "Escape",
-        "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
-        "Oemtilde","D1","D2","D3","D4","D5","D6","D7","D8","D9","D0",
-        "OemMinus","Oemplus","Back",
-        "Tab","Q","W","E","R","T","Y","U","I","O","P","Oem4","Oem6","OemPipe",
-        "Capital","A","S","D","F","G","H","J","K","L","OemSemicolon","OemQuotes","Enter",
-        "LShiftKey","Z","X","C","V","B","N","M","Oemcomma","OemPeriod","Oem2","RShiftKey",
-        "LControlKey","LWin","LMenu","Space","RMenu","RControlKey",
-        "PrintScreen","LaunchApplication2","MediaStop",
-        "Insert","Home","PageUp","Delete","End","Next",
-        "Up","Left","Down","Right",
-        "MediaPreviousTrack","MediaPlayPause","MediaNextTrack",
-        "VolumeMute","VolumeDown","VolumeUp",
-        "Clear","NumLock","Divide","Multiply","Subtract",
-        "NumPad7","NumPad8","NumPad9",
-        "NumPad4","NumPad5","NumPad6",
-        "NumPad1","NumPad2","NumPad3",
-        "NumPad0","Decimal","Add"
-    };
-
-    // ── INotifyPropertyChanged ─────────────────────────────────────────────
+    // Keyboard layout
+    // Property change
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

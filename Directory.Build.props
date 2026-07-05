@@ -1,0 +1,11 @@
+<Project>
+  <ItemGroup>
+    <!--
+      SQLitePCLRaw.lib.e_sqlite3 is a transitive dependency of Microsoft.Data.Sqlite.
+      As of 2026-07-05, NuGet still marks the latest listed stable package version as vulnerable
+      and no non-vulnerable stable replacement is available through Microsoft.Data.Sqlite.
+      Remove this suppression after Microsoft.Data.Sqlite or SQLitePCLRaw ships a fixed stable dependency.
+    -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
+</Project>

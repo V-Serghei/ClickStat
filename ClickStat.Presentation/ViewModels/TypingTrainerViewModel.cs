@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using ClickStat.Infrastructure.Data;
 using ClickStat.Infrastructure.Services;
+using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
 
 namespace ClickStat.Presentation.ViewModels;
@@ -38,6 +39,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private readonly DispatcherTimer _keyFlashTimer;
     private readonly DispatcherTimer _layoutTimer;
     private readonly Dictionary<string, TrainingKeyStat> _keyStats = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TypingTrainingSession _session = new();
     private DateTime _startedAt;
     private TimeSpan _pausedElapsed;
     private bool _disposed;
@@ -69,19 +71,16 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         UpdatePreview();
     }
 
-    private string _sourceText = "";
     public string SourceText
     {
-        get => _sourceText;
+        get => _session.SourceText;
         set
         {
-            if (_sourceText == value) return;
-            _sourceText = value ?? "";
+            var next = value ?? "";
+            if (_session.SourceText == next) return;
+            _session.SourceText = next;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(TotalCharacters));
-            OnPropertyChanged(nameof(RemainingCharacters));
-            OnPropertyChanged(nameof(ProgressPercent));
-            OnPropertyChanged(nameof(DetectedLanguage));
+            NotifySessionPropertiesChanged();
             OnPropertyChanged(nameof(CanStart));
             if (Position == 0)
                 UpdatePreview();
@@ -150,45 +149,9 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private int _position;
-    public int Position
-    {
-        get => _position;
-        private set
-        {
-            if (_position == value) return;
-            _position = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(ProgressPercent));
-            OnPropertyChanged(nameof(RemainingCharacters));
-        }
-    }
-
-    private int _correctChars;
-    public int CorrectChars
-    {
-        get => _correctChars;
-        private set
-        {
-            if (_correctChars == value) return;
-            _correctChars = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(Accuracy));
-        }
-    }
-
-    private int _errors;
-    public int Errors
-    {
-        get => _errors;
-        private set
-        {
-            if (_errors == value) return;
-            _errors = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(Accuracy));
-        }
-    }
+    public int Position => _session.Position;
+    public int CorrectChars => _session.CorrectChars;
+    public int Errors => _session.Errors;
 
     private double _cpm;
     public double Cpm
@@ -211,13 +174,13 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         private set { if (_elapsedSeconds == value) return; _elapsedSeconds = value; OnPropertyChanged(); }
     }
 
-    public int TotalCharacters => SourceText.Length;
-    public int RemainingCharacters => Math.Max(0, TotalCharacters - Position);
-    public double ProgressPercent => TotalCharacters == 0 ? 0 : Math.Round(Position * 100.0 / TotalCharacters, 1);
-    public double Accuracy => CorrectChars + Errors == 0 ? 100 : Math.Round(CorrectChars * 100.0 / (CorrectChars + Errors), 1);
+    public int TotalCharacters => _session.TotalCharacters;
+    public int RemainingCharacters => _session.RemainingCharacters;
+    public double ProgressPercent => _session.ProgressPercent;
+    public double Accuracy => _session.Accuracy;
     public bool CanStart => !IsRunning && !string.IsNullOrEmpty(SourceText);
     public bool IsTextLocked => IsRunning || IsPaused || _resultSaved;
-    public string DetectedLanguage => DetectLanguage(SourceText);
+    public string DetectedLanguage => _session.DetectedLanguage;
     public ObservableCollection<TrainingKeyStat> KeyStats { get; } = new();
     public Dictionary<string, int> SessionKeyCounts { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -257,7 +220,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         _pausedElapsed = TimeSpan.Zero;
         IsRunning = true;
         IsPaused = false;
-        Status = "Training started";
+        Status = Loc("Training.StartedStatus");
         _timer.Start();
     }
 
@@ -272,7 +235,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             IsRunning = false;
             IsPaused = true;
             _timer.Stop();
-            Status = "Paused";
+            Status = Loc("Training.PausedStatus");
         }
         else
         {
@@ -280,7 +243,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             IsRunning = true;
             IsPaused = false;
             _timer.Start();
-            Status = "Training resumed";
+            Status = Loc("Training.ResumedStatus");
         }
     }
 
@@ -316,7 +279,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             Wpm,
             Math.Max(ElapsedSeconds, 1));
 
-        Status = "Result saved";
+        Status = Loc("Training.ResultSavedStatus");
         _resultSaved = true;
         OnPropertyChanged(nameof(IsTextLocked));
         OnPropertyChanged(nameof(CanStart));
@@ -324,7 +287,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
     private async void OnKeyInput(Keys key, bool shift)
     {
-        if (!IsRunning || _disposed || Position >= SourceText.Length)
+        if (!IsRunning || _disposed || _session.IsComplete)
             return;
 
         if (IsIgnoredKey(key))
@@ -336,24 +299,26 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
         var keyName = key.ToString();
         AddKeyStat(keyName);
-        var expected = SourceText[Position];
-        if (actual.Value == expected)
+        var result = _session.Accept(actual.Value, out var expected);
+        if (result == TypingTrainingInputResult.Correct)
         {
             FlashKey(keyName, isError: false);
             LastError = "";
-            CorrectChars++;
-            Position++;
+            NotifySessionPropertiesChanged();
             UpdatePreview();
             RefreshTiming();
 
-            if (Position >= SourceText.Length)
+            if (_session.IsComplete)
                 await FinishAsync();
         }
         else
         {
             FlashKey(keyName, isError: true);
-            Errors++;
-            LastError = $"Expected '{DisplayChar(expected)}', got '{DisplayChar(actual.Value)}'";
+            NotifySessionPropertiesChanged();
+            LastError = string.Format(
+                Loc("Training.ExpectedGot"),
+                TypingTrainingSession.DisplayChar(expected),
+                TypingTrainingSession.DisplayChar(actual.Value));
         }
     }
 
@@ -404,36 +369,23 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         KeyStats.Clear();
         _resultSaved = false;
         OnPropertyChanged(nameof(IsTextLocked));
-        Position = 0;
-        CorrectChars = 0;
-        Errors = 0;
+        _session.ResetProgress();
         Cpm = 0;
         Wpm = 0;
         ElapsedSeconds = 0;
         LastError = "";
-        OnPropertyChanged(nameof(TotalCharacters));
+        NotifySessionPropertiesChanged();
         OnPropertyChanged(nameof(SessionKeyCounts));
-        OnPropertyChanged(nameof(RemainingCharacters));
-        OnPropertyChanged(nameof(ProgressPercent));
-        OnPropertyChanged(nameof(Accuracy));
-        OnPropertyChanged(nameof(DetectedLanguage));
         OnPropertyChanged(nameof(CanStart));
         UpdatePreview();
     }
 
     private void UpdatePreview()
     {
-        var safePosition = Math.Clamp(Position, 0, SourceText.Length);
-        var prefixStart = Math.Max(0, safePosition - PreviewRadius);
-        TypedPrefix = SourceText.Substring(prefixStart, safePosition - prefixStart);
-
-        CurrentCharacter = safePosition < SourceText.Length
-            ? DisplayChar(SourceText[safePosition])
-            : "";
-
-        var upcomingStart = Math.Min(SourceText.Length, safePosition + 1);
-        var upcomingLength = Math.Min(PreviewRadius, SourceText.Length - upcomingStart);
-        UpcomingText = upcomingLength > 0 ? SourceText.Substring(upcomingStart, upcomingLength) : "";
+        var preview = _session.GetPreview(PreviewRadius);
+        TypedPrefix = preview.TypedPrefix;
+        CurrentCharacter = preview.CurrentCharacter;
+        UpcomingText = preview.UpcomingText;
     }
 
     private static bool IsIgnoredKey(Keys key) =>
@@ -442,22 +394,18 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             or Keys.Menu or Keys.LMenu or Keys.RMenu
             or Keys.Capital;
 
-    private static string DisplayChar(char ch) => ch switch
-    {
-        '\n' => "Enter",
-        '\t' => "Tab",
-        ' ' => "Space",
-        _ => ch.ToString()
-    };
+    private static string Loc(string key) => LocalizationService.Instance[key];
 
-    private static string DetectLanguage(string text)
+    private void NotifySessionPropertiesChanged()
     {
-        var cyrillic = text.Count(c => c >= '\u0400' && c <= '\u04FF');
-        var latin = text.Count(c => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
-
-        if (cyrillic == 0 && latin == 0) return "Other";
-        if (cyrillic > 0 && latin > 0) return "Mixed";
-        return cyrillic > latin ? "Russian" : "English";
+        OnPropertyChanged(nameof(Position));
+        OnPropertyChanged(nameof(CorrectChars));
+        OnPropertyChanged(nameof(Errors));
+        OnPropertyChanged(nameof(TotalCharacters));
+        OnPropertyChanged(nameof(RemainingCharacters));
+        OnPropertyChanged(nameof(ProgressPercent));
+        OnPropertyChanged(nameof(Accuracy));
+        OnPropertyChanged(nameof(DetectedLanguage));
     }
 
     private void UpdateLayoutInfo(bool force = false)

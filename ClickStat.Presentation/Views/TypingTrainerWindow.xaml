@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:ClickStat.Presentation.Converters"
         xmlns:services="clr-namespace:ClickStat.Presentation.Services"
-        Title="Typing Trainer"
+        Title="{services:Loc Training.WindowTitle}"
         Width="1040" Height="760"
         MinWidth="820" MinHeight="620"
         WindowStartupLocation="CenterOwner"
@@ -150,10 +150,10 @@
 
         <Grid Grid.Row="0" Margin="0,0,0,14">
             <StackPanel>
-                <TextBlock Text="Typing Trainer"
+                <TextBlock Text="{services:Loc Training.WindowTitle}"
                            Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                            FontSize="24" FontWeight="Bold"/>
-                <TextBlock Text="Paste any text, press Start, then type it character by character."
+                <TextBlock Text="{services:Loc Training.WindowHint}"
                            Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
                            FontSize="12" Margin="0,3,0,0"/>
             </StackPanel>
@@ -174,10 +174,10 @@
                 Margin="0,0,0,12">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Top">
-                    <Button Content="Start" Command="{Binding StartCommand}" Style="{StaticResource TrainerButton}"/>
-                    <Button Content="Pause" Command="{Binding PauseCommand}" Style="{StaticResource TrainerButton}"/>
-                    <Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource TrainerButton}"/>
-                    <Button Content="Save" Command="{Binding FinishCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="{services:Loc Training.StartButton}" Command="{Binding StartCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="{services:Loc Training.PauseButton}" Command="{Binding PauseCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="{services:Loc Training.ResetButton}" Command="{Binding ResetCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="{services:Loc Training.SaveButton}" Command="{Binding FinishCommand}" Style="{StaticResource TrainerButton}"/>
                 </StackPanel>
 
                 <TextBox Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
@@ -239,28 +239,28 @@
             <StackPanel>
             <UniformGrid Columns="8" Rows="1" Margin="0,0,0,10">
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="CPM" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Cpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Cpm}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Cpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="WPM" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Wpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Wpm}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Wpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="Accuracy" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Accuracy, Mode=OneWay, StringFormat={}{0}%}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Accuracy}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Accuracy, Mode=OneWay, StringFormat={}{0}%}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="Errors" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Errors, Mode=OneWay}" Foreground="#FF6666" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Errors}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Errors, Mode=OneWay}" Foreground="#FF6666" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="Correct" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding CorrectChars, Mode=OneWay}" Foreground="#46C878" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Correct}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding CorrectChars, Mode=OneWay}" Foreground="#46C878" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="Remaining" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding RemainingCharacters, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Remaining}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding RemainingCharacters, Mode=OneWay}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0,0,6,0">
-                    <StackPanel><TextBlock Text="Time" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding ElapsedSeconds, Mode=OneWay, StringFormat={}{0}s}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Time}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding ElapsedSeconds, Mode=OneWay, StringFormat={}{0}s}" Foreground="#AA70FF" FontSize="18" FontWeight="Bold"/></StackPanel>
                 </Border>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="7" Padding="8,6" Margin="0">
-                    <StackPanel><TextBlock Text="Status" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Status, Mode=OneWay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/></StackPanel>
+                    <StackPanel><TextBlock Text="{services:Loc Training.Status}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="11"/><TextBlock Text="{Binding Status, Mode=OneWay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/></StackPanel>
                 </Border>
             </UniformGrid>
 
@@ -271,7 +271,7 @@
                     Padding="12"
                     Margin="0,0,0,4">
                 <StackPanel>
-                    <TextBlock Text="Session keyboard"
+                    <TextBlock Text="{services:Loc Training.SessionKeyboard}"
                                Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
                                FontSize="16"
                                FontWeight="SemiBold"
