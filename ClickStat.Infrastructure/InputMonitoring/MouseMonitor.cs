@@ -67,7 +67,10 @@ public class MouseMonitor : IDisposable
             int dx = e.X - _lastX;
             int dy = e.Y - _lastY;
             if (dx != 0 || dy != 0)
+            {
+                ClickStat.Infrastructure.Diagnostics.PerformanceLog.CountMouseMove();
                 Moved?.Invoke(dx, dy);
+            }
         }
         _lastX = e.X;
         _lastY = e.Y;

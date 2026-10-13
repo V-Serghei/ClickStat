@@ -46,6 +46,7 @@ public sealed class LiveEventBus
 
     private void Dispatch(Action action)
     {
+        ClickStat.Infrastructure.Diagnostics.PerformanceLog.CountUiDispatch();
         if (_ui.CheckAccess())
             action();
         else

@@ -242,6 +242,7 @@ public class MouseDataProcessor : IDisposable
 
     private async Task FlushToDatabase()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("mouse.flush");
         await _flushGate.WaitAsync();
         try { await FlushToDatabaseCore(); }
         finally { _flushGate.Release(); }

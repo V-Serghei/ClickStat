@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Diagnostics;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
+using ClickStat.Infrastructure.Diagnostics;
 using ClickStat.Infrastructure.InputMonitoring;
 using ClickStat.Presentation;
 using ClickStat.Presentation.Services;
@@ -24,16 +26,47 @@ public partial class App : Application
 
     private void Application_Startup(object sender, StartupEventArgs e)
     {
+        PerformanceLog.Record("event", "application.start");
         var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
 
         var trayService = ServiceProvider.GetRequiredService<ITrayService>();
         trayService.Initialize(mainWindow);
         mainWindow.Show();
+        StartDiagnostics();
 
         var mouseMonitor = ServiceProvider.GetRequiredService<IMouseMonitorService>();
         var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
         ServiceProvider.GetRequiredService<IInputMonitorService>().InitializeRawInput(hwnd);
         mouseMonitor.InitializeRawInput(hwnd);
+    }
+
+    private static void StartDiagnostics()
+    {
+        try
+        {
+            string monitor = System.IO.Path.Combine(AppContext.BaseDirectory, "ClickStat.Diagnostics.exe");
+            if (!System.IO.File.Exists(monitor))
+            {
+                PerformanceLog.Record("error", "diagnostics.missing");
+                return;
+            }
+
+            using var current = Process.GetCurrentProcess();
+            var start = new ProcessStartInfo(monitor)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            start.ArgumentList.Add(current.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            start.ArgumentList.Add(current.StartTime.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Process.Start(start)?.Dispose();
+            PerformanceLog.Record("event", "diagnostics.started");
+        }
+        catch (Exception ex)
+        {
+            PerformanceLog.Record("error", "diagnostics.launch." + ex.GetType().Name);
+        }
     }
 
     private static void ConfigureServices(IServiceCollection s)
@@ -80,6 +113,7 @@ public partial class App : Application
 
     private void Application_Exit(object sender, ExitEventArgs e)
     {
+        PerformanceLog.Record("event", "application.exit");
         var key   = ServiceProvider.GetRequiredService<ISavingClick>();
         if (key is SavingClickService ks) ks.OnApplicationExitAsync().Wait();
 

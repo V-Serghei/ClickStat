@@ -86,6 +86,7 @@ public class OverviewViewModel : INotifyPropertyChanged
     // ── DB load (called on tab open) ──────────────────────────────────────
     public async Task LoadStatsAsync()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("overview.load");
         IsLoading = true;
         try
         {

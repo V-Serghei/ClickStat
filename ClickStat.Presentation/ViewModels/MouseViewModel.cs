@@ -114,6 +114,7 @@ public class MouseViewModel : INotifyPropertyChanged
     // ── DB load ─────────────────────────────────────────────────────────────
     public async Task LoadDataAsync()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("mouse.load");
         IsLoading = true;
         await Task.Yield();
         try

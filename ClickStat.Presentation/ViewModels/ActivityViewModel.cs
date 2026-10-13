@@ -71,6 +71,7 @@ public class ActivityViewModel : INotifyPropertyChanged
 
     public async Task LoadAsync()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("activity.load");
         IsLoading = true;
         await Task.Yield();
         try
