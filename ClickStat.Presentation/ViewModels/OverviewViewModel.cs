@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using ClickStat.Core.Interfaces;
 using ClickStat.Presentation.Converters;
 using ClickStat.Presentation.Services;
@@ -17,6 +18,7 @@ namespace ClickStat.Presentation.ViewModels;
 
 public class OverviewViewModel : INotifyPropertyChanged
 {
+    public enum HistoryScale { Days, Months, Years }
     private readonly IGetDataClick _dataService;
     private readonly LiveEventBus  _liveBus;
 
@@ -30,6 +32,20 @@ public class OverviewViewModel : INotifyPropertyChanged
     private double _errorRate;
     private bool   _isLoading;
     private bool   _isLiveActive;
+    private HistoryScale _historyScale = HistoryScale.Days;
+    private DateTime _historyAnchor = DateTime.Today;
+    private int _chartLoadVersion;
+    private string _historyPeriod = "";
+    private int _historyTotal;
+
+    public ICommand SelectHistoryScaleCommand { get; }
+    public ICommand ShiftHistoryCommand { get; }
+    public string HistoryPeriod { get => _historyPeriod; private set { _historyPeriod = value; OnPropertyChanged(); } }
+    public int HistoryTotal { get => _historyTotal; private set { _historyTotal = value; OnPropertyChanged(); } }
+    public bool CanGoForward => _historyAnchor.Date < DateTime.Today;
+    public bool IsDaysSelected => _historyScale == HistoryScale.Days;
+    public bool IsMonthsSelected => _historyScale == HistoryScale.Months;
+    public bool IsYearsSelected => _historyScale == HistoryScale.Years;
 
     public int    TotalClicks     { get => _totalClicks;     set { _totalClicks = value;     OnPropertyChanged(); } }
     public int    ClicksToday     { get => _clicksToday;     set { _clicksToday = value;     OnPropertyChanged(); } }
@@ -70,6 +86,29 @@ public class OverviewViewModel : INotifyPropertyChanged
     {
         _dataService = dataService;
         _liveBus     = liveBus;
+        SelectHistoryScaleCommand = new RelayCommand(p =>
+        {
+            if (p is not string value || !Enum.TryParse<HistoryScale>(value, out var scale)) return;
+            _historyScale = scale;
+            _historyAnchor = DateTime.Today;
+            NotifyHistorySelection();
+            _ = LoadChartAsync();
+        });
+        ShiftHistoryCommand = new RelayCommand(p =>
+        {
+            if (p is not string value || !int.TryParse(value, out var direction)) return;
+            var next = _historyScale switch
+            {
+                HistoryScale.Days => _historyAnchor.AddDays(10 * direction),
+                HistoryScale.Months => _historyAnchor.AddYears(direction),
+                _ => _historyAnchor.AddYears(10 * direction)
+            };
+            if (direction > 0 && next > DateTime.Today) next = DateTime.Today;
+            if (next == _historyAnchor) return;
+            _historyAnchor = next;
+            OnPropertyChanged(nameof(CanGoForward));
+            _ = LoadChartAsync();
+        });
         InitChartStyle();
 
         // Always accumulate session keys — even when Overview tab is closed
@@ -80,7 +119,10 @@ public class OverviewViewModel : INotifyPropertyChanged
     private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == "Item[]" || e.PropertyName == nameof(LocalizationService.CurrentLanguage))
+        {
             RefreshLocalizedChartText();
+            _ = LoadChartAsync();
+        }
     }
 
     // ── DB load (called on tab open) ──────────────────────────────────────
@@ -122,14 +164,54 @@ public class OverviewViewModel : INotifyPropertyChanged
 
     private async Task LoadChartAsync()
     {
+        var version = ++_chartLoadVersion;
+        var culture = CultureInfo.GetCultureInfo(LocalizationService.Instance.CurrentLanguage);
         var text      = new SKColor(200, 200, 200);
         var separator = new SKColor(100, 100, 100);
+        var scale = _historyScale;
+        var anchor = _historyAnchor;
+        DateTime start;
+        DateTime end;
+        DateTime[] points;
+        if (scale == HistoryScale.Days)
+        {
+            end = anchor.Date;
+            start = end.AddDays(-9);
+            points = Enumerable.Range(0, 10).Select(i => start.AddDays(i)).ToArray();
+        }
+        else if (scale == HistoryScale.Months)
+        {
+            start = new DateTime(anchor.Year, 1, 1);
+            end = start.AddYears(1).AddDays(-1);
+            points = Enumerable.Range(0, 12).Select(i => start.AddMonths(i)).ToArray();
+        }
+        else
+        {
+            start = new DateTime(Math.Max(1, anchor.Year - 9), 1, 1);
+            end = start.AddYears(10).AddDays(-1);
+            points = Enumerable.Range(0, 10).Select(i => start.AddYears(i)).ToArray();
+        }
 
-        var dates  = Enumerable.Range(0, 10).Select(i => DateTime.Today.AddDays(-9 + i)).ToList();
-        var lookup = await _dataService.GetDailyClickCounts(dates[0], dates[^1]);
-        var counts = dates.Select(d => lookup.TryGetValue(d.Date, out var c) ? c : 0).ToList();
-        if (dates[^1].Date == DateTime.Today)
-            counts[^1] = Math.Max(counts[^1], ClicksToday);
+        var lookup = await _dataService.GetDailyClickCounts(start, end);
+        if (version != _chartLoadVersion) return;
+        if (DateTime.Today >= start && DateTime.Today <= end)
+        {
+            lookup.TryGetValue(DateTime.Today, out var today);
+            lookup[DateTime.Today] = Math.Max(today, ClicksToday);
+        }
+        var counts = points.Select(point => lookup.Where(pair => scale switch
+        {
+            HistoryScale.Days => pair.Key.Date == point.Date,
+            HistoryScale.Months => pair.Key.Year == point.Year && pair.Key.Month == point.Month,
+            _ => pair.Key.Year == point.Year
+        }).Sum(pair => pair.Value)).ToArray();
+        HistoryTotal = counts.Sum();
+        HistoryPeriod = scale switch
+        {
+            HistoryScale.Days => $"{start.ToString("d", culture)} — {end.ToString("d", culture)}",
+            HistoryScale.Months => anchor.Year.ToString(CultureInfo.CurrentCulture),
+            _ => $"{start.Year}–{end.Year}"
+        };
 
         DailyStatsSeries = new ISeries[]
         {
@@ -144,7 +226,12 @@ public class OverviewViewModel : INotifyPropertyChanged
         {
             new Axis
             {
-                Labels          = dates.Select(d => d.ToString("dd MMM")).ToArray(),
+                Labels          = points.Select(d => scale switch
+                {
+                    HistoryScale.Days => d.ToString("dd MMM", culture),
+                    HistoryScale.Months => d.ToString("MMM", culture),
+                    _ => d.ToString("yyyy", culture)
+                }).ToArray(),
                 LabelsRotation  = 15,
                 TextSize        = 12,
                 NamePaint       = new SolidColorPaint(text),
@@ -152,6 +239,14 @@ public class OverviewViewModel : INotifyPropertyChanged
                 SeparatorsPaint = new SolidColorPaint(separator)
             }
         };
+    }
+
+    private void NotifyHistorySelection()
+    {
+        OnPropertyChanged(nameof(IsDaysSelected));
+        OnPropertyChanged(nameof(IsMonthsSelected));
+        OnPropertyChanged(nameof(IsYearsSelected));
+        OnPropertyChanged(nameof(CanGoForward));
     }
 
     // ── Live event handler (UI thread via LiveEventBus) ───────────────────

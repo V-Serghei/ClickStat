@@ -127,8 +127,19 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Last10Days]}"
-                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" Margin="0,0,0,12"/>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.History]}"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Days]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Days" FontWeight="SemiBold" Margin="4,0" Padding="8,4"/>
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Months]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Months" Margin="4,0" Padding="8,4"/>
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Years]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Years" Margin="4,0" Padding="8,4"/>
+                        <Button Content="◀" Command="{Binding ShiftHistoryCommand}" CommandParameter="-1" Margin="8,0,4,0" Padding="7,4"/>
+                        <TextBlock Text="{Binding HistoryPeriod}" VerticalAlignment="Center" MinWidth="110" TextAlignment="Center"/>
+                        <Button Content="▶" Command="{Binding ShiftHistoryCommand}" CommandParameter="1" IsEnabled="{Binding CanGoForward}" Margin="4,0" Padding="7,4"/>
+                        <TextBlock Text="{Binding HistoryTotal, StringFormat={}{0:N0}}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#AA70FF" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </DockPanel>
                 <lvc:CartesianChart Grid.Row="1"
                                     MinHeight="260"
                                     Series="{Binding DailyStatsSeries}"
@@ -143,3 +154,4 @@
         </Border>
     </Grid>
 </UserControl>
+
