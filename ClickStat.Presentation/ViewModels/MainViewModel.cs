@@ -65,10 +65,8 @@ namespace ClickStat.Presentation.ViewModels
             new NavItem { Icon = "\u2328", LabelKey = "Nav.Keyboard", Page = AppPage.Keyboard },
             new NavItem { Icon = "\U0001F5B1", LabelKey = "Nav.Mouse", Page = AppPage.Mouse },
             new NavItem { Icon = "\U0001F4C8", LabelKey = "Nav.Activity", Page = AppPage.Activity },
-            new NavItem { Icon = "\U0001F4DD", LabelKey = "Nav.Words", Page = AppPage.Words },
             new NavItem { Icon = "\U0001F4BB", LabelKey = "Nav.Apps", Page = AppPage.Apps },
             new NavItem { Icon = "\U0001F3AE", LabelKey = "Nav.Gamepads", Page = AppPage.Gamepads },
-            new NavItem { Icon = "\uE7C1", LabelKey = "Nav.Training", Page = AppPage.Training },
             new NavItem { Icon = "\u2699", LabelKey = "Nav.Settings", Page = AppPage.Settings },
         };
 
@@ -78,6 +76,7 @@ namespace ClickStat.Presentation.ViewModels
             get => _activePage;
             set
             {
+                if (value == AppPage.Words && !_wordProcessor.CaptureEnabled) return;
                 if (_activePage == value) return;
                 _activePage = value;
                 OnPropertyChanged();
@@ -165,6 +164,13 @@ namespace ClickStat.Presentation.ViewModels
 
             // Pass break reminder to settings so user can configure it
             SettingsVm.BreakReminder = _breakReminder;
+            SettingsVm.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName != nameof(SettingsViewModel.CaptureWordsAndPhrases)) return;
+                UpdateWordsNavigation();
+            };
+            SettingsVm.WordHistoryDeleted += WordsVm.ClearData;
+            UpdateWordsNavigation();
 
             _inputMonitorService.OnKeyDown   += OnKeyDownReceived;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
@@ -188,8 +194,25 @@ namespace ClickStat.Presentation.ViewModels
 
         public void NavigateTo(AppPage page) => ActivePage = page;
 
+        private void UpdateWordsNavigation()
+        {
+            var existing = NavItems.FirstOrDefault(item => item.Page == AppPage.Words);
+            if (SettingsVm.CaptureWordsAndPhrases)
+            {
+                if (existing == null)
+                    NavItems.Insert(4, new NavItem { Icon = "\U0001F4DD", LabelKey = "Nav.Words", Page = AppPage.Words });
+            }
+            else
+            {
+                if (ActivePage == AppPage.Words) ActivePage = AppPage.Settings;
+                if (existing != null) NavItems.Remove(existing);
+                WordsVm.ClearData();
+            }
+        }
+
         private void UpdateLiveMode(AppPage page)
         {
+            using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("navigation." + page);
             OverviewVm.IsLiveActive = (page == AppPage.Overview);
             KeyboardVm.IsLiveActive = (page == AppPage.Keyboard);
             MouseVm.IsLiveActive    = (page == AppPage.Mouse);
@@ -212,7 +235,7 @@ namespace ClickStat.Presentation.ViewModels
                     _ = ActivityVm.LoadAsync();
                     break;
                 case AppPage.Words:
-                    _ = FlushThenLoad(WordsVm.BeginLoading, _wordProcessor.FlushAsync, WordsVm.LoadAsync);
+                    if (_wordProcessor.CaptureEnabled) _ = WordsVm.LoadAsync();
                     break;
                 case AppPage.Apps:
                     _ = AppsVm.LoadAsync();
@@ -263,10 +286,13 @@ namespace ClickStat.Presentation.ViewModels
             if (MouseButtonCodeHelper.IsModifier(key))
             {
                 _heldModifiers.Add(key);
-                if (IsCtrlHeld() || IsAltHeld())
+                if (_wordProcessor.CaptureEnabled && (IsCtrlHeld() || IsAltHeld()))
                     _wordProcessor.ClearBuffer();
                 return;
             }
+
+            if (!_wordProcessor.CaptureEnabled)
+                return;
 
             if (IsCtrlHeld() || IsAltHeld())
             {

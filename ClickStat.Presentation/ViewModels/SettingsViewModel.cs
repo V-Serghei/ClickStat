@@ -2,14 +2,17 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
+using ClickStat.Infrastructure.Data;
 
 namespace ClickStat.Presentation.ViewModels;
 
 public class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly IStartupService _startupService;
+    private readonly WordProcessor _wordProcessor;
 
     private static readonly string SettingsDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "KeyClick");
@@ -17,6 +20,41 @@ public class SettingsViewModel : INotifyPropertyChanged
 
     // ── Injected by MainViewModel ──────────────────────────────────────────
     internal BreakReminderService? BreakReminder { get; set; }
+    public event Action? WordHistoryDeleted;
+
+    public bool CanDeleteWordHistory => !CaptureWordsAndPhrases;
+    private bool _isDeletingWordHistory;
+    public bool CanChangeWordCapture => !_isDeletingWordHistory;
+
+    public bool CaptureWordsAndPhrases
+    {
+        get => _wordProcessor.CaptureEnabled;
+        set
+        {
+            if (_isDeletingWordHistory) return;
+            if (_wordProcessor.CaptureEnabled == value) return;
+            _wordProcessor.CaptureEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanDeleteWordHistory));
+        }
+    }
+
+    public async Task DeleteWordHistoryAsync()
+    {
+        if (!CanDeleteWordHistory || _isDeletingWordHistory) return;
+        _isDeletingWordHistory = true;
+        OnPropertyChanged(nameof(CanChangeWordCapture));
+        try
+        {
+            await _wordProcessor.DeleteHistoryAsync();
+            WordHistoryDeleted?.Invoke();
+        }
+        finally
+        {
+            _isDeletingWordHistory = false;
+            OnPropertyChanged(nameof(CanChangeWordCapture));
+        }
+    }
 
     // ── Startup ───────────────────────────────────────────────────────────
     public bool IsInStartup
@@ -90,9 +128,10 @@ public class SettingsViewModel : INotifyPropertyChanged
     }
 
     // ── Constructor ───────────────────────────────────────────────────────
-    public SettingsViewModel(IStartupService startupService)
+    public SettingsViewModel(IStartupService startupService, WordProcessor wordProcessor)
     {
         _startupService = startupService;
+        _wordProcessor = wordProcessor;
         LoadBgPath();
     }
 

@@ -8,7 +8,9 @@ namespace ClickStat.Core.Services;
 
 public class MouseStatisticsService : IMouseStatisticsService
 {
-    private readonly MouseDataProcessor _processor = new();
+    private readonly MouseDataProcessor _processor;
+
+    public MouseStatisticsService(MouseDataProcessor processor) => _processor = processor;
 
     public bool IsRegistered(int buttonCode) => _processor.IsRegistered(buttonCode);
 

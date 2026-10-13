@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ClickStat.Infrastructure.Data.Context;
 using ClickStat.Infrastructure.Data.Model;
+using ClickStat.Infrastructure.Diagnostics;
 using ClickStat.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Timer = System.Timers.Timer;
@@ -23,8 +24,10 @@ public sealed class WordProcessor : IDisposable
     private const int FlushIntervalSeconds = 30;
     private const int MinWordLength        = 2;
     private const int MaxWordLength        = 32;
+    private const int VisibleMinimumCount  = 6;
 
     private readonly string _dbPath;
+    private readonly string _captureSettingPath;
     private readonly Timer  _timer;
     private readonly object _lock = new();
     private readonly SemaphoreSlim _flushGate = new(1, 1);
@@ -38,16 +41,54 @@ public sealed class WordProcessor : IDisposable
     private readonly Dictionary<string, int>   _phrases  = new();
     private readonly object _schemaGate = new();
     private bool _schemaReady;
-    private bool _historyCleaned;
+    private volatile bool _captureEnabled;
+
+    /// <summary>Controls collection of words, phrases and key bigrams.</summary>
+    public bool CaptureEnabled
+    {
+        get => _captureEnabled;
+        set
+        {
+            lock (_lock)
+            {
+                if (_captureEnabled == value) return;
+                _captureEnabled = value;
+                _buffer.Clear();
+                _lastWords.Clear();
+                _lastKey = null;
+                if (!value)
+                {
+                    _words.Clear();
+                    _bigrams.Clear();
+                    _phrases.Clear();
+                    _timer.Stop();
+                }
+                else
+                    _timer.Start();
+            }
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_captureSettingPath)!);
+                File.WriteAllText(_captureSettingPath, value ? "1" : "0");
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
 
     public WordProcessor()
     {
         var docs   = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         _dbPath    = Path.Combine(docs, "KeyClick", "key_statistics.db");
+        _captureSettingPath = Path.Combine(docs, "KeyClick", "word-capture.txt");
+        try { _captureEnabled = !File.Exists(_captureSettingPath) || File.ReadAllText(_captureSettingPath).Trim() != "0"; }
+        catch (IOException) { _captureEnabled = true; }
+        catch (UnauthorizedAccessException) { _captureEnabled = true; }
 
         _timer = new Timer(FlushIntervalSeconds * 1000) { AutoReset = true };
         _timer.Elapsed += async (_, _) => await Flush();
-        _timer.Start();
+        if (_captureEnabled) _timer.Start();
     }
 
     // ── Public API ────────────────────────────────────────────────────────
@@ -58,11 +99,14 @@ public sealed class WordProcessor : IDisposable
     /// </summary>
     public void ProcessKey(Keys key, bool shift = false)
     {
+        if (!_captureEnabled) return;
         lock (_lock)
         {
+            if (!_captureEnabled) return;
             if (key == Keys.Back)
             {
                 if (_buffer.Length > 0) _buffer.Remove(_buffer.Length - 1, 1);
+                _lastKey = null;
                 return;
             }
 
@@ -71,7 +115,13 @@ public sealed class WordProcessor : IDisposable
 
             if (ch.HasValue && char.IsLetter(ch.Value))
             {
-                _buffer.Append(char.ToLowerInvariant(ch.Value));
+                if (_buffer.Length <= MaxWordLength)
+                    _buffer.Append(char.ToLowerInvariant(ch.Value));
+                else
+                {
+                    _lastKey = null;
+                    return;
+                }
 
                 // Key-level bigram (layout-independent: raw key names)
                 if (_lastKey != null)
@@ -86,6 +136,10 @@ public sealed class WordProcessor : IDisposable
             // Word boundary: space, punctuation, enter, tab, etc.
             if (IsWordBoundary(key) || (ch.HasValue && (char.IsWhiteSpace(ch.Value) || char.IsPunctuation(ch.Value))))
                 CompleteWord();
+
+            if (key is Keys.Enter or Keys.Return or Keys.Escape or Keys.Delete or Keys.Next or Keys.Prior ||
+                ch.HasValue && char.IsPunctuation(ch.Value))
+                _lastWords.Clear();
 
             _lastKey = null;
         }
@@ -139,9 +193,11 @@ public sealed class WordProcessor : IDisposable
 
     public void ClearBuffer()
     {
+        if (!_captureEnabled) return;
         lock (_lock)
         {
             _buffer.Clear();
+            _lastWords.Clear();
             _lastKey = null;
         }
     }
@@ -150,16 +206,12 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<List<WordStatistics>> GetTopWords(int limit = 50)
     {
-        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
-        var words = await ctx.WordStatistics
+        return await ctx.WordStatistics.AsNoTracking()
+            .Where(w => w.Count >= VisibleMinimumCount)
             .OrderByDescending(w => w.Count)
-            .ToListAsync();
-
-        return words
-            .Where(w => IsAcceptableWord(w.Word))
             .Take(limit)
-            .ToList();
+            .ToListAsync();
     }
 
     public async Task<List<KeyBigram>> GetTopBigrams(int limit = 30)
@@ -167,6 +219,7 @@ public sealed class WordProcessor : IDisposable
         EnsureSchema();
         await using var ctx = new DataContext(_dbPath);
         return await ctx.KeyBigrams
+            .Where(b => b.Count >= VisibleMinimumCount)
             .OrderByDescending(b => b.Count)
             .Take(limit)
             .ToListAsync();
@@ -174,32 +227,24 @@ public sealed class WordProcessor : IDisposable
 
     public async Task<List<WordPhrase>> GetTopPhrases(int limit = 30)
     {
-        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
-        var phrases = await ctx.WordPhrases
+        return await ctx.WordPhrases.AsNoTracking()
+            .Where(p => p.Count >= VisibleMinimumCount)
             .OrderByDescending(p => p.Count)
-            .ToListAsync();
-
-        return phrases
-            .Where(p => IsAcceptablePhrase(p.Phrase))
             .Take(limit)
-            .ToList();
+            .ToListAsync();
     }
 
     public async Task<int> GetTotalWordsTyped()
     {
-        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
-        var words = await ctx.WordStatistics.ToListAsync();
-        return words.Where(w => IsAcceptableWord(w.Word)).Sum(w => w.Count);
+        return await ctx.WordStatistics.Where(w => w.Count >= VisibleMinimumCount).SumAsync(w => w.Count);
     }
 
     public async Task<int> GetUniqueWordsCount()
     {
-        EnsureHistoryCleaned();
         await using var ctx = new DataContext(_dbPath);
-        var words = await ctx.WordStatistics.ToListAsync();
-        return words.Count(w => IsAcceptableWord(w.Word));
+        return await ctx.WordStatistics.CountAsync(w => w.Count >= VisibleMinimumCount);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────
@@ -235,6 +280,24 @@ public sealed class WordProcessor : IDisposable
         return hasLatin
             ? IsKnownEnglishWord(word)
             : IsLikelyRussianWord(word);
+    }
+
+    private static bool IsCheapWordCandidate(string word)
+    {
+        if (word.Length is < MinWordLength or > MaxWordLength) return false;
+        bool latin = false, russian = false;
+        char previous = '\0';
+        int run = 0;
+        foreach (char c in word)
+        {
+            if (IsLatinLetter(c)) latin = true;
+            else if (IsRussianLetter(c)) russian = true;
+            else return false;
+            run = c == previous ? run + 1 : 1;
+            if (run > 2) return false;
+            previous = c;
+        }
+        return latin != russian;
     }
 
     public static bool IsRecognizedWord(string word) => IsAcceptableWord(word);
@@ -344,13 +407,17 @@ public sealed class WordProcessor : IDisposable
 
     private void CompleteWord()
     {
-        if (_buffer.Length < MinWordLength) { _buffer.Clear(); return; }
+        if (_buffer.Length < MinWordLength)
+        {
+            if (_buffer.Length > 0) _lastWords.Clear();
+            _buffer.Clear();
+            return;
+        }
 
-        string raw  = _buffer.ToString();
-        string word = raw.ToLowerInvariant();
+        string word = _buffer.ToString();
         _buffer.Clear();
 
-        if (!IsAcceptableWord(word))
+        if (!IsCheapWordCandidate(word))
         {
             _lastWords.Clear();
             return;
@@ -361,6 +428,7 @@ public sealed class WordProcessor : IDisposable
             _lastWords.Clear();
 
         _words[word] = _words.GetValueOrDefault(word) + 1;
+        PerformanceLog.CountWord();
 
         // Phrase tracking (2-word window)
         if (_lastWords.Count > 0)
@@ -384,6 +452,7 @@ public sealed class WordProcessor : IDisposable
 
     private async Task Flush()
     {
+        using var timing = PerformanceLog.Measure("words.flush");
         await _flushGate.WaitAsync();
         try
         {
@@ -400,6 +469,7 @@ public sealed class WordProcessor : IDisposable
         Dictionary<string, int> wordSnap, bigramSnap, phraseSnap;
         lock (_lock)
         {
+            if (!_captureEnabled) return;
             if (_words.Count == 0 && _bigrams.Count == 0 && _phrases.Count == 0) return;
             wordSnap   = new Dictionary<string, int>(_words);
             bigramSnap = new Dictionary<string, int>(_bigrams);
@@ -414,38 +484,28 @@ public sealed class WordProcessor : IDisposable
         {
             foreach (var (word, count) in wordSnap)
             {
-                var existing = await ctx.WordStatistics.FindAsync(word);
-                if (existing != null)
-                {
-                    existing.Count   += count;
-                    existing.LastTyped = DateTime.Now;
-                    existing.IsKnown = IsRecognizedWord(word);
-                }
-                else
-                    ctx.WordStatistics.Add(new WordStatistics
-                    {
-                        Word      = word,
-                        Count     = count,
-                        LastTyped = DateTime.Now,
-                        IsKnown   = IsRecognizedWord(word)
-                    });
+                await ctx.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO WordStatistics (Word, Count, LastTyped, IsKnown)
+                    VALUES ({word}, {count}, {DateTime.Now}, {false})
+                    ON CONFLICT(Word) DO UPDATE SET
+                        Count = Count + excluded.Count,
+                        LastTyped = excluded.LastTyped");
             }
 
             foreach (var (pair, count) in bigramSnap)
             {
-                var existing = await ctx.KeyBigrams.FindAsync(pair);
-                if (existing != null) existing.Count += count;
-                else ctx.KeyBigrams.Add(new KeyBigram { Pair = pair, Count = count });
+                await ctx.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO KeyBigrams (Pair, Count) VALUES ({pair}, {count})
+                    ON CONFLICT(Pair) DO UPDATE SET Count = Count + excluded.Count");
             }
 
             foreach (var (phrase, count) in phraseSnap)
             {
-                var existing = await ctx.WordPhrases.FindAsync(phrase);
-                if (existing != null) existing.Count += count;
-                else ctx.WordPhrases.Add(new WordPhrase { Phrase = phrase, Count = count });
+                await ctx.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO WordPhrases (Phrase, Count) VALUES ({phrase}, {count})
+                    ON CONFLICT(Phrase) DO UPDATE SET Count = Count + excluded.Count");
             }
 
-            await ctx.SaveChangesAsync();
             await tx.CommitAsync();
         }
         catch
@@ -454,9 +514,12 @@ public sealed class WordProcessor : IDisposable
             // Restore data on failure
             lock (_lock)
             {
-                foreach (var (k, v) in wordSnap)   _words[k]   = _words.GetValueOrDefault(k)   + v;
-                foreach (var (k, v) in bigramSnap) _bigrams[k] = _bigrams.GetValueOrDefault(k) + v;
-                foreach (var (k, v) in phraseSnap) _phrases[k] = _phrases.GetValueOrDefault(k) + v;
+                if (_captureEnabled)
+                {
+                    foreach (var (k, v) in wordSnap)   _words[k]   = _words.GetValueOrDefault(k)   + v;
+                    foreach (var (k, v) in bigramSnap) _bigrams[k] = _bigrams.GetValueOrDefault(k) + v;
+                    foreach (var (k, v) in phraseSnap) _phrases[k] = _phrases.GetValueOrDefault(k) + v;
+                }
             }
         }
     }
@@ -492,24 +555,37 @@ public sealed class WordProcessor : IDisposable
         }
     }
 
-    private void EnsureHistoryCleaned()
+    public async Task AnalyzeHistoryAsync()
     {
-        lock (_schemaGate)
+        using var timing = PerformanceLog.Measure("words.analyze");
+        await _flushGate.WaitAsync();
+        try
         {
-            if (_historyCleaned)
-                return;
+            await Task.Run(() =>
+            {
+                EnsureSchema();
+                lock (_schemaGate) CleanInvalidHistory();
+            });
         }
+        finally { _flushGate.Release(); }
+    }
 
-        EnsureSchema();
-
-        lock (_schemaGate)
+    public async Task DeleteHistoryAsync()
+    {
+        using var timing = PerformanceLog.Measure("words.delete");
+        await _flushGate.WaitAsync();
+        try
         {
-            if (_historyCleaned)
-                return;
-
-            CleanInvalidHistory();
-            _historyCleaned = true;
+            if (_captureEnabled) throw new InvalidOperationException("Disable word collection before deleting history.");
+            EnsureSchema();
+            await using var ctx = new DataContext(_dbPath);
+            await using var tx = await ctx.Database.BeginTransactionAsync();
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM WordPhrases");
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM WordStatistics");
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM KeyBigrams");
+            await tx.CommitAsync();
         }
+        finally { _flushGate.Release(); }
     }
 
     private void CleanInvalidHistory()

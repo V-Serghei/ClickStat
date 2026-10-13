@@ -64,4 +64,23 @@ public partial class SettingsView : UserControl
     {
         if (DataContext is SettingsViewModel vm) vm.ClearBackground();
     }
+
+    private async void DeleteWordHistory_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm || !vm.CanDeleteWordHistory) return;
+        var answer = MessageBox.Show(
+            LocalizationService.Instance["Settings.DeleteWordHistoryConfirm"],
+            LocalizationService.Instance["Settings.DeleteWordHistory"],
+            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (answer != MessageBoxResult.Yes) return;
+
+        if (sender is Button button) button.IsEnabled = false;
+        try { await vm.DeleteWordHistoryAsync(); }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show(ex.Message, LocalizationService.Instance["Settings.DeleteWordHistory"],
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally { if (sender is Button finishedButton) finishedButton.IsEnabled = true; }
+    }
 }

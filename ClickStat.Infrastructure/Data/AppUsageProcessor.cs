@@ -29,6 +29,7 @@ public sealed class AppUsageProcessor : IDisposable
     private string _currentExe = "unknown.exe";
     private string _currentName = "Unknown";
     private DateTime _lastPoll = DateTime.MinValue;
+    private IntPtr _lastForegroundWindow;
 
     private static readonly Dictionary<string, string> KnownAppNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -84,9 +85,11 @@ public sealed class AppUsageProcessor : IDisposable
         {
             var hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return;
+            if (hwnd == _lastForegroundWindow) return;
+            using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("apps.resolve_foreground");
 
             GetWindowThreadProcessId(hwnd, out uint pid);
-            var proc = Process.GetProcessById((int)pid);
+            using var proc = Process.GetProcessById((int)pid);
 
             string exePath = "";
             try
@@ -105,6 +108,7 @@ public sealed class AppUsageProcessor : IDisposable
             var identity = ResolveAppIdentity(exeName, exePath, proc.ProcessName);
             _currentExe = identity.ExeKey;
             _currentName = identity.DisplayName;
+            _lastForegroundWindow = hwnd;
         }
         catch
         {
@@ -138,6 +142,7 @@ public sealed class AppUsageProcessor : IDisposable
 
     private async Task Flush()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("apps.flush");
         Dictionary<string, (string name, int keys, int clicks)> snap;
         lock (_lock)
         {

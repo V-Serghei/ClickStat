@@ -22,6 +22,7 @@
     <ItemGroup>
       
       <ProjectReference Include="..\ClickStat.Presentation\ClickStat.Presentation.csproj" />
+      <ProjectReference Include="..\ClickStat.Diagnostics\ClickStat.Diagnostics.csproj" />
     </ItemGroup>
 
     <ItemGroup>
