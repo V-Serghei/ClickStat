@@ -270,10 +270,10 @@ public class MouseDataProcessor : IDisposable
             _scrollUpBuffer = 0; _scrollDownBuffer = 0; _distanceBuffer = 0;
         }
 
-        await using var ctx = new DataContext(_dbPath);
-        var tx = await ctx.Database.BeginTransactionAsync();
         try
         {
+            await using var ctx = new DataContext(_dbPath);
+            await using var tx = await ctx.Database.BeginTransactionAsync();
             foreach (var (code, (name, count)) in buttonSnapshot)
             {
                 var stat = await ctx.MouseStatistics.FindAsync(code);
@@ -326,8 +326,20 @@ public class MouseDataProcessor : IDisposable
         }
         catch (Exception ex)
         {
-            await tx.RollbackAsync();
             Console.WriteLine($"Mouse flush failed: {ex.Message}");
+            lock (_lock)
+            {
+                foreach (var (code, (name, count)) in buttonSnapshot)
+                {
+                    var current = _buttonBuffer.GetValueOrDefault(code);
+                    _buttonBuffer[code] = (current.name ?? name, current.count + count);
+                }
+                foreach (var (id, delta) in heatSnap)
+                    _heatmapBuffer[id] = _heatmapBuffer.GetValueOrDefault(id) + delta;
+                _scrollUpBuffer += scrollUp;
+                _scrollDownBuffer += scrollDown;
+                _distanceBuffer += distance;
+            }
         }
     }
 

@@ -21,6 +21,7 @@ public sealed class AppUsageProcessor : IDisposable
     private readonly Timer _flushTimer;
     private readonly object _lock = new();
     private readonly object _schemaGate = new();
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
     private bool _schemaReady;
 
     private readonly Dictionary<string, (string name, int keys, int clicks)> _buffer = new();
@@ -142,6 +143,13 @@ public sealed class AppUsageProcessor : IDisposable
 
     private async Task Flush()
     {
+        await _flushGate.WaitAsync();
+        try { await FlushCore(); }
+        finally { _flushGate.Release(); }
+    }
+
+    private async Task FlushCore()
+    {
         using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("apps.flush");
         Dictionary<string, (string name, int keys, int clicks)> snap;
         lock (_lock)
@@ -151,11 +159,11 @@ public sealed class AppUsageProcessor : IDisposable
             _buffer.Clear();
         }
 
-        await using var ctx = new DataContext(_dbPath);
-        EnsureSchema(ctx);
-        var tx = await ctx.Database.BeginTransactionAsync();
         try
         {
+            await using var ctx = new DataContext(_dbPath);
+            EnsureSchema(ctx);
+            await using var tx = await ctx.Database.BeginTransactionAsync();
             foreach (var (exe, (name, keys, clicks)) in snap)
             {
                 var key = NormalizeExeKey(exe);
@@ -182,9 +190,15 @@ public sealed class AppUsageProcessor : IDisposable
             await ctx.SaveChangesAsync();
             await tx.CommitAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            await tx.RollbackAsync();
+            Debug.WriteLine($"App usage flush failed: {ex}");
+            lock (_lock)
+                foreach (var (exe, (name, keys, clicks)) in snap)
+                {
+                    var current = _buffer.GetValueOrDefault(exe);
+                    _buffer[exe] = (current.name ?? name, current.keys + keys, current.clicks + clicks);
+                }
         }
     }
 
