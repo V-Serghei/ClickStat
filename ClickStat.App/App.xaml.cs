@@ -90,6 +90,7 @@ public partial class App : Application
         s.AddSingleton<TypingTrainingProcessor>();
         s.AddSingleton<MouseDataProcessor>();  // shared instance for ActivityViewModel
         s.AddSingleton<GamepadMonitorService>();
+        s.AddSingleton<AchievementService>();
 
         // Live bus (UI thread)
         s.AddSingleton(sp => new LiveEventBus(System.Windows.Application.Current.Dispatcher));
@@ -106,6 +107,7 @@ public partial class App : Application
         s.AddTransient<AppsViewModel>();
         s.AddTransient<GamepadsViewModel>();
         s.AddTransient<TrainingProgressViewModel>();
+        s.AddTransient<AchievementsViewModel>();
         s.AddTransient<SettingsViewModel>();
         s.AddSingleton<MainViewModel>();
         s.AddSingleton<MainWindow>();

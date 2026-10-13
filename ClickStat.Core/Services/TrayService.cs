@@ -20,13 +20,21 @@ public class TrayService : ITrayService
         {
             Icon = new Icon(Application.GetResourceStream(new Uri("pack://application:,,,/icon.ico")).Stream),
             Text = "ClickStat - Input statistics",
-            Visible = false
+            Visible = true
         };
         _notifyIcon.ContextMenuStrip = new ContextMenuStrip();
         _notifyIcon.ContextMenuStrip.Items.Add("Show", null, OnShowClick);
         _notifyIcon.ContextMenuStrip.Items.Add("Exit", null, OnExitClick);
 
         _notifyIcon.DoubleClick += (s, e) => OnShowClick(s, e);
+    }
+    public void ShowNotification(string title, string message)
+    {
+        if (_notifyIcon == null) return;
+        _notifyIcon.BalloonTipTitle = title;
+        _notifyIcon.BalloonTipText = message;
+        _notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
+        _notifyIcon.ShowBalloonTip(5000);
     }
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
@@ -47,10 +55,6 @@ public class TrayService : ITrayService
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
             
-        if (_notifyIcon != null)
-        {
-            _notifyIcon.Visible = false;
-        }
     }
 
     private void OnExitClick(object? sender, EventArgs e)

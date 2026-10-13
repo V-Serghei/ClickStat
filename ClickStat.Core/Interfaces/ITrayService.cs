@@ -6,4 +6,5 @@ namespace ClickStat.Core.Interfaces;
 public interface ITrayService
 {
     void Initialize(Window window);
+    void ShowNotification(string title, string message);
 }
