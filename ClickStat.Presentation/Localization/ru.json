@@ -254,7 +254,7 @@
   "Mouse.CursorHeatmapSamples": "Секунд наблюдения:",
   "Mouse.StatisticsTab": "Статистика",
   "Mouse.CursorHeatmapTitle": "Тепловая карта курсора",
-  "Mouse.CursorHeatmapHint": "Где курсор проводит больше времени при текущем расположении мониторов. Новые данные появляются каждую секунду.",
+  "Mouse.CursorHeatmapHint": "Карта учитывает время остановки и маршрут движения курсора на текущем расположении мониторов.",
   "Achievement.single-key-100k.Title": "Одна клавиша — сто тысяч",
   "Achievement.single-key-100k.Description": "Нажать одну и ту же клавишу 100 000 раз",
   "Achievement.erase-artist.Title": "Мастер исправлений",
@@ -286,5 +286,6 @@
   "Training.Date": "Дата",
   "Training.Accuracy": "Точность",
   "Training.TextLength": "Длина текста",
-  "Training.Language": "Язык"
+  "Training.Language": "Язык",
+  "Mouse.CursorHeatmapVisits": "Точек движения:"
 }

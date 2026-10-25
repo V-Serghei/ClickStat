@@ -23,6 +23,7 @@ public class MouseViewModel : INotifyPropertyChanged
     private bool _showCursorHeatmap;
     private BitmapSource? _cursorHeatmapImage;
     private long _cursorSampleSeconds;
+    private long _cursorMovementVisits;
     private string _cursorLayout = "";
     private double _cursorHeatmapWidth = 720;
     private string _cursorHeatmapError = "";
@@ -31,6 +32,7 @@ public class MouseViewModel : INotifyPropertyChanged
     public bool ShowStatistics => !ShowCursorHeatmap;
     public BitmapSource? CursorHeatmapImage { get => _cursorHeatmapImage; private set { _cursorHeatmapImage = value; OnPropertyChanged(); } }
     public long CursorSampleSeconds { get => _cursorSampleSeconds; private set { _cursorSampleSeconds = value; OnPropertyChanged(); } }
+    public long CursorMovementVisits { get => _cursorMovementVisits; private set { _cursorMovementVisits = value; OnPropertyChanged(); } }
     public string CursorLayout { get => _cursorLayout; private set { _cursorLayout = value; OnPropertyChanged(); } }
     public double CursorHeatmapWidth { get => _cursorHeatmapWidth; private set { _cursorHeatmapWidth = value; OnPropertyChanged(); } }
     public string CursorHeatmapError { get => _cursorHeatmapError; private set { _cursorHeatmapError = value; OnPropertyChanged(); } }
@@ -193,6 +195,7 @@ public class MouseViewModel : INotifyPropertyChanged
             var map = await _statisticsService.GetCursorHeatmapAsync();
             CursorHeatmapImage = await Task.Run(() => CursorHeatmapRenderer.Render(map));
             CursorSampleSeconds = map.TotalSeconds;
+            CursorMovementVisits = map.TotalVisits;
             CursorLayout = $"{map.Width} × {map.Height}";
             CursorHeatmapWidth = Math.Clamp(400.0 * map.Width / Math.Max(1, map.Height), 500, 1600);
         }

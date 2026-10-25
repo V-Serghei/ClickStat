@@ -21,16 +21,15 @@ public static class CursorHeatmapRenderer
         var values = new double[GridWidth * GridHeight];
         foreach (var cell in map.Cells)
             if (cell.GridX is >= 0 and < GridWidth && cell.GridY is >= 0 and < GridHeight)
-                values[cell.GridY * GridWidth + cell.GridX] += cell.Seconds;
+                values[cell.GridY * GridWidth + cell.GridX] += cell.Seconds * 3 + cell.Visits;
 
         var smoothed = new double[values.Length];
-        double max = 0;
         for (int y = 0; y < GridHeight; y++)
         for (int x = 0; x < GridWidth; x++)
         {
             double weighted = 0, weight = 0;
-            for (int dy = -2; dy <= 2; dy++)
-            for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
             {
                 int xx = x + dx, yy = y + dy;
                 if (xx < 0 || xx >= GridWidth || yy < 0 || yy >= GridHeight) continue;
@@ -40,15 +39,17 @@ public static class CursorHeatmapRenderer
             }
             var value = weighted / weight;
             smoothed[y * GridWidth + x] = value;
-            max = Math.Max(max, value);
         }
+
+        var active = smoothed.Where(value => value > 0).OrderBy(value => value).ToArray();
+        var reference = active.Length == 0 ? 0 : active[(int)Math.Floor((active.Length - 1) * 0.97)];
 
         var pixels = new byte[Width * Height * 4];
         for (int y = 0; y < Height; y++)
         for (int x = 0; x < Width; x++)
         {
             double value = smoothed[(y * GridHeight / Height) * GridWidth + x * GridWidth / Width];
-            double level = max <= 0 ? 0 : Math.Log(1 + value) / Math.Log(1 + max);
+            double level = reference <= 0 ? 0 : Math.Clamp(Math.Log(1 + value) / Math.Log(1 + reference), 0, 1);
             var (r, g, b) = HeatColor(level);
             int offset = (y * Width + x) * 4;
             pixels[offset] = b;

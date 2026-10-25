@@ -254,7 +254,7 @@
   "Mouse.CursorHeatmapSamples": "Observed seconds:",
   "Mouse.StatisticsTab": "Statistics",
   "Mouse.CursorHeatmapTitle": "Cursor heatmap",
-  "Mouse.CursorHeatmapHint": "Where the cursor spends the most time with the current monitor layout. A sample is taken every second.",
+  "Mouse.CursorHeatmapHint": "Heat is based on cursor dwell time and sampled movement paths for the current monitor layout.",
   "Achievement.single-key-100k.Title": "One key, one hundred thousand",
   "Achievement.single-key-100k.Description": "Press the same key 100,000 times",
   "Achievement.erase-artist.Title": "Correction artist",
@@ -286,5 +286,6 @@
   "Training.Date": "Date",
   "Training.Accuracy": "Accuracy",
   "Training.TextLength": "Text length",
-  "Training.Language": "Language"
+  "Training.Language": "Language",
+  "Mouse.CursorHeatmapVisits": "Movement points:"
 }

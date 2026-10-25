@@ -519,6 +519,8 @@
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                             <TextBlock Text="{services:Loc Mouse.CursorHeatmapSamples}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                             <TextBlock Text="{Binding CursorSampleSeconds, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
+                            <TextBlock Text="{services:Loc Mouse.CursorHeatmapVisits}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                            <TextBlock Text="{Binding CursorMovementVisits, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
                             <TextBlock Text="{Binding CursorLayout}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
