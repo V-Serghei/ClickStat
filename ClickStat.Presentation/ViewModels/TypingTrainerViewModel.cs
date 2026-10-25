@@ -101,6 +101,13 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         private set { _currentCharacter = value; OnPropertyChanged(); }
     }
 
+    private string _currentSpace = "";
+    public string CurrentSpace
+    {
+        get => _currentSpace;
+        private set { _currentSpace = value; OnPropertyChanged(); }
+    }
+
     private string _upcomingText = "";
     public string UpcomingText
     {
@@ -435,9 +442,10 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         var pageEnd = Math.Min(SourceText.Length, pageStart + PreviewPageLength);
         TypedPrefix = DisplayPreview(SourceText.Substring(pageStart, safePosition - pageStart));
 
-        CurrentCharacter = safePosition < SourceText.Length
-            ? DisplayPreview(SourceText[safePosition].ToString())
-            : "";
+        var next = safePosition < SourceText.Length ? SourceText[safePosition] : (char?)null;
+        CurrentCharacter = next is { } character && character != ' '
+            ? DisplayPreview(character.ToString()) : "";
+        CurrentSpace = next == ' ' ? "\u00a0" : "";
 
         var upcomingStart = Math.Min(SourceText.Length, safePosition + 1);
         UpcomingText = upcomingStart < pageEnd
