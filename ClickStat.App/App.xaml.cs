@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Diagnostics;
+using System.Windows.Threading;
 using ClickStat.Core.Interfaces;
 using ClickStat.Core.Services;
 using ClickStat.Infrastructure.Data;
@@ -18,6 +19,9 @@ public partial class App : Application
 
     public App()
     {
+        PerformanceLog.Record("event", "application.construct");
+        _ = Task.Run(StartDiagnostics);
+        using var timing = PerformanceLog.Measure("startup.configure_services");
         var services = new ServiceCollection();
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
@@ -27,17 +31,21 @@ public partial class App : Application
     private void Application_Startup(object sender, StartupEventArgs e)
     {
         PerformanceLog.Record("event", "application.start");
-        var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+        MainWindow mainWindow;
+        using (PerformanceLog.Measure("startup.resolve_window"))
+            mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
 
         var trayService = ServiceProvider.GetRequiredService<ITrayService>();
         trayService.Initialize(mainWindow);
         mainWindow.Show();
-        StartDiagnostics();
-
-        var mouseMonitor = ServiceProvider.GetRequiredService<IMouseMonitorService>();
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
-        ServiceProvider.GetRequiredService<IInputMonitorService>().InitializeRawInput(hwnd);
-        mouseMonitor.InitializeRawInput(hwnd);
+        PerformanceLog.Record("event", "startup.window_shown");
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            using var timing = PerformanceLog.Measure("startup.input_monitors");
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+            ServiceProvider.GetRequiredService<IInputMonitorService>().InitializeRawInput(hwnd);
+            ServiceProvider.GetRequiredService<MainViewModel>().StartMonitoring();
+        }, DispatcherPriority.ContextIdle);
     }
 
     private static void StartDiagnostics()

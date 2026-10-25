@@ -19,7 +19,7 @@ public class MouseStatisticsService : IMouseStatisticsService
 
     public void TrackScroll(int notches)        => _processor.TrackScroll(notches);
     public void TrackClickPosition()            => _processor.TrackClickPosition();
-    public void TrackMovement(int dx, int dy)   => _processor.TrackMovement(dx, dy);
+    public void TrackMovement(long distanceUnits, int x, int y) => _processor.TrackMovement(distanceUnits, x, y);
 
     public Task RegisterCustomButton(int buttonCode, string buttonName) =>
         _processor.RegisterCustomButton(buttonCode, buttonName);

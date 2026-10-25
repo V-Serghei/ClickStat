@@ -184,18 +184,20 @@ namespace ClickStat.Presentation.ViewModels
             _inputMonitorService.OnKeyDown   += OnKeyDownReceived;
             _inputMonitorService.OnKeyAction += OnKeyReceived;
             _inputMonitorService.OnKeyUp     += OnKeyUpReceived;
-            _inputMonitorService.StartMonitoring();
-
             _mouseMonitorService.OnButtonPressed += OnMouseButtonPressed;
             _mouseMonitorService.OnScroll        += OnMouseScrolled;
-            _mouseMonitorService.OnMoved         += (dx, dy) => _mouseStatisticsService.TrackMovement(dx, dy);
-            _mouseMonitorService.StartMonitoring();
-
+            _mouseMonitorService.OnMoved         += (units, x, y) => _mouseStatisticsService.TrackMovement(units, x, y);
             _breakReminder.ReminderTriggered += OnBreakReminder;
 
             RefreshCommand  = new RelayCommand(ExecuteRefresh);
             NavigateCommand = new RelayCommand(p => { if (p is AppPage page) NavigateTo(page); });
             _isInStartup   = _startupService.IsInStartup();
+        }
+
+        public void StartMonitoring()
+        {
+            _inputMonitorService.StartMonitoring();
+            _mouseMonitorService.StartMonitoring();
             UpdateLiveMode(_activePage);
         }
 

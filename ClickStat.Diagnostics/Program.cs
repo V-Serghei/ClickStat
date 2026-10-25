@@ -8,6 +8,8 @@ namespace ClickStat.Diagnostics;
 internal static class Program
 {
     private const int SampleSeconds = 2;
+    private const int StartupSampleMilliseconds = 500;
+    private const int StartupSampleSeconds = 20;
     private const int ProcessSnapshotSeconds = 30;
     private const long MaxLogBytes = 12 * 1024 * 1024;
     private static readonly string LogDirectory =
@@ -24,20 +26,30 @@ internal static class Program
 
         Directory.CreateDirectory(LogDirectory);
         string path = Path.Combine(LogDirectory, "resources.jsonl");
-        Write(path, new { kind = "monitor_start", time = DateTimeOffset.UtcNow, pid });
+        Write(path, new { kind = "monitor_start", time = DateTimeOffset.UtcNow, pid,
+            targetStartedAtUtc = new DateTime(startTicks, DateTimeKind.Utc) });
 
         var previousSystem = ReadSystemTimes();
         TimeSpan previousTargetCpu = TimeSpan.Zero;
+        try
+        {
+            using var initialTarget = Process.GetProcessById(pid);
+            previousTargetCpu = initialTarget.TotalProcessorTime;
+        }
+        catch { /* The target may have exited before monitoring begins. */ }
         IO_COUNTERS previousIo = default;
         bool hasPreviousIo = false;
         DateTime previousTime = DateTime.UtcNow;
+        DateTime monitorStarted = previousTime;
         var previousProcesses = new Dictionary<int, TimeSpan>();
-        DateTime lastProcessSnapshot = DateTime.MinValue;
+        DateTime lastProcessSnapshot = DateTime.UtcNow;
         int missingSamples = 0;
 
         while (true)
         {
-            await Task.Delay(TimeSpan.FromSeconds(SampleSeconds));
+            await Task.Delay(DateTime.UtcNow - monitorStarted < TimeSpan.FromSeconds(StartupSampleSeconds)
+                ? TimeSpan.FromMilliseconds(StartupSampleMilliseconds)
+                : TimeSpan.FromSeconds(SampleSeconds));
             Process? target = null;
             try
             {
@@ -57,7 +69,6 @@ internal static class Program
                     Environment.ProcessorCount * 100, 0, 100);
                 double systemCpuPercent = SystemCpuPercent(previousSystem, system);
                 var memory = ReadMemoryStatus();
-                if (previousTargetCpu == TimeSpan.Zero) appCpuPercent = 0;
 
                 Write(path, new
                 {

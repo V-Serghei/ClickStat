@@ -10,7 +10,7 @@ public interface IMouseStatisticsService
     void TrackButtonClick(int buttonCode, string buttonName);
     void TrackScroll(int notches);
     void TrackClickPosition();
-    void TrackMovement(int dx, int dy);
+    void TrackMovement(long distanceUnits, int x, int y);
     Task RegisterCustomButton(int buttonCode, string buttonName);
     Task<List<MouseStatistics>> GetButtonStatistics();
     Task<MouseScrollStatistics?> GetScrollStatistics();

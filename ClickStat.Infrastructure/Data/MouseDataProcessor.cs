@@ -179,23 +179,19 @@ public class MouseDataProcessor : IDisposable
         }
     }
 
-    // dx, dy = screen-pixel deltas from WH_MOUSE_LL global hook.
-    // 1 screen pixel at 96 DPI ≈ 0.2646 mm = 26.46 × 0.01mm units.
-    // Using the global hook gives accurate screen-pixel movement independent of mouse DPI.
-    public void TrackMovement(int dx, int dy)
+    // Called from the mouse monitor's low-rate worker, never from the system hook.
+    public void TrackMovement(long distanceUnits, int cursorX, int cursorY)
     {
-        long units = (long)(Math.Sqrt((double)dx * dx + (double)dy * dy) * 26.46);
-        if (units > 0) lock (_lock) _distanceBuffer += units;
+        if (distanceUnits > 0) lock (_lock) _distanceBuffer += distanceUnits;
         var now = Environment.TickCount64;
         var previousTick = Interlocked.Read(ref _lastMovementSampleTick);
         if (now - previousTick < 250) return;
         Interlocked.Exchange(ref _lastMovementSampleTick, now);
-        if (!GetCursorPos(out var point)) return;
         var bounds = SystemInformation.VirtualScreen;
-        if (bounds.Width <= 0 || bounds.Height <= 0 || !bounds.Contains(point)) return;
+        if (bounds.Width <= 0 || bounds.Height <= 0 || !bounds.Contains(cursorX, cursorY)) return;
         var layout = LayoutKey(bounds);
-        int x = Math.Clamp((int)((long)(point.X - bounds.Left) * CursorGridW / bounds.Width), 0, CursorGridW - 1);
-        int y = Math.Clamp((int)((long)(point.Y - bounds.Top) * CursorGridH / bounds.Height), 0, CursorGridH - 1);
+        int x = Math.Clamp((int)((long)(cursorX - bounds.Left) * CursorGridW / bounds.Width), 0, CursorGridW - 1);
+        int y = Math.Clamp((int)((long)(cursorY - bounds.Top) * CursorGridH / bounds.Height), 0, CursorGridH - 1);
         lock (_lock)
         {
             AddMovementCell(layout, x, y);
