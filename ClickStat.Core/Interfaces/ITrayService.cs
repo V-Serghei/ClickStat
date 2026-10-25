@@ -5,6 +5,7 @@ namespace ClickStat.Core.Interfaces;
 
 public interface ITrayService
 {
+    event Action<string>? AchievementNotificationClicked;
     void Initialize(Window window);
-    void ShowNotification(string title, string message);
+    void ShowNotification(string title, string message, string? achievementId = null);
 }

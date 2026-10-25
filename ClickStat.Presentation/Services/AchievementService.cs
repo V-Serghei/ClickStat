@@ -93,11 +93,14 @@ public sealed class AchievementService
             long mostUsedKey = keyCounts.Values.DefaultIfEmpty().Max();
             long letterCount = Enumerable.Range(65, 26).Count(code => keyCounts.GetValueOrDefault(code) > 0);
             long practicedLetters = Enumerable.Range(65, 26).Count(code => keyCounts.GetValueOrDefault(code) >= 100);
+            long masteredLetters = Enumerable.Range(65, 26).Count(code => keyCounts.GetValueOrDefault(code) >= 1_000);
             long distinctKeys = keyCounts.Count(pair => pair.Value > 0);
             long backspaces = keyCounts.GetValueOrDefault(8);
             long enters = keyCounts.GetValueOrDefault(13);
             long spaces = keyCounts.GetValueOrDefault(32);
+            long tabs = keyCounts.GetValueOrDefault(9);
             long quietCapsDays = await QuietKeyDaysAsync(db, "quiet-caps", keyCounts.GetValueOrDefault(20), daily);
+            long quietEscapeDays = await QuietKeyDaysAsync(db, "quiet-escape", keyCounts.GetValueOrDefault(27), daily);
             long days = daily.Count(pair => pair.Value > 0);
             long bestDay = daily.Values.DefaultIfEmpty().Max();
             long bestStreak = BestStreak(daily);
@@ -105,14 +108,18 @@ public sealed class AchievementService
             long scroll = await SumAsync(db, "MouseScrollStatistics", "ScrollUpNotches + ScrollDownNotches");
             long distanceMeters = await SumAsync(db, "MouseDistances", "TotalUnits") / 100_000;
             long apps = await CountAsync(db, "AppUsageStatistics", "KeyCount + ClickCount > 0");
+            long regularApps = await CountAsync(db, "AppUsageStatistics", "KeyCount + ClickCount >= 100");
             long appKeys = await SumAsync(db, "AppUsageStatistics", "KeyCount");
             long training = await CountAsync(db, "TypingTrainingResults", "1=1");
             long cleanTraining = await CountAsync(db, "TypingTrainingResults", "Accuracy >= 99.9");
+            long cleanParagraphs = await CountAsync(db, "TypingTrainingResults", "Errors = 0 AND CorrectChars >= 200");
             long trainingChars = await SumAsync(db, "TypingTrainingResults", "CorrectChars");
             long bestWpm = await MaxAsync(db, "TypingTrainingResults", "Wpm");
             long languages = await DistinctCountAsync(db, "TypingTrainingResults", "Language");
             long lateKeys = await FilteredSumAsync(db, "HourlyActivities", "Count", "Hour >= 22 OR Hour < 5");
             long weekendKeys = await FilteredSumAsync(db, "HourlyActivities", "Count", "DayOfWeek IN (0, 6)");
+            long cursorSeconds = await SumAsync(db, "CursorHeatmapCells", "Seconds");
+            long exploredCells = await CountAsync(db, "CursorHeatmapCells", "Visits > 0");
 
             var definitions = new List<(string id, string icon, string category, long value, long target)>
             {
@@ -123,20 +130,27 @@ public sealed class AchievementService
                 ("key-mountain", "⌨", "Keyboard", keys, 1_000_000),
                 ("single-key-100k", "◆", "Keyboard", mostUsedKey, 100_000),
                 ("single-key-250k", "◆", "Keyboard", mostUsedKey, 250_000),
+                ("single-key-500k", "◆", "Keyboard", mostUsedKey, 500_000),
                 ("alphabet-tour", "А", "Keyboard", letterCount, 26),
                 ("alphabet-practice", "А", "Keyboard", practicedLetters, 26),
+                ("alphabet-master", "А", "Keyboard", masteredLetters, 26),
                 ("key-collector", "⌨", "Keyboard", distinctKeys, 60),
+                ("key-collector-80", "⌨", "Keyboard", distinctKeys, 80),
                 ("erase-artist", "⌫", "Keyboard", backspaces, 10_000),
                 ("enter-specialist", "↵", "Keyboard", enters, 10_000),
                 ("space-explorer", "␣", "Keyboard", spaces, 100_000),
+                ("tab-regular", "⇥", "Keyboard", tabs, 5_000),
                 ("quiet-caps", "🔕", "Rhythm", quietCapsDays, 30),
+                ("quiet-escape", "🔕", "Rhythm", quietEscapeDays, 14),
                 ("one-day", "◷", "Rhythm", days, 1),
                 ("seven-days", "◷", "Rhythm", days, 7),
                 ("thirty-days", "◷", "Rhythm", days, 30),
+                ("hundred-days", "◷", "Rhythm", days, 100),
                 ("year-of-days", "◷", "Rhythm", days, 365),
                 ("three-day-streak", "✦", "Rhythm", bestStreak, 3),
                 ("week-streak", "✦", "Rhythm", bestStreak, 7),
                 ("month-streak", "✦", "Rhythm", bestStreak, 30),
+                ("sixty-day-streak", "✦", "Rhythm", bestStreak, 60),
                 ("busy-day", "☀", "Rhythm", bestDay, 1_000),
                 ("marathon-day", "☀", "Rhythm", bestDay, 10_000),
                 ("night-notes", "☾", "Rhythm", lateKeys, 500),
@@ -144,22 +158,30 @@ public sealed class AchievementService
                 ("first-clicks", "🖱", "Mouse", mouse, 100),
                 ("click-craft", "🖱", "Mouse", mouse, 10_000),
                 ("click-constellation", "🖱", "Mouse", mouse, 100_000),
+                ("million-clicks", "🖱", "Mouse", mouse, 1_000_000),
                 ("scroll-journey", "↕", "Mouse", scroll, 1_000),
                 ("scroll-atlas", "↕", "Mouse", scroll, 10_000),
+                ("scroll-cosmos", "↕", "Mouse", scroll, 100_000),
                 ("cursor-mile", "↗", "Mouse", distanceMeters, 1_609),
+                ("cursor-ten-km", "↗", "Mouse", distanceMeters, 10_000),
+                ("cursor-day", "◉", "Mouse", cursorSeconds, 86_400),
+                ("cursor-explorer", "◉", "Mouse", exploredCells, 500),
                 ("first-session", "⚡", "Training", training, 1),
                 ("ten-sessions", "⚡", "Training", training, 10),
                 ("hundred-sessions", "⚡", "Training", training, 100),
                 ("perfect-line", "✓", "Training", cleanTraining, 1),
                 ("perfect-ten", "✓", "Training", cleanTraining, 10),
+                ("clean-paragraph", "✓", "Training", cleanParagraphs, 1),
                 ("speed-40", "⚡", "Training", bestWpm, 40),
                 ("speed-80", "⚡", "Training", bestWpm, 80),
+                ("speed-100", "⚡", "Training", bestWpm, 100),
                 ("training-thousand", "✎", "Training", trainingChars, 1_000),
                 ("training-ten-thousand", "✎", "Training", trainingChars, 10_000),
                 ("two-languages", "🌐", "Training", languages, 2),
                 ("three-apps", "▣", "Apps", apps, 3),
                 ("ten-apps", "▣", "Apps", apps, 10),
                 ("app-explorer", "▣", "Apps", apps, 30),
+                ("app-regular", "▣", "Apps", regularApps, 10),
                 ("app-keys", "▣", "Apps", appKeys, 10_000)
             };
 
@@ -187,11 +209,11 @@ public sealed class AchievementService
             if (newlyUnlocked.Count > 0)
             {
                 var loc = LocalizationService.Instance;
-                var title = loc["Achievements.Unlocked"];
+                var title = "🏆 " + loc["Achievements.Unlocked"];
                 var first = loc["Achievement." + newlyUnlocked[0] + ".Title"];
                 var message = newlyUnlocked.Count == 1 ? first : $"{first} (+{newlyUnlocked.Count - 1})";
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    _tray.ShowNotification(title, message));
+                    _tray.ShowNotification(title, message, newlyUnlocked[0]));
             }
 
             return result;

@@ -41,6 +41,7 @@ namespace ClickStat.Presentation.ViewModels
         private readonly AppUsageProcessor       _appUsageProcessor;
         private readonly InputTemplateProcessor  _inputTemplateProcessor;
         private readonly BreakReminderService    _breakReminder;
+        private readonly ITrayService _trayService;
         private bool _isTemplatePickerOpen;
         private InputTemplatePickerDialog? _templatePickerDialog;
         private bool _isSelectionCaptureInProgress;
@@ -133,6 +134,7 @@ namespace ClickStat.Presentation.ViewModels
             AppUsageProcessor       appUsageProcessor,
             InputTemplateProcessor  inputTemplateProcessor,
             BreakReminderService    breakReminder,
+            ITrayService            trayService,
             OverviewViewModel       overviewVm,
             KeyboardViewModel       keyboardVm,
             MouseViewModel          mouseVm,
@@ -155,6 +157,8 @@ namespace ClickStat.Presentation.ViewModels
             _appUsageProcessor      = appUsageProcessor;
             _inputTemplateProcessor = inputTemplateProcessor;
             _breakReminder          = breakReminder;
+            _trayService            = trayService;
+            _trayService.AchievementNotificationClicked += OnAchievementNotificationClicked;
 
             OverviewVm = overviewVm;
             KeyboardVm = keyboardVm;
@@ -198,6 +202,19 @@ namespace ClickStat.Presentation.ViewModels
         // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void NavigateTo(AppPage page) => ActivePage = page;
+
+        private async void OnAchievementNotificationClicked(string id)
+        {
+            try
+            {
+                ActivePage = AppPage.Achievements;
+                await AchievementsVm.OpenDetailAsync(id, refresh: true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Opening achievement failed: {ex.Message}");
+            }
+        }
 
         private void UpdateWordsNavigation()
         {

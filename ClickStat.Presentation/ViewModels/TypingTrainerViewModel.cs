@@ -301,26 +301,29 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
+            RefreshTiming();
+            IsRunning = false;
+            IsPaused = false;
+            _timer.Stop();
 
-        RefreshTiming();
-        IsRunning = false;
-        IsPaused = false;
-        _timer.Stop();
+            string saveError = "";
+            try
+            {
+                await _processor.SaveResultAsync(
+                    DetectedLanguage, TotalCharacters, CorrectChars, Errors,
+                    Accuracy, Cpm, Wpm, Math.Max(ElapsedSeconds, 1));
+                _resultSaved = true;
+                Status = "Result saved";
+            }
+            catch (Exception ex)
+            {
+                saveError = ex.Message;
+                Status = "Result could not be saved";
+            }
 
-        await _processor.SaveResultAsync(
-            DetectedLanguage,
-            TotalCharacters,
-            CorrectChars,
-            Errors,
-            Accuracy,
-            Cpm,
-            Wpm,
-            Math.Max(ElapsedSeconds, 1));
-
-        _resultSaved = true;
-        Status = "Result saved";
-        SessionFinished?.Invoke(new TrainingSessionResult(DetectedLanguage, TotalCharacters,
-            CorrectChars, Errors, Accuracy, Cpm, Wpm, Math.Max(ElapsedSeconds, 1)));
+            SessionFinished?.Invoke(new TrainingSessionResult(DetectedLanguage, TotalCharacters,
+                CorrectChars, Errors, Accuracy, Cpm, Wpm, Math.Max(ElapsedSeconds, 1),
+                _resultSaved, saveError));
         }
         finally { _isFinishing = false; }
     }

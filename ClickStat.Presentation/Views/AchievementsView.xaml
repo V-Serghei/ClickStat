@@ -32,7 +32,7 @@
                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="275" MinHeight="146" Margin="0,0,12,12" Padding="14" CornerRadius="9" BorderThickness="1">
+                            <Border Width="275" MinHeight="146" Margin="0,0,12,12" Padding="14" CornerRadius="9" BorderThickness="1" Cursor="Hand" MouseLeftButtonUp="Achievement_Click">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="#17182D"/>

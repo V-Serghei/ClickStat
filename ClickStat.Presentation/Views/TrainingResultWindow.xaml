@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:ClickStat.Presentation.Services"
         Title="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.ResultTitle]}"
-        Width="520" Height="460" MinWidth="460" MinHeight="400"
+        Width="520" Height="500" MinWidth="460" MinHeight="460"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterOwner"
         Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=WindowBackground}">
     <Window.Resources>
@@ -15,7 +15,7 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <StackPanel>
             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.ResultTitle]}" FontSize="24" FontWeight="Bold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
-            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.ResultHint]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,5,0,0"/>
+            <TextBlock Text="{Binding ResultHint}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
         </StackPanel>
         <UniformGrid Grid.Row="1" Columns="2" Rows="4" Margin="0,18,0,12">
             <Border Style="{StaticResource ResultCard}"><StackPanel><TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Language]}" Style="{StaticResource ResultLabel}"/><TextBlock Text="{Binding Language}" Style="{StaticResource ResultValue}"/></StackPanel></Border>
