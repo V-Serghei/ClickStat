@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using ClickStat.Infrastructure.Data.Context;
 using ClickStat.Infrastructure.Data.Model;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Timer = System.Timers.Timer;
 
@@ -27,6 +28,8 @@ public class MouseDataProcessor : IDisposable
 
     private const int GridW = 80;  // 1920 / 24
     private const int GridH = 45;  // 1080 / 24
+    private const int CursorGridW = 80;
+    private const int CursorGridH = 45;
 
     private readonly string _dbPath;
     private readonly HashSet<int> _registeredCodes = new();
@@ -35,8 +38,10 @@ public class MouseDataProcessor : IDisposable
     private long _scrollDownBuffer;
     private long _distanceBuffer; // 0.01 mm units
     private readonly Dictionary<int, int> _heatmapBuffer = new(); // cellId → delta
+    private readonly Dictionary<(string layout, int id), long> _cursorHeatmapBuffer = new();
     private readonly object _lock = new();
     private readonly Timer _saveTimer;
+    private readonly Timer _cursorSampleTimer;
     private readonly SemaphoreSlim _flushGate = new(1, 1);
 
     public MouseDataProcessor()
@@ -53,6 +58,9 @@ public class MouseDataProcessor : IDisposable
         _saveTimer = new Timer(SaveIntervalSeconds * 1000) { AutoReset = true };
         _saveTimer.Elapsed += async (_, _) => await FlushToDatabase();
         _saveTimer.Start();
+        _cursorSampleTimer = new Timer(1000) { AutoReset = true };
+        _cursorSampleTimer.Elapsed += (_, _) => SampleCursorPosition();
+        _cursorSampleTimer.Start();
     }
 
     // ──────────────────────────────────────────────
@@ -92,6 +100,14 @@ public class MouseDataProcessor : IDisposable
             CREATE TABLE IF NOT EXISTS MouseDistances (
                 Id         INTEGER PRIMARY KEY,
                 TotalUnits INTEGER NOT NULL DEFAULT 0
+            )");
+
+        ctx.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS CursorHeatmapCells (
+                LayoutKey TEXT NOT NULL,
+                CellId INTEGER NOT NULL,
+                Seconds INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (LayoutKey, CellId)
             )");
     }
 
@@ -179,6 +195,29 @@ public class MouseDataProcessor : IDisposable
             _heatmapBuffer[id] = _heatmapBuffer.GetValueOrDefault(id) + 1;
     }
 
+    private void SampleCursorPosition()
+    {
+        if (!GetCursorPos(out var point)) return;
+        var bounds = SystemInformation.VirtualScreen;
+        if (bounds.Width <= 0 || bounds.Height <= 0 || !bounds.Contains(point)) return;
+        var layout = LayoutKey(bounds);
+        int x = Math.Clamp((int)((long)(point.X - bounds.Left) * CursorGridW / bounds.Width), 0, CursorGridW - 1);
+        int y = Math.Clamp((int)((long)(point.Y - bounds.Top) * CursorGridH / bounds.Height), 0, CursorGridH - 1);
+        lock (_lock)
+        {
+            var key = (layout, x * CursorGridH + y);
+            _cursorHeatmapBuffer[key] = _cursorHeatmapBuffer.GetValueOrDefault(key) + 1;
+        }
+    }
+
+    private static string LayoutKey(System.Drawing.Rectangle bounds)
+    {
+        var screens = Screen.AllScreens
+            .OrderBy(screen => screen.DeviceName, StringComparer.Ordinal)
+            .Select(screen => $"{screen.DeviceName}:{screen.Bounds.Left}:{screen.Bounds.Top}:{screen.Bounds.Width}:{screen.Bounds.Height}");
+        return $"{bounds.Left}:{bounds.Top}:{bounds.Width}:{bounds.Height}|{string.Join('|', screens)}";
+    }
+
     // ──────────────────────────────────────────────
     // Custom button registration
     // ──────────────────────────────────────────────
@@ -236,6 +275,28 @@ public class MouseDataProcessor : IDisposable
         return await ctx.MouseClickCells.Where(c => c.Count > 0).ToListAsync();
     }
 
+    public async Task<CursorHeatmap> GetCursorHeatmapAsync()
+    {
+        var bounds = SystemInformation.VirtualScreen;
+        var cells = new List<CursorHeatmapCell>();
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = _dbPath, Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Shared, DefaultTimeout = 5
+        }.ToString());
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT CellId, Seconds FROM CursorHeatmapCells WHERE LayoutKey = $layout";
+        command.Parameters.AddWithValue("$layout", LayoutKey(bounds));
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            int id = reader.GetInt32(0);
+            cells.Add(new CursorHeatmapCell(id / CursorGridH, id % CursorGridH, reader.GetInt64(1)));
+        }
+        return new CursorHeatmap(bounds.Left, bounds.Top, bounds.Width, bounds.Height, cells);
+    }
+
     // ──────────────────────────────────────────────
     // Persistence
     // ──────────────────────────────────────────────
@@ -252,6 +313,7 @@ public class MouseDataProcessor : IDisposable
     {
         Dictionary<int, (string name, long count)> buttonSnapshot;
         Dictionary<int, int> heatSnap;
+        Dictionary<(string layout, int id), long> cursorSnap;
         long scrollUp, scrollDown, distance;
 
         lock (_lock)
@@ -259,14 +321,17 @@ public class MouseDataProcessor : IDisposable
             bool empty = _buttonBuffer.Count == 0 && _scrollUpBuffer == 0
                       && _scrollDownBuffer == 0 && _distanceBuffer == 0
                       && _heatmapBuffer.Count == 0;
+            empty = empty && _cursorHeatmapBuffer.Count == 0;
             if (empty) return;
 
             buttonSnapshot = new Dictionary<int, (string, long)>(_buttonBuffer);
             heatSnap       = new Dictionary<int, int>(_heatmapBuffer);
+            cursorSnap     = new Dictionary<(string layout, int id), long>(_cursorHeatmapBuffer);
             scrollUp       = _scrollUpBuffer;
             scrollDown     = _scrollDownBuffer;
             distance       = _distanceBuffer;
             _buttonBuffer.Clear(); _heatmapBuffer.Clear();
+            _cursorHeatmapBuffer.Clear();
             _scrollUpBuffer = 0; _scrollDownBuffer = 0; _distanceBuffer = 0;
         }
 
@@ -321,6 +386,13 @@ public class MouseDataProcessor : IDisposable
                 });
             }
 
+            foreach (var ((layout, id), seconds) in cursorSnap)
+                await ctx.Database.ExecuteSqlRawAsync("""
+                    INSERT INTO CursorHeatmapCells (LayoutKey, CellId, Seconds)
+                    VALUES ({0}, {1}, {2})
+                    ON CONFLICT(LayoutKey, CellId) DO UPDATE SET Seconds = Seconds + excluded.Seconds
+                    """, layout, id, seconds);
+
             await ctx.SaveChangesAsync();
             await tx.CommitAsync();
         }
@@ -336,6 +408,8 @@ public class MouseDataProcessor : IDisposable
                 }
                 foreach (var (id, delta) in heatSnap)
                     _heatmapBuffer[id] = _heatmapBuffer.GetValueOrDefault(id) + delta;
+                foreach (var (key, seconds) in cursorSnap)
+                    _cursorHeatmapBuffer[key] = _cursorHeatmapBuffer.GetValueOrDefault(key) + seconds;
                 _scrollUpBuffer += scrollUp;
                 _scrollDownBuffer += scrollDown;
                 _distanceBuffer += distance;
@@ -349,6 +423,7 @@ public class MouseDataProcessor : IDisposable
     public async Task OnApplicationExitAsync()
     {
         _saveTimer.Stop();
+        _cursorSampleTimer.Stop();
         await FlushToDatabase();
     }
 
@@ -356,6 +431,8 @@ public class MouseDataProcessor : IDisposable
     {
         _saveTimer.Stop();
         _saveTimer.Dispose();
+        _cursorSampleTimer.Stop();
+        _cursorSampleTimer.Dispose();
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]

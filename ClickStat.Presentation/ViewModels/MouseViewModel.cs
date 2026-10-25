@@ -12,6 +12,7 @@ using ClickStat.Core.Interfaces;
 using ClickStat.Presentation.Model;
 using ClickStat.Presentation.Services;
 using ClickStat.Presentation.Views;
+using System.Windows.Media.Imaging;
 
 namespace ClickStat.Presentation.ViewModels;
 
@@ -19,6 +20,23 @@ public class MouseViewModel : INotifyPropertyChanged
 {
     private readonly IMouseStatisticsService _statisticsService;
     private readonly LiveEventBus            _liveBus;
+    private bool _showCursorHeatmap;
+    private BitmapSource? _cursorHeatmapImage;
+    private long _cursorSampleSeconds;
+    private string _cursorLayout = "";
+    private double _cursorHeatmapWidth = 720;
+    private string _cursorHeatmapError = "";
+
+    public bool ShowCursorHeatmap { get => _showCursorHeatmap; private set { _showCursorHeatmap = value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowStatistics)); } }
+    public bool ShowStatistics => !ShowCursorHeatmap;
+    public BitmapSource? CursorHeatmapImage { get => _cursorHeatmapImage; private set { _cursorHeatmapImage = value; OnPropertyChanged(); } }
+    public long CursorSampleSeconds { get => _cursorSampleSeconds; private set { _cursorSampleSeconds = value; OnPropertyChanged(); } }
+    public string CursorLayout { get => _cursorLayout; private set { _cursorLayout = value; OnPropertyChanged(); } }
+    public double CursorHeatmapWidth { get => _cursorHeatmapWidth; private set { _cursorHeatmapWidth = value; OnPropertyChanged(); } }
+    public string CursorHeatmapError { get => _cursorHeatmapError; private set { _cursorHeatmapError = value; OnPropertyChanged(); } }
+    public ICommand ShowStatisticsCommand { get; }
+    public ICommand ShowCursorHeatmapCommand { get; }
+    public ICommand RefreshCursorHeatmapCommand { get; }
 
     // ── Standard buttons ───────────────────────────────────────────────────
     public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     LocalizationService.Instance["Mouse.LeftButton"]);
@@ -104,6 +122,9 @@ public class MouseViewModel : INotifyPropertyChanged
 
         AddButtonCommand = new RelayCommand(_ => OpenAddButtonDialog());
         RefreshCommand   = new RelayCommand(async _ => await LoadDataAsync());
+        ShowStatisticsCommand = new RelayCommand(_ => ShowCursorHeatmap = false);
+        ShowCursorHeatmapCommand = new RelayCommand(_ => { ShowCursorHeatmap = true; _ = LoadCursorHeatmapAsync(); });
+        RefreshCursorHeatmapCommand = new RelayCommand(_ => _ = LoadCursorHeatmapAsync());
 
         // Always subscribe to live bus — accumulate session deltas even when tab is closed
         _liveBus.MouseButtonPressed += OnButtonPressedAlways;
@@ -114,6 +135,11 @@ public class MouseViewModel : INotifyPropertyChanged
     // ── DB load ─────────────────────────────────────────────────────────────
     public async Task LoadDataAsync()
     {
+        if (ShowCursorHeatmap)
+        {
+            await LoadCursorHeatmapAsync();
+            return;
+        }
         using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("mouse.load");
         IsLoading = true;
         await Task.Yield();
@@ -154,6 +180,23 @@ public class MouseViewModel : INotifyPropertyChanged
             ScrollUpNotches   = _dbScrollUp;
             ScrollDownNotches = _dbScrollDown;
         }
+        finally { IsLoading = false; }
+    }
+
+    private async Task LoadCursorHeatmapAsync()
+    {
+        IsLoading = true;
+        CursorHeatmapError = "";
+        try
+        {
+            await _statisticsService.FlushAsync();
+            var map = await _statisticsService.GetCursorHeatmapAsync();
+            CursorHeatmapImage = await Task.Run(() => CursorHeatmapRenderer.Render(map));
+            CursorSampleSeconds = map.TotalSeconds;
+            CursorLayout = $"{map.Width} × {map.Height}";
+            CursorHeatmapWidth = Math.Clamp(400.0 * map.Width / Math.Max(1, map.Height), 500, 1600);
+        }
+        catch (Exception ex) { CursorHeatmapError = ex.Message; }
         finally { IsLoading = false; }
     }
 

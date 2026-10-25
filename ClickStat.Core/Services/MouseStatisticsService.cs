@@ -29,6 +29,8 @@ public class MouseStatisticsService : IMouseStatisticsService
 
     public Task<MouseScrollStatistics?> GetScrollStatistics() =>
         _processor.GetScrollStatistics();
+    public Task<CursorHeatmap> GetCursorHeatmapAsync() =>
+        _processor.GetCursorHeatmapAsync();
 
     public Task FlushAsync()             => _processor.FlushAsync();
     public Task OnApplicationExitAsync() => _processor.OnApplicationExitAsync();
