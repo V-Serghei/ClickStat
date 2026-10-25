@@ -31,7 +31,7 @@ public sealed class TrainingKeyStat : INotifyPropertyChanged
 
 public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 {
-    private const int PreviewRadius = 42;
+    private const int PreviewPageLength = 48;
     private readonly LiveEventBus _liveBus;
     private readonly TypingTrainingProcessor _processor;
     private readonly DispatcherTimer _timer;
@@ -41,6 +41,10 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private DateTime _startedAt;
     private TimeSpan _pausedElapsed;
     private bool _disposed;
+    private bool _resultSaved;
+    private bool _isFinishing;
+
+    public event Action<TrainingSessionResult>? SessionFinished;
 
     public TypingTrainerViewModel(LiveEventBus liveBus, TypingTrainingProcessor processor)
     {
@@ -75,7 +79,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             if (_sourceText == value) return;
-            _sourceText = value ?? "";
+            _sourceText = (value ?? "").Replace("\r\n", "\n").Replace('\r', '\n');
             OnPropertyChanged();
             OnPropertyChanged(nameof(CanStart));
             if (!IsRunning && !IsPaused)
@@ -247,6 +251,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
         if (!CanStart) return;
 
         ResetProgressOnly();
+        _resultSaved = false;
         _startedAt = DateTime.Now;
         _pausedElapsed = TimeSpan.Zero;
         IsRunning = true;
@@ -289,8 +294,13 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task FinishAsync()
     {
-        if (Position == 0)
+        if (Position == 0 || _resultSaved || _isFinishing)
             return;
+
+        _isFinishing = true;
+
+        try
+        {
 
         RefreshTiming();
         IsRunning = false;
@@ -307,7 +317,12 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
             Wpm,
             Math.Max(ElapsedSeconds, 1));
 
+        _resultSaved = true;
         Status = "Result saved";
+        SessionFinished?.Invoke(new TrainingSessionResult(DetectedLanguage, TotalCharacters,
+            CorrectChars, Errors, Accuracy, Cpm, Wpm, Math.Max(ElapsedSeconds, 1)));
+        }
+        finally { _isFinishing = false; }
     }
 
     private async void OnKeyInput(Keys key, bool shift)
@@ -387,6 +402,7 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
 
     private void ResetProgressOnly()
     {
+        _resultSaved = false;
         _keyStats.Clear();
         SessionKeyCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         KeyStats.Clear();
@@ -410,17 +426,23 @@ public sealed class TypingTrainerViewModel : INotifyPropertyChanged, IDisposable
     private void UpdatePreview()
     {
         var safePosition = Math.Clamp(Position, 0, SourceText.Length);
-        var prefixStart = Math.Max(0, safePosition - PreviewRadius);
-        TypedPrefix = SourceText.Substring(prefixStart, safePosition - prefixStart);
+        var pageStart = safePosition == SourceText.Length && safePosition > 0
+            ? (safePosition - 1) / PreviewPageLength * PreviewPageLength
+            : safePosition / PreviewPageLength * PreviewPageLength;
+        var pageEnd = Math.Min(SourceText.Length, pageStart + PreviewPageLength);
+        TypedPrefix = DisplayPreview(SourceText.Substring(pageStart, safePosition - pageStart));
 
         CurrentCharacter = safePosition < SourceText.Length
-            ? DisplayChar(SourceText[safePosition])
+            ? DisplayPreview(SourceText[safePosition].ToString())
             : "";
 
         var upcomingStart = Math.Min(SourceText.Length, safePosition + 1);
-        var upcomingLength = Math.Min(PreviewRadius, SourceText.Length - upcomingStart);
-        UpcomingText = upcomingLength > 0 ? SourceText.Substring(upcomingStart, upcomingLength) : "";
+        UpcomingText = upcomingStart < pageEnd
+            ? DisplayPreview(SourceText.Substring(upcomingStart, pageEnd - upcomingStart)) : "";
     }
+
+    private static string DisplayPreview(string text) => text
+        .Replace(' ', '\u00a0').Replace('\n', '↵').Replace('\r', '↵').Replace('\t', '⇥');
 
     private static bool IsIgnoredKey(Keys key) =>
         key is Keys.ShiftKey or Keys.LShiftKey or Keys.RShiftKey

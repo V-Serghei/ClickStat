@@ -222,9 +222,9 @@
                                Margin="14,0,0,0"/>
                 </Grid>
 
-                <TextBlock FontSize="24" FontWeight="SemiBold" TextWrapping="NoWrap">
+                <TextBlock FontSize="24" FontFamily="Consolas" TextWrapping="NoWrap">
                     <Run Text="{Binding TypedPrefix, Mode=OneWay}" Foreground="#46C878"/>
-                    <Run Text="{Binding CurrentCharacter, Mode=OneWay}" Foreground="#FFE02E"/>
+                    <Run Text="{Binding CurrentCharacter, Mode=OneWay}" Foreground="White" Background="#7046BB"/>
                     <Run Text="{Binding UpcomingText, Mode=OneWay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
                 </TextBlock>
 

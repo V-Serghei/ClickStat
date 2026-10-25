@@ -275,5 +275,16 @@
   "Achievement.space-explorer.Description": "Press Space 100,000 times",
   "Achievements.Locked": "Locked",
   "Mouse.HeatLow": "Less time",
-  "Mouse.HeatHigh": "More time"
+  "Mouse.HeatHigh": "More time",
+  "Training.ResultHint": "Result saved. Close this window when ready.",
+  "Training.Duration": "Duration",
+  "Training.ResultTitle": "Training result",
+  "Training.Cpm": "CPM",
+  "Training.Errors": "Errors",
+  "Training.Correct": "Correct characters",
+  "Training.Wpm": "WPM",
+  "Training.Date": "Date",
+  "Training.Accuracy": "Accuracy",
+  "Training.TextLength": "Text length",
+  "Training.Language": "Language"
 }

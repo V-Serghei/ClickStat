@@ -275,5 +275,16 @@
   "Achievement.space-explorer.Description": "Нажать пробел 100 000 раз",
   "Achievements.Locked": "Не получено",
   "Mouse.HeatLow": "Реже",
-  "Mouse.HeatHigh": "Чаще"
+  "Mouse.HeatHigh": "Чаще",
+  "Training.ResultHint": "Результат сохранён. Можно закрыть это окно крестиком.",
+  "Training.Duration": "Время",
+  "Training.ResultTitle": "Результат тренировки",
+  "Training.Cpm": "Зн./мин",
+  "Training.Errors": "Ошибки",
+  "Training.Correct": "Верных символов",
+  "Training.Wpm": "Слов/мин",
+  "Training.Date": "Дата",
+  "Training.Accuracy": "Точность",
+  "Training.TextLength": "Длина текста",
+  "Training.Language": "Язык"
 }

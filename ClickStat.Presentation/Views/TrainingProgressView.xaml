@@ -186,6 +186,17 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,12"/>
 
+                        <Grid Margin="12,0,12,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="1.3*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Language]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Wpm]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Cpm]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="3" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Accuracy]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="4" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Errors]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="5" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Training.Date]}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        </Grid>
                         <ItemsControl ItemsSource="{Binding RecentResults}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -205,10 +216,10 @@
                                                 <ColumnDefinition Width="1.3*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Language}" Foreground="#AA70FF" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Wpm, StringFormat=WPM {0}}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding Cpm, StringFormat=CPM {0}}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Wpm}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Cpm}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Accuracy, StringFormat={}{0}%}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
-                                            <TextBlock Grid.Column="4" Text="{Binding Errors, StringFormat=Errors {0}}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding Errors}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
                                             <TextBlock Grid.Column="5" Text="{Binding CompletedAt}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" HorizontalAlignment="Right"/>
                                         </Grid>
                                     </Border>
