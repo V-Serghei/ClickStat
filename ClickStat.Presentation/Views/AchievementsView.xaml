@@ -32,19 +32,34 @@
                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="275" MinHeight="146" Margin="0,0,12,12" Padding="14" CornerRadius="9" BorderThickness="1"
-                                    Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
-                                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}">
+                            <Border Width="275" MinHeight="146" Margin="0,0,12,12" Padding="14" CornerRadius="9" BorderThickness="1">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#17182D"/>
+                                        <Setter Property="BorderBrush" Value="#343650"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnlocked}" Value="True"><Setter Property="Background" Value="#24203F"/><Setter Property="BorderBrush" Value="#7654AC"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <StackPanel>
                                     <DockPanel>
-                                        <TextBlock Text="{Binding Icon}" FontSize="22" Foreground="#AA70FF" Margin="0,0,9,0"/>
+                                        <TextBlock DockPanel.Dock="Right" Text="🔒" FontSize="17" Margin="8,0,0,0" ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Achievements.Locked]}">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsUnlocked}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock DockPanel.Dock="Right" Text="✓" FontSize="18" Foreground="#65D799" Margin="8,0,0,0">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsUnlocked}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Icon}" FontSize="22" Foreground="#AA70FF" Margin="0,0,9,0">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsUnlocked}" Value="False"><Setter Property="Opacity" Value="0.4"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
                                         <StackPanel>
                                             <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
                                             <TextBlock Text="{Binding Category}" FontSize="10" Foreground="#AA70FF"/>
                                         </StackPanel>
                                     </DockPanel>
                                     <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,8" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/>
-                                    <ProgressBar Value="{Binding Percent}" Maximum="100" Height="5" Foreground="#AA70FF"/>
+                                    <ProgressBar Value="{Binding Percent}" Maximum="100" Height="5" Foreground="#AA70FF" Background="#111326"/>
                                     <DockPanel Margin="0,7,0,0">
                                         <TextBlock Text="{Binding Counter}" FontSize="11" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                                         <TextBlock Text="{Binding UnlockedDate}" HorizontalAlignment="Right" FontSize="11" Foreground="#50C878"/>

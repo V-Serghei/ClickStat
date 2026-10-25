@@ -57,6 +57,11 @@ public sealed class AchievementService
                         Id TEXT PRIMARY KEY,
                         UnlockedAt TEXT NOT NULL
                     );
+                    CREATE TABLE IF NOT EXISTS AchievementChallenges (
+                        Id TEXT PRIMARY KEY,
+                        BaselineCount INTEGER NOT NULL,
+                        StartedAt TEXT NOT NULL
+                    );
                     """;
                 await schema.ExecuteNonQueryAsync();
             }
@@ -84,6 +89,15 @@ public sealed class AchievementService
             }
 
             long keys = await SumAsync(db, "KeyStatisticsForTheDay", "ClickCount");
+            var keyCounts = await ReadKeyCountsAsync(db);
+            long mostUsedKey = keyCounts.Values.DefaultIfEmpty().Max();
+            long letterCount = Enumerable.Range(65, 26).Count(code => keyCounts.GetValueOrDefault(code) > 0);
+            long practicedLetters = Enumerable.Range(65, 26).Count(code => keyCounts.GetValueOrDefault(code) >= 100);
+            long distinctKeys = keyCounts.Count(pair => pair.Value > 0);
+            long backspaces = keyCounts.GetValueOrDefault(8);
+            long enters = keyCounts.GetValueOrDefault(13);
+            long spaces = keyCounts.GetValueOrDefault(32);
+            long quietCapsDays = await QuietKeyDaysAsync(db, "quiet-caps", keyCounts.GetValueOrDefault(20), daily);
             long days = daily.Count(pair => pair.Value > 0);
             long bestDay = daily.Values.DefaultIfEmpty().Max();
             long bestStreak = BestStreak(daily);
@@ -107,6 +121,15 @@ public sealed class AchievementService
                 ("ten-thousand", "⌨", "Keyboard", keys, 10_000),
                 ("key-river", "⌨", "Keyboard", keys, 100_000),
                 ("key-mountain", "⌨", "Keyboard", keys, 1_000_000),
+                ("single-key-100k", "◆", "Keyboard", mostUsedKey, 100_000),
+                ("single-key-250k", "◆", "Keyboard", mostUsedKey, 250_000),
+                ("alphabet-tour", "А", "Keyboard", letterCount, 26),
+                ("alphabet-practice", "А", "Keyboard", practicedLetters, 26),
+                ("key-collector", "⌨", "Keyboard", distinctKeys, 60),
+                ("erase-artist", "⌫", "Keyboard", backspaces, 10_000),
+                ("enter-specialist", "↵", "Keyboard", enters, 10_000),
+                ("space-explorer", "␣", "Keyboard", spaces, 100_000),
+                ("quiet-caps", "🔕", "Rhythm", quietCapsDays, 30),
                 ("one-day", "◷", "Rhythm", days, 1),
                 ("seven-days", "◷", "Rhythm", days, 7),
                 ("thirty-days", "◷", "Rhythm", days, 30),
@@ -155,9 +178,10 @@ public sealed class AchievementService
                         newlyUnlocked.Add(item.id);
                     unlocked[item.id] = date;
                 }
+                DateTimeOffset? unlockedAt = unlocked.TryGetValue(item.id, out var saved) ? saved : null;
                 result.Add(new AchievementProgress(item.id, item.icon, item.category,
                     "Achievement." + item.id + ".Title", "Achievement." + item.id + ".Description",
-                    item.value, item.target, unlocked.GetValueOrDefault(item.id) is { } saved ? saved : null));
+                    item.value, item.target, unlockedAt));
             }
 
             if (newlyUnlocked.Count > 0)
@@ -181,6 +205,54 @@ public sealed class AchievementService
         command.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$name";
         command.Parameters.AddWithValue("$name", table);
         return await command.ExecuteScalarAsync() != null;
+    }
+
+    private static async Task<Dictionary<int, long>> ReadKeyCountsAsync(SqliteConnection db)
+    {
+        var result = new Dictionary<int, long>();
+        if (!await TableExistsAsync(db, "KeyStatistics")) return result;
+        await using var command = db.CreateCommand();
+        command.CommandText = "SELECT KeyCode, Count FROM KeyStatistics";
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            result[reader.GetInt32(0)] = reader.GetInt64(1);
+        return result;
+    }
+
+    private static async Task<long> QuietKeyDaysAsync(SqliteConnection db, string id,
+        long currentCount, SortedDictionary<DateTime, long> daily)
+    {
+        long baseline = currentCount;
+        DateTime started = DateTime.Today;
+        bool exists = false;
+        await using (var query = db.CreateCommand())
+        {
+            query.CommandText = "SELECT BaselineCount, StartedAt FROM AchievementChallenges WHERE Id=$id";
+            query.Parameters.AddWithValue("$id", id);
+            await using var reader = await query.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                exists = true;
+                baseline = reader.GetInt64(0);
+                if (DateTime.TryParse(reader.GetString(1), CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out var value)) started = value.Date;
+            }
+        }
+        if (!exists || currentCount > baseline)
+        {
+            started = DateTime.Today;
+            await using var update = db.CreateCommand();
+            update.CommandText = """
+                INSERT INTO AchievementChallenges (Id, BaselineCount, StartedAt)
+                VALUES ($id, $count, $started)
+                ON CONFLICT(Id) DO UPDATE SET BaselineCount=excluded.BaselineCount, StartedAt=excluded.StartedAt
+                """;
+            update.Parameters.AddWithValue("$id", id);
+            update.Parameters.AddWithValue("$count", currentCount);
+            update.Parameters.AddWithValue("$started", started.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            await update.ExecuteNonQueryAsync();
+        }
+        return daily.Count(pair => pair.Key >= started && pair.Value > 0);
     }
 
     private static async Task<long> ScalarAsync(SqliteConnection db, string table, string expression, string aggregate, string? where = null)
