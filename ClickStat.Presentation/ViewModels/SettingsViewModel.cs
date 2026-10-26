@@ -57,16 +57,30 @@ public class SettingsViewModel : INotifyPropertyChanged
     }
 
     // ── Startup ───────────────────────────────────────────────────────────
+    private string _startupError = "";
+    public string StartupError
+    {
+        get => _startupError;
+        private set { _startupError = value; OnPropertyChanged(); }
+    }
+
     public bool IsInStartup
     {
         get => _startupService.IsInStartup();
         set
         {
-            if (value) _startupService.AddToStartup();
-            else       _startupService.RemoveFromStartup();
+            try
+            {
+                if (value) _startupService.AddToStartup();
+                else _startupService.RemoveFromStartup();
+                StartupError = "";
+            }
+            catch (Exception ex) { StartupError = ex.Message; }
             OnPropertyChanged();
         }
     }
+
+    public void RefreshStartupState() => OnPropertyChanged(nameof(IsInStartup));
 
     // ── Break reminder ─────────────────────────────────────────────────────
     private bool _breakEnabled;

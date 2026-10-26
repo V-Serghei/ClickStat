@@ -57,6 +57,7 @@
                               Content="{services:Loc Settings.StartupCheckbox}"
                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
                               Margin="0,14,0,0" FontSize="13"/>
+                    <TextBlock Text="{Binding StartupError}" Foreground="#FF6666" TextWrapping="Wrap" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 

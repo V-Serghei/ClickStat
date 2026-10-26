@@ -10,10 +10,22 @@ namespace ClickStat.Presentation.Views;
 
 public partial class SettingsView : UserControl
 {
+    private Window? _hostWindow;
     public SettingsView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        Loaded += (_, _) =>
+        {
+            _hostWindow = Window.GetWindow(this);
+            if (_hostWindow != null) _hostWindow.Activated += OnWindowActivated;
+            (DataContext as SettingsViewModel)?.RefreshStartupState();
+        };
+        Unloaded += (_, _) =>
+        {
+            if (_hostWindow != null) _hostWindow.Activated -= OnWindowActivated;
+            _hostWindow = null;
+        };
         LocalizationService.Instance.PropertyChanged += (_, args) =>
         {
             if ((args.PropertyName == "Item[]" || args.PropertyName == nameof(LocalizationService.CurrentLanguage))
@@ -21,6 +33,9 @@ public partial class SettingsView : UserControl
                 RefreshPreview(vm);
         };
     }
+
+    private void OnWindowActivated(object? sender, System.EventArgs e) =>
+        (DataContext as SettingsViewModel)?.RefreshStartupState();
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {

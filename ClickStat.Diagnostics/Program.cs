@@ -18,8 +18,33 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
-        if (args.Length != 2 || !int.TryParse(args[0], out var pid) ||
-            !long.TryParse(args[1], out var startTicks)) return 2;
+        int pid;
+        long startTicks;
+        if (args.Length == 0)
+        {
+            var target = FindRunningApp();
+            if (target is null)
+            {
+                Console.Error.WriteLine("Start ClickStat.App before launching diagnostics.");
+                return 1;
+            }
+            (pid, startTicks) = target.Value;
+        }
+        else if (args.Length != 2 || !int.TryParse(args[0], out pid) ||
+                 !long.TryParse(args[1], out startTicks) || pid <= 0 || startTicks <= 0)
+        {
+            Console.Error.WriteLine("Usage: ClickStat.Diagnostics [process-id start-time-utc-ticks]");
+            return 2;
+        }
+
+        using var monitorLock = new Mutex(true, $@"Local\ClickStat.Diagnostics.{pid}.{startTicks}", out bool ownsLock);
+        if (!ownsLock)
+        {
+            Console.WriteLine($"ClickStat.App (PID {pid}) is already being monitored. Logs: {LogDirectory}");
+            return 0;
+        }
+
+        Console.WriteLine($"Monitoring ClickStat.App (PID {pid}). Logs: {LogDirectory}");
 
         try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; }
         catch { /* Diagnostics should still run with limited permissions. */ }
@@ -113,6 +138,28 @@ internal static class Program
             }
             finally { target?.Dispose(); }
         }
+    }
+
+    private static (int pid, long startTicks)? FindRunningApp()
+    {
+        (int pid, long startTicks)? newest = null;
+        foreach (var process in Process.GetProcessesByName("ClickStat.App"))
+        {
+            using (process)
+            {
+                try
+                {
+                    long ticks = process.StartTime.ToUniversalTime().Ticks;
+                    if (newest is null || ticks > newest.Value.startTicks)
+                        newest = (process.Id, ticks);
+                }
+                catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+                {
+                    // A process can exit while it is being inspected.
+                }
+            }
+        }
+        return newest;
     }
 
     private static bool? TryResponding(Process process)
