@@ -57,6 +57,35 @@
                               Content="{services:Loc Settings.StartupCheckbox}"
                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
                               Margin="0,14,0,0" FontSize="13"/>
+                    <TextBlock Text="{Binding StartupError}" Foreground="#FF6666" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Word and phrase collection -->
+            <Border Style="{StaticResource SectionCard}">
+                <StackPanel>
+                    <TextBlock Text="{services:Loc Settings.WordCaptureTitle}" Style="{StaticResource SettingsLabel}"/>
+                    <TextBlock Text="{services:Loc Settings.WordCaptureHint}"
+                               Style="{StaticResource SettingsHint}" TextWrapping="Wrap"/>
+                    <CheckBox IsChecked="{Binding CaptureWordsAndPhrases, Mode=TwoWay}"
+                              IsEnabled="{Binding CanChangeWordCapture}"
+                              Content="{services:Loc Settings.WordCaptureCheckbox}"
+                              Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                              Margin="0,14,0,0" FontSize="13"/>
+                    <Button Content="{services:Loc Settings.DeleteWordHistory}"
+                            Click="DeleteWordHistory_Click" HorizontalAlignment="Left"
+                            Margin="0,12,0,0" Padding="12,6" Foreground="White" Background="#943B4C">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanDeleteWordHistory}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </StackPanel>
             </Border>
 

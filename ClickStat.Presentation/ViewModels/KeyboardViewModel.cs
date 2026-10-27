@@ -203,6 +203,7 @@ public class KeyboardViewModel : INotifyPropertyChanged
 
     public async Task LoadKeyCountsAsync()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("keyboard.load");
         IsLoading = true;
         await Task.Yield();
 

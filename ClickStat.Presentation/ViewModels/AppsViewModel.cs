@@ -23,6 +23,7 @@ public class AppsViewModel : INotifyPropertyChanged
 
     public async Task LoadAsync()
     {
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("apps.load");
         IsLoading = true;
         await Task.Yield();
         try

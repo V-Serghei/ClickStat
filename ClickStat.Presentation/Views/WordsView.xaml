@@ -98,10 +98,13 @@
     </UserControl.Resources>
 
     <Grid Margin="20">
-        <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Loading]}"
-                   Foreground="#A0A0C0" FontSize="18"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <ProgressBar Width="180" Height="5" IsIndeterminate="True" Foreground="#AA70FF"/>
+            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Common.Loading]}"
+                       Foreground="#A0A0C0" FontSize="16" Margin="0,12,0,0"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <ScrollViewer.Style>
@@ -116,6 +119,20 @@
             </ScrollViewer.Style>
 
             <StackPanel>
+                <TextBlock Text="{services:Loc Words.LoadFailed}"
+                           Visibility="{Binding LoadFailed, Converter={StaticResource BoolToVis}}"
+                           Foreground="#D98090" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding ExclusionsError}"
+                           Foreground="#D98090"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="{services:Loc Words.Refresh}" Command="{Binding RefreshCommand}"
+                            Style="{StaticResource LanguageButton}"/>
+                    <TextBlock Text="{services:Loc Words.MinimumCountHint}"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
+                               VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"/>
+                </StackPanel>
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" CornerRadius="12" Padding="16,12"
                         Margin="0,0,0,20" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1">
                     <Grid>

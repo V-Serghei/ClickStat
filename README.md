@@ -9,7 +9,7 @@ ClickStat is a Windows desktop app for people who want to understand how they us
 - **Keyboard analytics**: per-key counters, heatmap-style intensity, typing speed, session input preview, custom/non-standard key tracking, and layout-aware key labels.
 - **Mouse analytics**: left/right/middle/back/forward clicks, wheel distance, wheel rotations, scroll direction stats, and custom mouse button shortcuts.
 - **Activity dashboard**: daily charts, weekday activity coefficients, hourly heatmaps, cursor distance, and high-level usage summaries.
-- **Words and phrases**: frequent words and phrases grouped by installed keyboard layout.
+- **Words and phrases**: optional collection of frequent words and phrases grouped by installed keyboard layout. The page appears only while collection is enabled.
 - **Application usage**: input activity grouped by foreground application.
 - **Gamepad tracking**: Xbox, PlayStation/DirectInput, and generic controller statistics with per-device history.
 - **Input templates**: save snippets, search them with `Alt + D`, paste or copy entries, and capture selected text with `Ctrl + Alt + Shift + D`.
@@ -107,7 +107,7 @@ ClickStat also builds higher-level usage views:
 - activity by day and hour;
 - weekday distribution;
 - most active day;
-- frequent words and phrases;
+- frequent words and phrases (shown after at least six occurrences, analyzed when opening or refreshing the Words page);
 - language tabs based on installed keyboard layouts.
 
 ### Gamepads
@@ -129,8 +129,11 @@ The interface supports:
 - top-bar icon-only theme toggle;
 - theme selection in settings;
 - Russian and English UI language switching;
+- a compact training shortcut beside the language selector;
 - JSON translation files in `ClickStat.Presentation/Localization`;
 - optional launch on Windows startup;
+- a switch for collecting words, phrases, and key pairs;
+- a delete-history button that appears when word collection is off;
 - custom background image.
 
 ## Privacy
@@ -141,7 +144,13 @@ ClickStat is local-first. It does not need a server to work and stores its data 
 ~/Documents/KeyClick/key_statistics.db
 ```
 
-The app records input statistics and optional text templates. This is useful, but it also means the local database can contain sensitive personal data. If you save snippets or capture selected text, that content remains stored locally until you delete it.
+The app records input statistics and optional text templates. Word and phrase collection can be turned off in Settings; this stops new collection and discards unsaved word data. The delete-history button removes previously saved words, phrases, and key pairs. Saved snippets or selected text remain stored locally until you delete them.
+
+## Temporary performance diagnostics
+
+While performance issues are being investigated, ClickStat starts a separate low-priority monitor. It samples ClickStat and system CPU, memory, disk I/O, thread and handle counts every two seconds. It also records running process names and their resource use every 30 seconds, or every 10 seconds during a CPU spike. ClickStat writes timestamps for database flushes and page loads, plus aggregate input and UI event counts every 10 seconds. This makes it possible to compare a slowdown with the work happening at that time even if the UI stops responding.
+
+Logs are stored in `%USERPROFILE%\Documents\KeyClick\diagnostics` as `resources.jsonl` and `operations.jsonl`, with one rotated copy of each (`.1`). They use UTC timestamps and have a combined size limit of about 40 MB. The logs contain process names and resource measurements, but no typed text or key names. To investigate a freeze, keep the four files and note the approximate local time when it occurred.
 
 ## Tech Stack
 

@@ -6,6 +6,31 @@
              xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}">
 
+    <UserControl.Resources>
+        <Style x:Key="HistoryButton" TargetType="Button">
+            <Setter Property="Background" Value="#1B1B35"/>
+            <Setter Property="Foreground" Value="#B5B0D5"/>
+            <Setter Property="BorderBrush" Value="#38345C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value><ControlTemplate TargetType="Button">
+                    <Border x:Name="Body" CornerRadius="7" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Body" Property="Background" Value="#302650"/><Setter Property="Foreground" Value="White"/></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35"/></Trigger>
+                        <Trigger Property="Tag" Value="True"><Setter TargetName="Body" Property="Background" Value="#7046BB"/><Setter TargetName="Body" Property="BorderBrush" Value="#AA70FF"/><Setter Property="Foreground" Value="White"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -127,8 +152,19 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Last10Days]}"
-                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" Margin="0,0,0,12"/>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.History]}"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="12" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Days]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Days" Tag="{Binding IsDaysSelected}" Style="{StaticResource HistoryButton}" Margin="4,0"/>
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Months]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Months" Tag="{Binding IsMonthsSelected}" Style="{StaticResource HistoryButton}" Margin="4,0"/>
+                        <Button Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Overview.Years]}" Command="{Binding SelectHistoryScaleCommand}" CommandParameter="Years" Tag="{Binding IsYearsSelected}" Style="{StaticResource HistoryButton}" Margin="4,0"/>
+                        <Button Content="‹" FontSize="18" Command="{Binding ShiftHistoryCommand}" CommandParameter="-1" Style="{StaticResource HistoryButton}" Margin="8,0,4,0" Padding="9,0"/>
+                        <TextBlock Text="{Binding HistoryPeriod}" VerticalAlignment="Center" MinWidth="110" TextAlignment="Center"/>
+                        <Button Content="›" FontSize="18" Command="{Binding ShiftHistoryCommand}" CommandParameter="1" IsEnabled="{Binding CanGoForward}" Style="{StaticResource HistoryButton}" Margin="4,0" Padding="9,0"/>
+                        <TextBlock Text="{Binding HistoryTotal, StringFormat={}{0:N0}}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#AA70FF" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </DockPanel>
                 <lvc:CartesianChart Grid.Row="1"
                                     MinHeight="260"
                                     Series="{Binding DailyStatsSeries}"
@@ -143,3 +179,4 @@
         </Border>
     </Grid>
 </UserControl>
+

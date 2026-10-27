@@ -22,10 +22,15 @@
     <ItemGroup>
       
       <ProjectReference Include="..\ClickStat.Presentation\ClickStat.Presentation.csproj" />
+      <ProjectReference Include="..\ClickStat.Diagnostics\ClickStat.Diagnostics.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <Resource Include="icon.ico" />
     </ItemGroup>
-
+    <ItemGroup>
+        <None Update="word-exclusions\*.json"
+              CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

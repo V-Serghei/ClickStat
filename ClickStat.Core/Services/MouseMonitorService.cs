@@ -11,16 +11,15 @@ public class MouseMonitorService : IMouseMonitorService
 
     public event Action<MouseButtons, int>? OnButtonPressed;
     public event Action<int>? OnScroll;
-    public event Action<int, int>? OnMoved;
+    public event Action<long, int, int>? OnMoved;
 
     public MouseMonitorService()
     {
         _monitor.ButtonPressed += (btn, code) => OnButtonPressed?.Invoke(btn, code);
         _monitor.Scrolled      += notches => OnScroll?.Invoke(notches);
-        _monitor.Moved         += (dx, dy) => OnMoved?.Invoke(dx, dy);
+        _monitor.Moved         += (units, x, y) => OnMoved?.Invoke(units, x, y);
     }
 
     public void StartMonitoring() => _monitor.Subscribe();
     public void StopMonitoring()  => _monitor.Unsubscribe();
-    public void InitializeRawInput(IntPtr hwnd) => _monitor.InitializeRawInput(hwnd);
 }

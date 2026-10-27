@@ -28,6 +28,7 @@ public partial class SidebarView : UserControl
     {
         if (e.NewValue is not MainViewModel vm) return;
         _vm = vm;
+        _vm.NavItems.CollectionChanged += (_, _) => BuildNavButtons();
         _vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.ActivePage))

@@ -69,6 +69,17 @@
             </Setter>
         </Style>
 
+        <Style x:Key="MouseTabStyle" TargetType="Button" BasedOn="{StaticResource AddButtonStyle}">
+            <Setter Property="Background" Value="#24243F"/>
+            <Setter Property="Foreground" Value="#B5B0D5"/>
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="True">
+                    <Setter Property="Background" Value="#6A3FBB"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Custom button chip -->
         <Style x:Key="CustomBtnChip" TargetType="Border">
             <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
@@ -81,6 +92,13 @@
     </UserControl.Resources>
 
     <Grid Margin="16">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <Button Content="{services:Loc Mouse.StatisticsTab}" Command="{Binding ShowStatisticsCommand}" Tag="{Binding ShowStatistics}" Style="{StaticResource MouseTabStyle}" Margin="0,0,8,0"/>
+            <Button Content="{services:Loc Mouse.CursorHeatmapTab}" Command="{Binding ShowCursorHeatmapCommand}" Tag="{Binding ShowCursorHeatmap}" Style="{StaticResource MouseTabStyle}"/>
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding ShowStatistics}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="260"/>
             <ColumnDefinition Width="*"/>
@@ -481,6 +499,40 @@
                     </TextBlock.Style>
                 </TextBlock>
 
+            </StackPanel>
+        </ScrollViewer>
+        </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowCursorHeatmap}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <StackPanel DockPanel.Dock="Left">
+                        <TextBlock Text="{services:Loc Mouse.CursorHeatmapTitle}" FontSize="20" FontWeight="Bold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
+                        <TextBlock Text="{services:Loc Mouse.CursorHeatmapHint}" FontSize="12" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="{services:Loc Achievements.Refresh}" Command="{Binding RefreshCursorHeatmapCommand}" Style="{StaticResource AddButtonStyle}"/>
+                </DockPanel>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="10" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CursorHeatmapError}" Foreground="#FF8080" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <Image Source="{Binding CursorHeatmapImage}" Width="{Binding CursorHeatmapWidth}" Height="650" Stretch="Uniform" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc Mouse.CursorHeatmapSamples}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                            <TextBlock Text="{Binding CursorSampleSeconds, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
+                            <TextBlock Text="{services:Loc Mouse.CursorHeatmapVisits}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                            <TextBlock Text="{Binding CursorMovementVisits, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
+                            <TextBlock Text="{Binding CursorLayout}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="{services:Loc Mouse.HeatLow}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,0,8,0"/>
+                            <Border Width="34" Height="8" Background="#43388E"/>
+                            <Border Width="34" Height="8" Background="#9242B2"/>
+                            <Border Width="34" Height="8" Background="#EC5B65"/>
+                            <Border Width="34" Height="8" Background="#FFCD58"/>
+                            <TextBlock Text="{services:Loc Mouse.HeatHigh}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>
