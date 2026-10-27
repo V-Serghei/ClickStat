@@ -13,9 +13,12 @@ namespace ClickStat.Presentation.ViewModels;
 public class WordsViewModel : INotifyPropertyChanged
 {
     private readonly WordProcessor _wordProcessor;
+    private int _loadVersion;
 
     private bool _isLoading;
     public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
+    private bool _loadFailed;
+    public bool LoadFailed { get => _loadFailed; set { _loadFailed = value; OnPropertyChanged(); } }
 
     public ObservableCollection<WordStatistics> TopWords { get; } = new();
     public ObservableCollection<WordPhrase> TopPhrases { get; } = new();
@@ -49,10 +52,12 @@ public class WordsViewModel : INotifyPropertyChanged
     public string LanguageTitle => SelectedLanguage?.DisplayName ?? Loc["Words.NoLayouts"];
 
     public ICommand SelectLanguageCommand { get; }
+    public ICommand RefreshCommand { get; }
 
     public WordsViewModel(WordProcessor wordProcessor)
     {
         _wordProcessor = wordProcessor;
+        RefreshCommand = new RelayCommand(_ => _ = LoadAsync());
         SelectLanguageCommand = new RelayCommand(p =>
         {
             if (p is WordLanguageOption option)
@@ -63,27 +68,50 @@ public class WordsViewModel : INotifyPropertyChanged
 
     public async Task LoadAsync()
     {
+        if (IsLoading || !_wordProcessor.CaptureEnabled) return;
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("words.load_view");
+        int version = ++_loadVersion;
         IsLoading = true;
+        LoadFailed = false;
         await Task.Yield();
         try
         {
             var loaded = await Task.Run(async () =>
             {
                 await _wordProcessor.FlushAsync();
+                await _wordProcessor.AnalyzeHistoryAsync();
                 var words = await _wordProcessor.GetTopWords(1000);
                 var phrases = await _wordProcessor.GetTopPhrases(300);
                 return (Words: words, Phrases: phrases);
             });
+
+            if (version != _loadVersion || !_wordProcessor.CaptureEnabled) return;
 
             _allWords = loaded.Words;
             _allPhrases = loaded.Phrases;
             RefreshLanguageOptions();
             ApplyLanguageFilter();
         }
-        finally { IsLoading = false; }
+        catch (Exception)
+        {
+            if (version == _loadVersion) LoadFailed = true;
+        }
+        finally { if (version == _loadVersion) IsLoading = false; }
     }
 
-    public void BeginLoading() => IsLoading = true;
+    public void ClearData()
+    {
+        _loadVersion++;
+        IsLoading = false;
+        LoadFailed = false;
+        _allWords.Clear();
+        _allPhrases.Clear();
+        TopWords.Clear();
+        TopPhrases.Clear();
+        TotalTyped = 0;
+        UniqueCount = 0;
+        PhraseCount = 0;
+    }
 
     private void SetLanguage(WordLanguageOption language)
     {

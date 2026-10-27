@@ -18,6 +18,7 @@ public sealed class HourlyActivityProcessor : IDisposable
     private readonly Timer  _timer;
     private readonly object _lock = new();
     private readonly object _schemaGate = new();
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
     private readonly Dictionary<int, int> _buffer = new(); // Id → count delta
     private bool _schemaReady;
 
@@ -77,6 +78,13 @@ public sealed class HourlyActivityProcessor : IDisposable
 
     private async Task Flush()
     {
+        await _flushGate.WaitAsync();
+        try { await FlushCore(); }
+        finally { _flushGate.Release(); }
+    }
+
+    private async Task FlushCore()
+    {
         Dictionary<int, int> snap;
         lock (_lock)
         {
@@ -85,11 +93,11 @@ public sealed class HourlyActivityProcessor : IDisposable
             _buffer.Clear();
         }
 
-        await using var ctx = new DataContext(_dbPath);
-        EnsureAllSlots(ctx);
-        var tx = await ctx.Database.BeginTransactionAsync();
         try
         {
+            await using var ctx = new DataContext(_dbPath);
+            EnsureAllSlots(ctx);
+            await using var tx = await ctx.Database.BeginTransactionAsync();
             foreach (var (id, delta) in snap)
             {
                 var row = await ctx.HourlyActivities.FindAsync(id);
@@ -98,7 +106,13 @@ public sealed class HourlyActivityProcessor : IDisposable
             await ctx.SaveChangesAsync();
             await tx.CommitAsync();
         }
-        catch { await tx.RollbackAsync(); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Hourly activity flush failed: {ex}");
+            lock (_lock)
+                foreach (var (id, delta) in snap)
+                    _buffer[id] = _buffer.GetValueOrDefault(id) + delta;
+        }
     }
 
     public async Task OnApplicationExitAsync() { _timer.Stop(); await Flush(); }

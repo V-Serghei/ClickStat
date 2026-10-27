@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows.Forms;
 using ClickStat.Infrastructure.Data.Context;
 using ClickStat.Infrastructure.Data.Model;
+using ClickStat.Infrastructure.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Timer = System.Timers.Timer;
 
@@ -66,6 +67,7 @@ public class KeyDataProcessor
 
     private async Task SaveToDatabaseBuffered()
     {
+        using var timing = PerformanceLog.Measure("keyboard.flush");
         // Gate ensures only one flush runs at a time.
         // Manual FlushAsync() will WAIT here if the auto-timer is currently writing,
         // so the subsequent DB read always sees committed data.

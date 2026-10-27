@@ -188,6 +188,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- App name in title bar (sidebar zone) -->
@@ -233,13 +234,19 @@
                     </Popup>
                 </Grid>
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="3" Content="⌨" FontFamily="Segoe UI Symbol"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static vm:AppPage.Training}"
+                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Nav.Training]}"
+                        Style="{StaticResource TopBarIconButton}"/>
+
+                <Button Grid.Column="4"
                         Content="{Binding Source={x:Static services:ThemeService.Instance}, Path=ThemeIcon}"
                         Command="{Binding Source={x:Static services:ThemeService.Instance}, Path=ToggleThemeCommand}"
                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Settings.ToggleTheme]}"
                         Style="{StaticResource TopBarIconButton}"/>
 
-                <StackPanel Grid.Column="4" Orientation="Horizontal">
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
                     <Button Content="—" Style="{StaticResource WinBtn}" Click="MinimizeButton_Click"/>
                     <Button Content="🗖" Style="{StaticResource WinBtn}" Click="MaximizeButton_Click"/>
                     <Button Content="✕" Style="{StaticResource CloseBtn}" Click="CloseButton_Click"/>

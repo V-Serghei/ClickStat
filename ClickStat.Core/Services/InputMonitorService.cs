@@ -105,6 +105,8 @@ public class InputMonitorService : IInputMonitorService
 
         if (!ShouldCountKeyDown(key, source)) return;
 
+        PerformanceLog.CountKey();
+
         InputLog.Emit("DOWN", key);
         EnqueueEvent(() =>
         {
