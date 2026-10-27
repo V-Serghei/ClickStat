@@ -18,7 +18,7 @@
                     <TextBlock Text="{Binding TotalCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                 </StackPanel>
             </StackPanel>
-            <Button Grid.Column="1" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Achievements.Refresh]}" Command="{Binding RefreshCommand}" Padding="14,7" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[Achievements.Refresh]}" Command="{Binding RefreshCommand}" Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Center"/>
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>

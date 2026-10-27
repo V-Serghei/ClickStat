@@ -28,8 +28,8 @@ public class MouseDataProcessor : IDisposable
 
     private const int GridW = 80;  // 1920 / 24
     private const int GridH = 45;  // 1080 / 24
-    private const int CursorGridW = 80;
-    private const int CursorGridH = 45;
+    private const int LegacyCursorGridH = 45;
+    private const int CursorCellPixels = 8;
 
     private readonly string _dbPath;
     private readonly HashSet<int> _registeredCodes = new();
@@ -189,21 +189,22 @@ public class MouseDataProcessor : IDisposable
         Interlocked.Exchange(ref _lastMovementSampleTick, now);
         var bounds = SystemInformation.VirtualScreen;
         if (bounds.Width <= 0 || bounds.Height <= 0 || !bounds.Contains(cursorX, cursorY)) return;
-        var layout = LayoutKey(bounds);
-        int x = Math.Clamp((int)((long)(cursorX - bounds.Left) * CursorGridW / bounds.Width), 0, CursorGridW - 1);
-        int y = Math.Clamp((int)((long)(cursorY - bounds.Top) * CursorGridH / bounds.Height), 0, CursorGridH - 1);
+        var (gridWidth, gridHeight) = CursorGridSize(bounds);
+        var layout = CursorLayoutKey(bounds);
+        int x = Math.Clamp((cursorX - bounds.Left) / CursorCellPixels, 0, gridWidth - 1);
+        int y = Math.Clamp((cursorY - bounds.Top) / CursorCellPixels, 0, gridHeight - 1);
         lock (_lock)
         {
-            AddMovementCell(layout, x, y);
+            AddMovementCell(layout, x, y, gridHeight);
             if (now - previousTick <= 1000 && _lastMovementCell is { } previous && previous.layout == layout)
-                AddMovementCell(layout, (x + previous.x) / 2, (y + previous.y) / 2);
+                AddMovementCell(layout, (x + previous.x) / 2, (y + previous.y) / 2, gridHeight);
             _lastMovementCell = (layout, x, y);
         }
     }
 
-    private void AddMovementCell(string layout, int x, int y)
+    private void AddMovementCell(string layout, int x, int y, int gridHeight)
     {
-        var key = (layout, x * CursorGridH + y);
+        var key = (layout, x * gridHeight + y);
         _cursorMovementBuffer[key] = _cursorMovementBuffer.GetValueOrDefault(key) + 1;
     }
 
@@ -225,12 +226,13 @@ public class MouseDataProcessor : IDisposable
         if (!GetCursorPos(out var point)) return;
         var bounds = SystemInformation.VirtualScreen;
         if (bounds.Width <= 0 || bounds.Height <= 0 || !bounds.Contains(point)) return;
-        var layout = LayoutKey(bounds);
-        int x = Math.Clamp((int)((long)(point.X - bounds.Left) * CursorGridW / bounds.Width), 0, CursorGridW - 1);
-        int y = Math.Clamp((int)((long)(point.Y - bounds.Top) * CursorGridH / bounds.Height), 0, CursorGridH - 1);
+        var (gridWidth, gridHeight) = CursorGridSize(bounds);
+        var layout = CursorLayoutKey(bounds);
+        int x = Math.Clamp((point.X - bounds.Left) / CursorCellPixels, 0, gridWidth - 1);
+        int y = Math.Clamp((point.Y - bounds.Top) / CursorCellPixels, 0, gridHeight - 1);
         lock (_lock)
         {
-            var key = (layout, x * CursorGridH + y);
+            var key = (layout, x * gridHeight + y);
             _cursorHeatmapBuffer[key] = _cursorHeatmapBuffer.GetValueOrDefault(key) + 1;
         }
     }
@@ -242,6 +244,12 @@ public class MouseDataProcessor : IDisposable
             .Select(screen => $"{screen.DeviceName}:{screen.Bounds.Left}:{screen.Bounds.Top}:{screen.Bounds.Width}:{screen.Bounds.Height}");
         return $"{bounds.Left}:{bounds.Top}:{bounds.Width}:{bounds.Height}|{string.Join('|', screens)}";
     }
+
+    private static (int Width, int Height) CursorGridSize(System.Drawing.Rectangle bounds) =>
+        ((bounds.Width + CursorCellPixels - 1) / CursorCellPixels,
+         (bounds.Height + CursorCellPixels - 1) / CursorCellPixels);
+
+    private static string CursorLayoutKey(System.Drawing.Rectangle bounds) => LayoutKey(bounds) + "|cursor8";
 
     // ──────────────────────────────────────────────
     // Custom button registration
@@ -303,7 +311,10 @@ public class MouseDataProcessor : IDisposable
     public async Task<CursorHeatmap> GetCursorHeatmapAsync()
     {
         var bounds = SystemInformation.VirtualScreen;
+        var (gridWidth, gridHeight) = CursorGridSize(bounds);
+        var layout = CursorLayoutKey(bounds);
         var cells = new List<CursorHeatmapCell>();
+        var legacyCells = new List<CursorHeatmapCell>();
         await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
             DataSource = _dbPath, Mode = SqliteOpenMode.ReadWriteCreate,
@@ -311,15 +322,21 @@ public class MouseDataProcessor : IDisposable
         }.ToString());
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT CellId, Seconds, Visits FROM CursorHeatmapCells WHERE LayoutKey = $layout";
-        command.Parameters.AddWithValue("$layout", LayoutKey(bounds));
+        command.CommandText = "SELECT LayoutKey, CellId, Seconds, Visits FROM CursorHeatmapCells WHERE LayoutKey IN ($layout, $legacy)";
+        command.Parameters.AddWithValue("$layout", layout);
+        command.Parameters.AddWithValue("$legacy", LayoutKey(bounds));
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            int id = reader.GetInt32(0);
-            cells.Add(new CursorHeatmapCell(id / CursorGridH, id % CursorGridH, reader.GetInt64(1), reader.GetInt64(2)));
+            bool legacy = reader.GetString(0) != layout;
+            int id = reader.GetInt32(1);
+            int height = legacy ? LegacyCursorGridH : gridHeight;
+            var cell = new CursorHeatmapCell(id / height, id % height, reader.GetInt64(2), reader.GetInt64(3));
+            if (legacy) legacyCells.Add(cell);
+            else cells.Add(cell);
         }
-        return new CursorHeatmap(bounds.Left, bounds.Top, bounds.Width, bounds.Height, cells);
+        return new CursorHeatmap(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
+            gridWidth, gridHeight, cells, legacyCells);
     }
 
     // ──────────────────────────────────────────────

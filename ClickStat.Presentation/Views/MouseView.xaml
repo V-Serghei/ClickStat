@@ -515,7 +515,7 @@
                 <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="10" Padding="16">
                     <StackPanel>
                         <TextBlock Text="{Binding CursorHeatmapError}" Foreground="#FF8080" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <Image Source="{Binding CursorHeatmapImage}" Width="{Binding CursorHeatmapWidth}" Height="400" Stretch="Fill" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Image Source="{Binding CursorHeatmapImage}" Width="{Binding CursorHeatmapWidth}" Height="650" Stretch="Uniform" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                             <TextBlock Text="{services:Loc Mouse.CursorHeatmapSamples}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
                             <TextBlock Text="{Binding CursorSampleSeconds, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>

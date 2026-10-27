@@ -197,7 +197,7 @@ public class MouseViewModel : INotifyPropertyChanged
             CursorSampleSeconds = map.TotalSeconds;
             CursorMovementVisits = map.TotalVisits;
             CursorLayout = $"{map.Width} × {map.Height}";
-            CursorHeatmapWidth = Math.Clamp(400.0 * map.Width / Math.Max(1, map.Height), 500, 1600);
+            CursorHeatmapWidth = 650.0 * map.Width / Math.Max(1, map.Height);
         }
         catch (Exception ex) { CursorHeatmapError = ex.Message; }
         finally { IsLoading = false; }
