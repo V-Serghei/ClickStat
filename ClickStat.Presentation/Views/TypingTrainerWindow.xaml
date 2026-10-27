@@ -1,0 +1,441 @@
+<Window x:Class="ClickStat.Presentation.Views.TypingTrainerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:ClickStat.Presentation.Converters"
+        xmlns:services="clr-namespace:ClickStat.Presentation.Services"
+        Title="Typing Trainer"
+        Width="1040" Height="760"
+        MinWidth="820" MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=WindowBackground}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <conv:TrainingKeyBrushConverter x:Key="TrainingKeyBrush"/>
+        <conv:CountToBadgeConverter x:Key="CountToBadgeConverter"/>
+        <conv:KeyNameToLabelConverter x:Key="KeyLabel"/>
+
+        <Style x:Key="TrainerButton" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="MinWidth" Value="92"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Background" Value="#7C3FD6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#AA70FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Body"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Body" Property="Background" Value="#8D55E6"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Body" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TrainingKeyStyle" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Foreground" Value="#F4F4FF"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Body"
+                                    CornerRadius="7"
+                                    BorderBrush="#384070"
+                                    BorderThickness="1">
+                                <Border.Background>
+                                    <MultiBinding Converter="{StaticResource TrainingKeyBrush}">
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        <Binding Path="DataContext.SessionKeyCounts" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <Binding Path="DataContext.ActiveKeyName" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <Binding Path="DataContext.ActiveKeyIsError" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                    </MultiBinding>
+                                </Border.Background>
+                            </Border>
+
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       TextAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource KeyLabel}" Mode="OneWay">
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        <Binding Path="DataContext.LayoutCode" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+
+                            <Border CornerRadius="7"
+                                    Padding="4,0"
+                                    Background="#CC17172C"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,-6,-5,0"
+                                    IsHitTestVisible="False">
+                                <Border.Visibility>
+                                    <MultiBinding Converter="{StaticResource CountToBadgeConverter}" ConverterParameter="visibility" Mode="OneWay">
+                                        <Binding Path="DataContext.SessionKeyCounts" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                    </MultiBinding>
+                                </Border.Visibility>
+                                <TextBlock Foreground="#AA70FF" FontSize="9" FontWeight="Bold">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource CountToBadgeConverter}" Mode="OneWay">
+                                            <Binding Path="DataContext.SessionKeyCounts" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                            <Binding Path="Content" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TrainingKey_1_25" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="62"/>
+        </Style>
+        <Style x:Key="TrainingKey_1_5" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="74"/>
+        </Style>
+        <Style x:Key="TrainingKey_1_75" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="88"/>
+        </Style>
+        <Style x:Key="TrainingKey_2" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="104"/>
+        </Style>
+        <Style x:Key="TrainingKey_2_25" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="126"/>
+        </Style>
+        <Style x:Key="TrainingKey_Space" TargetType="Button" BasedOn="{StaticResource TrainingKeyStyle}">
+            <Setter Property="Width" Value="270"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,14">
+            <StackPanel>
+                <TextBlock Text="Typing Trainer"
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                           FontSize="24" FontWeight="Bold"/>
+                <TextBlock Text="Paste any text, press Start, then type it character by character."
+                           Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"
+                           FontSize="12" Margin="0,3,0,0"/>
+            </StackPanel>
+            <TextBlock HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       Text="{Binding DetectedLanguage, Mode=OneWay}"
+                       Foreground="#AA70FF"
+                       FontSize="14"
+                       FontWeight="Bold"/>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="12"
+                Margin="0,0,0,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Top">
+                    <Button Content="Start" Command="{Binding StartCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="Pause" Command="{Binding PauseCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource TrainerButton}"/>
+                    <Button Content="Save" Command="{Binding FinishCommand}" Style="{StaticResource TrainerButton}"/>
+                </StackPanel>
+
+                <TextBox Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         MinHeight="92"
+                         MaxHeight="140"
+                         IsReadOnly="{Binding IsTextLocked, Mode=OneWay}"
+                         Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                         Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                         BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                         CaretBrush="#AA70FF"
+                         Padding="10"
+                         FontSize="14"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="2"
+                Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="18"
+                Margin="0,0,0,12">
+            <StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar Grid.Column="0"
+                                 Height="9"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding ProgressPercent, Mode=OneWay}"
+                                 Foreground="#AA70FF"
+                                 Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ProgressPercent, Mode=OneWay, StringFormat={}{0}%}"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                               Margin="14,0,0,0"/>
+                </Grid>
+
+                <TextBlock FontSize="24" FontFamily="Consolas" TextWrapping="NoWrap"><Run Text="{Binding TypedPrefix, Mode=OneWay}" Foreground="#46C878"/><Run Text="{Binding CurrentCharacter, Mode=OneWay}" Foreground="#B77CFF"/><Run Text="{Binding CurrentSpace, Mode=OneWay}" Foreground="White" Background="#7046BB"/><Run Text="{Binding UpcomingText, Mode=OneWay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"/></TextBlock>
+
+                <TextBlock Text="{Binding LastError, Mode=OneWay}"
+                           Foreground="#FF6666"
+                           FontWeight="SemiBold"
+                           Margin="0,10,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+            <UniformGrid Columns="4" Rows="2" Margin="0,0,0,12">
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,8">
+                    <StackPanel><TextBlock Text="CPM" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding Cpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,8">
+                    <StackPanel><TextBlock Text="WPM" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding Wpm, Mode=OneWay}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,8">
+                    <StackPanel><TextBlock Text="Accuracy" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding Accuracy, Mode=OneWay, StringFormat={}{0}%}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,8">
+                    <StackPanel><TextBlock Text="Errors" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding Errors, Mode=OneWay}" Foreground="#FF6666" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,0">
+                    <StackPanel><TextBlock Text="Correct" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding CorrectChars, Mode=OneWay}" Foreground="#46C878" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,0">
+                    <StackPanel><TextBlock Text="Remaining" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding RemainingCharacters, Mode=OneWay}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,0">
+                    <StackPanel><TextBlock Text="Time" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding ElapsedSeconds, Mode=OneWay, StringFormat={}{0}s}" Foreground="#AA70FF" FontSize="24" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,8,0">
+                    <StackPanel><TextBlock Text="Status" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/><TextBlock Text="{Binding Status, Mode=OneWay}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="14" FontWeight="SemiBold"/></StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12"
+                    Margin="0,0,0,4">
+                <StackPanel>
+                    <TextBlock Text="Session keyboard"
+                               Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+
+                    <Viewbox Stretch="Uniform" HorizontalAlignment="Left" MaxHeight="260">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Escape" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F1" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F2" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F3" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F4" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F5" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F6" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F7" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F8" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F9" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F10" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F11" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F12" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Oemtilde" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D1" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D2" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D3" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D4" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D5" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D6" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D7" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D8" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D9" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D0" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="OemMinus" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Oemplus" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Back" Style="{StaticResource TrainingKey_2}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Tab" Style="{StaticResource TrainingKey_1_5}"/>
+                                    <Button Content="Q" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="W" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="E" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="R" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="T" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Y" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="U" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="I" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="O" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="P" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Oem4" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Oem6" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="OemPipe" Style="{StaticResource TrainingKey_1_5}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Capital" Style="{StaticResource TrainingKey_1_75}"/>
+                                    <Button Content="A" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="S" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="D" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="F" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="G" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="H" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="J" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="K" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="L" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="OemSemicolon" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="OemQuotes" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Enter" Style="{StaticResource TrainingKey_2_25}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="LShiftKey" Style="{StaticResource TrainingKey_2}"/>
+                                    <Button Content="Z" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="X" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="C" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="V" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="B" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="N" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="M" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Oemcomma" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="OemPeriod" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Oem2" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="RShiftKey" Style="{StaticResource TrainingKey_2_25}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="LControlKey" Style="{StaticResource TrainingKey_1_25}"/>
+                                    <Button Content="LWin" Style="{StaticResource TrainingKey_1_25}"/>
+                                    <Button Content="LMenu" Style="{StaticResource TrainingKey_1_25}"/>
+                                    <Button Content="Space" Style="{StaticResource TrainingKey_Space}"/>
+                                    <Button Content="RMenu" Style="{StaticResource TrainingKey_1_25}"/>
+                                    <Button Content="RControlKey" Style="{StaticResource TrainingKey_1_25}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="PrintScreen" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="LaunchApplication2" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="MediaStop" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Insert" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Home" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="PageUp" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Delete" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="End" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Next" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <Grid Margin="0,16,0,0" HorizontalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Column="1" Grid.Row="0" Content="Up" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Grid.Column="0" Grid.Row="1" Content="Left" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Grid.Column="1" Grid.Row="1" Content="Down" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Grid.Column="2" Grid.Row="1" Content="Right" Style="{StaticResource TrainingKeyStyle}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Clear" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumLock" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Divide" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Multiply" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Subtract" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad7" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad8" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad9" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Add" Style="{StaticResource TrainingKeyStyle}" Height="88"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad4" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad5" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad6" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad1" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad2" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="NumPad3" Style="{StaticResource TrainingKeyStyle}"/>
+                                    <Button Content="Enter" Style="{StaticResource TrainingKeyStyle}" Height="88"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="NumPad0" Style="{StaticResource TrainingKey_2}"/>
+                                    <Button Content="Decimal" Style="{StaticResource TrainingKeyStyle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Viewbox>
+                </StackPanel>
+            </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

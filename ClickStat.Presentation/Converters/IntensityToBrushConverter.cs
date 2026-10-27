@@ -8,7 +8,7 @@ namespace ClickStat.Presentation.Converters
 {
     public class IntensityToBrushConverter : IMultiValueConverter
     {
-        private static readonly SolidColorBrush Level0 = new(Color.FromRgb(0x4A, 0x55, 0x68));
+        private static readonly SolidColorBrush Level0 = new(Color.FromRgb(0x26, 0x26, 0x38));
         private static readonly SolidColorBrush Level1 = new(Color.FromRgb(0x42, 0x99, 0xE1));
         private static readonly SolidColorBrush Level2 = new(Color.FromRgb(0x48, 0xBB, 0x78));
         private static readonly SolidColorBrush Level3 = new(Color.FromRgb(0xE9, 0xD5, 0x2D));

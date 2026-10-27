@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        
         <Nullable>enable</Nullable>
         <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
         <UseWPF>true</UseWPF>
+        <NoWarn>NU1701</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,10 +31,8 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="MouseKeyHook" Version="5.7.1" />
+      <!-- InjectedEvents 5.8.0 is the modern .NET-compatible version of MouseKeyHook -->
       <PackageReference Include="MouseKeyHook.InjectedEvents" Version="5.8.0" />
-      <PackageReference Include="MouseKeyHook.NetCore" Version="5.6.1.1" />
-      <PackageReference Include="MouseKeyHook.Rx" Version="5.6.0-alpha" />
     </ItemGroup>
 
 </Project>

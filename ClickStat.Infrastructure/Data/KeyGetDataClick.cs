@@ -7,27 +7,16 @@ namespace ClickStat.Infrastructure.Data;
 
 public class KeyGetDataClick
 {
-    private readonly DataContext _context;
     private readonly string _dbPath;
-
 
     public KeyGetDataClick()
     {
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folderPath = Path.Combine(documentsPath, "KeyClick");
-        if (!Directory.Exists(folderPath))
-        {
-            Directory.CreateDirectory(folderPath);
-            Console.WriteLine($"Folder Create: {folderPath}");
-        }
+        var folderPath    = Path.Combine(documentsPath, "KeyClick");
+        Directory.CreateDirectory(folderPath);
 
         _dbPath = Path.Combine(folderPath, "key_statistics.db");
-        _context = new DataContext(_dbPath);
-        InitializeDatabase();
-    }
 
-    private void InitializeDatabase()
-    {
         using var context = new DataContext(_dbPath);
         context.Database.EnsureCreated();
     }
@@ -40,7 +29,6 @@ public class KeyGetDataClick
 
     public async Task<List<KeyStatistics>> GetKeyStatisticsByKeyCode(int keyCode)
     {
-        
         await using var context = new DataContext(_dbPath);
         return await context.KeyStatistics
             .Where(k => k.KeyCode == keyCode)
@@ -55,50 +43,53 @@ public class KeyGetDataClick
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Returns the click count for a single day.
+    /// NOTE: never writes — missing days return an empty list.
+    /// </summary>
     public async Task<List<KeyStatisticsForTheDay>> GetKeyStatisticsForTheDay(DateTime date)
     {
-        
         await using var context = new DataContext(_dbPath);
-
-        var keyStatisticsForTheDay = await context.KeyStatisticsForTheDay
+        var records = await context.KeyStatisticsForTheDay
             .Where(k => k.Date.Date == date.Date)
             .ToListAsync();
 
-        if (keyStatisticsForTheDay.Count > 1)
+        // Merge duplicates if they exist (legacy cleanup only — no new writes for missing dates)
+        if (records.Count > 1)
         {
-            var primaryRecord = keyStatisticsForTheDay[0];
-            for (int i = 1; i < keyStatisticsForTheDay.Count; i++)
-            {
-                primaryRecord.ClickCount += keyStatisticsForTheDay[i].ClickCount;
-            }
+            var primary = records[0];
+            for (int i = 1; i < records.Count; i++)
+                primary.ClickCount += records[i].ClickCount;
 
-            var duplicates = keyStatisticsForTheDay.Skip(1).ToList();
-            context.KeyStatisticsForTheDay.RemoveRange(duplicates);
+            context.KeyStatisticsForTheDay.RemoveRange(records.Skip(1));
+            await context.SaveChangesAsync();
 
-            await context.SaveChangesAsync();
+            return new List<KeyStatisticsForTheDay> { primary };
         }
-        else if (keyStatisticsForTheDay.Count == 0)
-        {
-            var newRecord = new KeyStatisticsForTheDay
-            {
-                DayId = Guid.NewGuid(),
-                Date = date.Date,
-                ClickCount = 0
-            };
-            context.KeyStatisticsForTheDay.Add(newRecord);
-            await context.SaveChangesAsync();
-            keyStatisticsForTheDay.Add(newRecord);
-        }
-        
-        return keyStatisticsForTheDay;
-        
-        
+
+        return records; // May be empty — callers should handle that
     }
 
-
-public async Task<int> GetKeyStatisticsForTheAllTime()
+    /// <summary>
+    /// Single query for all days in [from, to]. Returns 0 for days with no records.
+    /// Much faster than N sequential calls to GetKeyStatisticsForTheDay.
+    /// </summary>
+    public async Task<Dictionary<DateTime, int>> GetDailyClickCounts(DateTime from, DateTime to)
     {
         await using var context = new DataContext(_dbPath);
-        return await context.KeyStatisticsForTheDay.SumAsync(k=> k.ClickCount);
+        var records = await context.KeyStatisticsForTheDay
+            .Where(k => k.Date >= from.Date && k.Date <= to.Date)
+            .ToListAsync();
+
+        // Aggregate in memory in case there are legacy duplicates per date
+        return records
+            .GroupBy(r => r.Date.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(r => r.ClickCount));
+    }
+
+    public async Task<int> GetKeyStatisticsForTheAllTime()
+    {
+        await using var context = new DataContext(_dbPath);
+        return await context.KeyStatisticsForTheDay.SumAsync(k => k.ClickCount);
     }
 }

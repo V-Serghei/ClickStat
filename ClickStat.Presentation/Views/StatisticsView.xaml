@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:viewModels="clr-namespace:ClickStat.Presentation.ViewModels"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.Wpf"
+             xmlns:services="clr-namespace:ClickStat.Presentation.Services"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=viewModels:StatisticsViewModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="650" d:DesignWidth="1200"
@@ -16,24 +17,24 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Общая статистика" FontSize="28" FontWeight="Light" Margin="0,0,0,20"/>
+        <TextBlock Grid.Row="0" Text="{services:Loc Statistics.Title}" FontSize="28" FontWeight="Light" Margin="0,0,0,20"/>
 
         <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,30">
             <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="0,0,15,0">
                 <StackPanel>
-                    <TextBlock Text="ВСЕГО НАЖАТИЙ" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{services:Loc Overview.TotalClicks}" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
                     <TextBlock Text="{Binding TotalClicks, StringFormat={}{0:N0}}" FontSize="36" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
             <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="15,0">
                 <StackPanel>
-                    <TextBlock Text="НАЖАТИЙ СЕГОДНЯ" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{services:Loc Statistics.ClicksToday}" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
                     <TextBlock Text="{Binding ClicksToday, StringFormat={}{0:N0}}" FontSize="36" FontWeight="Bold" Foreground="#FFAA70FF" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
             <Border Background="#2C2C2C" CornerRadius="8" Padding="20" Margin="15,0,0,0">
                 <StackPanel>
-                    <TextBlock Text="САМАЯ ЧАСТАЯ КЛАВИША" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
+                    <TextBlock Text="{services:Loc Statistics.MostFrequentKey}" FontSize="14" FontWeight="SemiBold" Foreground="#A0A0A0"/>
                     <TextBlock Text="{Binding MostFrequentKey}" FontSize="36" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>

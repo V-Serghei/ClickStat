@@ -1,0 +1,225 @@
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Windows.Forms;
+using System.Windows.Input;
+using ClickStat.Infrastructure.Data;
+using ClickStat.Infrastructure.Data.Model;
+using ClickStat.Presentation.Services;
+
+namespace ClickStat.Presentation.ViewModels;
+
+public class WordsViewModel : INotifyPropertyChanged
+{
+    private readonly WordProcessor _wordProcessor;
+    private int _loadVersion;
+
+    private bool _isLoading;
+    public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
+    private bool _loadFailed;
+    public bool LoadFailed { get => _loadFailed; set { _loadFailed = value; OnPropertyChanged(); } }
+    private string? _exclusionsError;
+
+    public string? ExclusionsError
+    {
+        get => _exclusionsError;
+        private set
+        {
+            _exclusionsError = value;
+            OnPropertyChanged();
+        }
+    }
+    public ObservableCollection<WordStatistics> TopWords { get; } = new();
+    public ObservableCollection<WordPhrase> TopPhrases { get; } = new();
+    public ObservableCollection<WordLanguageOption> Languages { get; } = new();
+    public LocalizationService Loc => LocalizationService.Instance;
+
+    private int _totalTyped;
+    private int _uniqueCount;
+    private int _phraseCount;
+    private WordLanguageOption? _selectedLanguage;
+
+    private List<WordStatistics> _allWords = new();
+    private List<WordPhrase> _allPhrases = new();
+
+    public int TotalTyped { get => _totalTyped; set { _totalTyped = value; OnPropertyChanged(); } }
+    public int UniqueCount { get => _uniqueCount; set { _uniqueCount = value; OnPropertyChanged(); } }
+    public int PhraseCount { get => _phraseCount; set { _phraseCount = value; OnPropertyChanged(); } }
+
+    public WordLanguageOption? SelectedLanguage
+    {
+        get => _selectedLanguage;
+        private set
+        {
+            if (_selectedLanguage == value) return;
+            _selectedLanguage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LanguageTitle));
+        }
+    }
+
+    public string LanguageTitle => SelectedLanguage?.DisplayName ?? Loc["Words.NoLayouts"];
+
+    public ICommand SelectLanguageCommand { get; }
+    public ICommand RefreshCommand { get; }
+
+    public WordsViewModel(WordProcessor wordProcessor)
+    {
+        _wordProcessor = wordProcessor;
+        RefreshCommand = new RelayCommand(_ => _ = LoadAsync());
+        SelectLanguageCommand = new RelayCommand(p =>
+        {
+            if (p is WordLanguageOption option)
+                SetLanguage(option);
+        });
+        RefreshLanguageOptions();
+    }
+
+    public async Task LoadAsync()
+    {
+        if (IsLoading || !_wordProcessor.CaptureEnabled) return;
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("words.load_view");
+        int version = ++_loadVersion;
+        IsLoading = true;
+        LoadFailed = false;
+        await Task.Yield();
+        try
+        {
+            var loaded = await Task.Run(async () =>
+            {
+                var exclusionsError = _wordProcessor.ReloadExclusions();
+                await _wordProcessor.FlushAsync();
+                await _wordProcessor.AnalyzeHistoryAsync();
+                var words = await _wordProcessor.GetTopWords(1000);
+                var phrases = await _wordProcessor.GetTopPhrases(300);
+                return (
+                    Words: words,
+                    Phrases: phrases,
+                    ExclusionsError: exclusionsError);
+            });
+
+            if (version != _loadVersion || !_wordProcessor.CaptureEnabled) return;
+
+            _allWords = loaded.Words;
+            _allPhrases = loaded.Phrases;
+            ExclusionsError = loaded.ExclusionsError;
+            RefreshLanguageOptions();
+            ApplyLanguageFilter();
+        }
+        catch (Exception)
+        {
+            if (version == _loadVersion) LoadFailed = true;
+        }
+        finally { if (version == _loadVersion) IsLoading = false; }
+    }
+
+    public void ClearData()
+    {
+        _loadVersion++;
+        IsLoading = false;
+        LoadFailed = false;
+        _allWords.Clear();
+        _allPhrases.Clear();
+        TopWords.Clear();
+        TopPhrases.Clear();
+        TotalTyped = 0;
+        UniqueCount = 0;
+        PhraseCount = 0;
+    }
+
+    private void SetLanguage(WordLanguageOption language)
+    {
+        SelectedLanguage = language;
+        ApplyLanguageFilter();
+    }
+
+    private void RefreshLanguageOptions()
+    {
+        var existing = SelectedLanguage?.Code;
+        Languages.Clear();
+
+        foreach (var culture in GetInstalledCultures())
+            Languages.Add(new WordLanguageOption(culture));
+
+        SelectedLanguage = Languages.FirstOrDefault(x => x.Code == existing)
+            ?? Languages.FirstOrDefault(x => x.Code.Equals("RU", StringComparison.OrdinalIgnoreCase))
+            ?? Languages.FirstOrDefault()
+            ?? new WordLanguageOption(CultureInfo.GetCultureInfo("en-US"));
+    }
+
+    private void ApplyLanguageFilter()
+    {
+        var selected = SelectedLanguage;
+        var words = selected == null
+            ? new List<WordStatistics>()
+            : _allWords
+                .Where(w => selected.MatchesWord(w))
+                .OrderByDescending(w => w.Count)
+                .ToList();
+
+        var phrases = selected == null
+            ? new List<WordPhrase>()
+            : _allPhrases
+                .Where(p => selected.MatchesPhrase(p))
+                .OrderByDescending(p => p.Count)
+                .ToList();
+
+        TopWords.Clear();
+        foreach (var word in words.Take(120)) TopWords.Add(word);
+
+        TopPhrases.Clear();
+        foreach (var phrase in phrases.Take(60)) TopPhrases.Add(phrase);
+
+        TotalTyped = words.Sum(w => w.Count);
+        UniqueCount = words.Count;
+        PhraseCount = phrases.Count;
+    }
+
+    private static IEnumerable<CultureInfo> GetInstalledCultures()
+    {
+        return InputLanguage.InstalledInputLanguages
+            .Cast<InputLanguage>()
+            .Select(x => x.Culture)
+            .GroupBy(x => x.TwoLetterISOLanguageName, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(x => x.NativeName);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected void OnPropertyChanged([CallerMemberName] string? n = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}
+
+public sealed class WordLanguageOption
+{
+    public string Code { get; }
+    public string DisplayName { get; }
+    public string WordGroup { get; }
+
+    public WordLanguageOption(CultureInfo culture)
+    {
+        Code = culture.TwoLetterISOLanguageName.ToUpperInvariant();
+        DisplayName = culture.NativeName.Length > 0
+            ? culture.NativeName[..1].ToUpper(culture) + culture.NativeName[1..]
+            : Code;
+        WordGroup = Code is "RU" or "UK" or "BG" or "SR" or "BE" ? "RU" : "EN";
+    }
+
+    public bool MatchesWord(WordStatistics word)
+    {
+        return string.Equals(
+            word.LanguageCode,
+            Code,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool MatchesPhrase(WordPhrase phrase)
+    {
+        return string.Equals(
+            phrase.LanguageCode,
+            Code,
+            StringComparison.OrdinalIgnoreCase);
+    }
+    
+}

@@ -1,0 +1,539 @@
+<UserControl x:Class="ClickStat.Presentation.Views.MouseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:ClickStat.Presentation.Services"
+             Background="Transparent">
+
+    <UserControl.Resources>
+
+        <!-- Stat card style -->
+        <Style x:Key="StatCard" TargetType="Border">
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="CardLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="CardValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="CardSubValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#AA70FF"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+
+        <!-- Scroll chip -->
+        <Style x:Key="ScrollChip" TargetType="Border">
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Add button style -->
+        <Style x:Key="AddButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#6A3FBB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#7A4FCB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MouseTabStyle" TargetType="Button" BasedOn="{StaticResource AddButtonStyle}">
+            <Setter Property="Background" Value="#24243F"/>
+            <Setter Property="Foreground" Value="#B5B0D5"/>
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="True">
+                    <Setter Property="Background" Value="#6A3FBB"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Custom button chip -->
+        <Style x:Key="CustomBtnChip" TargetType="Border">
+            <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="BorderBrush" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <Button Content="{services:Loc Mouse.StatisticsTab}" Command="{Binding ShowStatisticsCommand}" Tag="{Binding ShowStatistics}" Style="{StaticResource MouseTabStyle}" Margin="0,0,8,0"/>
+            <Button Content="{services:Loc Mouse.CursorHeatmapTab}" Command="{Binding ShowCursorHeatmapCommand}" Tag="{Binding ShowCursorHeatmap}" Style="{StaticResource MouseTabStyle}"/>
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding ShowStatistics}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  LEFT — Mouse diagram + button stats            -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+
+            <!-- Mouse diagram -->
+            <Grid HorizontalAlignment="Center" Margin="0,0,0,20">
+                <!-- Mouse body -->
+                <Border Width="150" Height="220" CornerRadius="75,75,40,40"
+                        Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBackground}"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                        BorderThickness="2">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="80"/> <!-- button zone -->
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Button zone: L | divider | R -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="2"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left button -->
+                            <Border Grid.Column="0" CornerRadius="75,0,0,0"
+                                    ToolTip="{services:Loc Mouse.LeftButton}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#202040"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8">
+                                    <TextBlock Text="{services:Loc Mouse.LeftShort}" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding LeftButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                                               FontSize="10" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Divider -->
+                            <Rectangle Grid.Column="1" Fill="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"/>
+
+                            <!-- Right button -->
+                            <Border Grid.Column="2" CornerRadius="0,75,0,0"
+                                    ToolTip="{services:Loc Mouse.RightButton}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#202040"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8">
+                                    <TextBlock Text="{services:Loc Mouse.RightShort}" Foreground="#AA70FF" FontWeight="Bold" FontSize="13"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding RightButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                                               FontSize="10" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Body: scroll wheel + middle click -->
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12">
+                            <!-- Scroll wheel -->
+                            <Border Width="26" Height="52" CornerRadius="13"
+                                    Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                                    BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                                    BorderThickness="1.5"
+                                    ToolTip="{services:Loc Mouse.MiddleButton}">
+                                <Grid>
+                                    <TextBlock Text="▲" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                               Foreground="#6666BB" FontSize="8" Margin="0,4"/>
+                                    <TextBlock Text="▼" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                               Foreground="#6666BB" FontSize="8" Margin="0,0,0,4"/>
+                                </Grid>
+                            </Border>
+                            <!-- Middle click count -->
+                            <TextBlock Text="{Binding MiddleButton.FormattedCount}"
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10" HorizontalAlignment="Center" Margin="0,4"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- XButton1 — left side -->
+                <Border Width="18" Height="36" CornerRadius="4,0,0,4"
+                        Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                        BorderThickness="1,1,0,1"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="0,90,0,0"
+                        ToolTip="{services:Loc Mouse.BackButton}">
+                    <TextBlock Text="◄" Foreground="#6666AA" FontSize="8"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- XButton2 — left side (below back) -->
+                <Border Width="18" Height="36" CornerRadius="4,0,0,4"
+                        Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}"
+                        BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}"
+                        BorderThickness="1,1,0,1"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="0,132,0,0"
+                        ToolTip="{services:Loc Mouse.ForwardButton}">
+                    <TextBlock Text="►" Foreground="#6666AA" FontSize="8"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+
+            <!-- Standard button cards (compact, pulse on IsActive) -->
+            <ItemsControl>
+                <ItemsControl.Items>
+                    <!-- Left -->
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LeftButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{services:Loc Mouse.LeftButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding LeftButton.FormattedCount}"
+                                       Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <!-- Right -->
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RightButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{services:Loc Mouse.RightButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding RightButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <!-- Middle -->
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MiddleButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{services:Loc Mouse.MiddleButton}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding MiddleButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <!-- Back -->
+                    <Border Margin="0,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BackButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{services:Loc Mouse.BackButtonWithIcon}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding BackButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <!-- Forward -->
+                    <Border>
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource StatCard}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ForwardButton.IsActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#AA70FF"/>
+                                        <Setter Property="BorderThickness" Value="1.5"/>
+                                        <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#AA70FF" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/></Setter.Value></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{services:Loc Mouse.ForwardButtonWithIcon}" Style="{StaticResource CardLabel}" VerticalAlignment="Center" Margin="0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ForwardButton.FormattedCount}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </ItemsControl.Items>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  RIGHT — Scroll stats + custom buttons          -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- Scroll stats header -->
+                <TextBlock Text="{services:Loc Mouse.WheelScroll}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                           FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                <!-- Up stats -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Arrow icon -->
+                        <Border Width="44" Height="44" CornerRadius="22"
+                                Background="#1E3A1E" Margin="0,0,16,0">
+                            <TextBlock Text="▲" Foreground="#50C878" FontSize="20"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{services:Loc Mouse.ScrollUp}" Style="{StaticResource CardLabel}"/>
+                            <WrapPanel>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Notches}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{Binding ScrollUpNotches}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Rotations}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{Binding ScrollUpRotations}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Meters}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource CardValue}" FontSize="16">
+                                            <Run Text="{Binding ScrollUpMeters, Mode=OneWay}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{services:Loc Units.M}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Down stats -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,0,24">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Width="44" Height="44" CornerRadius="22"
+                                Background="#3A1E1E" Margin="0,0,16,0">
+                            <TextBlock Text="▼" Foreground="#FF6B6B" FontSize="20"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{services:Loc Mouse.ScrollDown}" Style="{StaticResource CardLabel}"/>
+                            <WrapPanel>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Notches}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{Binding ScrollDownNotches}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Rotations}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Text="{Binding ScrollDownRotations}" Style="{StaticResource CardValue}" FontSize="16"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource ScrollChip}" Margin="0,4,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{services:Loc Mouse.Meters}" Style="{StaticResource CardLabel}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource CardValue}" FontSize="16">
+                                            <Run Text="{Binding ScrollDownMeters, Mode=OneWay}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{services:Loc Units.M}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Custom buttons section -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{services:Loc Mouse.CustomButtons}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"
+                               FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Content="{services:Loc Mouse.AddButton}"
+                            Style="{StaticResource AddButtonStyle}"
+                            Command="{Binding AddButtonCommand}"/>
+                </Grid>
+
+                <!-- Empty state -->
+                <TextBlock Foreground="#555" FontSize="13" TextAlignment="Center" Margin="0,20"
+                           Text="{services:Loc Mouse.NoCustomButtons}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CustomButtons.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Custom button chips -->
+                <ItemsControl ItemsSource="{Binding CustomButtons}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CustomBtnChip}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ButtonName}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=SecondaryText}"
+                                               FontSize="12" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding FormattedCount}"
+                                               Foreground="#AA70FF" FontSize="18" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    <TextBlock Text="{services:Loc Mouse.ClicksLower}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" FontSize="10"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Loading overlay -->
+                <TextBlock Text="{services:Loc Common.Loading}" Foreground="#555" FontSize="13"
+                           HorizontalAlignment="Center" Margin="0,20">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+            </StackPanel>
+        </ScrollViewer>
+        </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowCursorHeatmap}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <StackPanel DockPanel.Dock="Left">
+                        <TextBlock Text="{services:Loc Mouse.CursorHeatmapTitle}" FontSize="20" FontWeight="Bold" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=PrimaryText}"/>
+                        <TextBlock Text="{services:Loc Mouse.CursorHeatmapHint}" FontSize="12" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="{services:Loc Achievements.Refresh}" Command="{Binding RefreshCursorHeatmapCommand}" Style="{StaticResource AddButtonStyle}"/>
+                </DockPanel>
+                <Border Background="{Binding Source={x:Static services:ThemeService.Instance}, Path=PanelBackground}" BorderBrush="{Binding Source={x:Static services:ThemeService.Instance}, Path=CardBorder}" BorderThickness="1" CornerRadius="10" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CursorHeatmapError}" Foreground="#FF8080" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <Image Source="{Binding CursorHeatmapImage}" Width="{Binding CursorHeatmapWidth}" Height="650" Stretch="Uniform" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc Mouse.CursorHeatmapSamples}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                            <TextBlock Text="{Binding CursorSampleSeconds, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
+                            <TextBlock Text="{services:Loc Mouse.CursorHeatmapVisits}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                            <TextBlock Text="{Binding CursorMovementVisits, StringFormat={}{0:N0}}" Foreground="#AA70FF" Margin="6,0,18,0"/>
+                            <TextBlock Text="{Binding CursorLayout}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="{services:Loc Mouse.HeatLow}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="0,0,8,0"/>
+                            <Border Width="34" Height="8" Background="#43388E"/>
+                            <Border Width="34" Height="8" Background="#9242B2"/>
+                            <Border Width="34" Height="8" Background="#EC5B65"/>
+                            <Border Width="34" Height="8" Background="#FFCD58"/>
+                            <TextBlock Text="{services:Loc Mouse.HeatHigh}" Foreground="{Binding Source={x:Static services:ThemeService.Instance}, Path=MutedText}" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

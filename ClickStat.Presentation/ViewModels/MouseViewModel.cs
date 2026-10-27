@@ -1,0 +1,286 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Windows.Input;
+using System.Windows.Threading;
+using ClickStat.Core.Interfaces;
+using ClickStat.Presentation.Model;
+using ClickStat.Presentation.Services;
+using ClickStat.Presentation.Views;
+using System.Windows.Media.Imaging;
+
+namespace ClickStat.Presentation.ViewModels;
+
+public class MouseViewModel : INotifyPropertyChanged
+{
+    private readonly IMouseStatisticsService _statisticsService;
+    private readonly LiveEventBus            _liveBus;
+    private bool _showCursorHeatmap;
+    private BitmapSource? _cursorHeatmapImage;
+    private long _cursorSampleSeconds;
+    private long _cursorMovementVisits;
+    private string _cursorLayout = "";
+    private double _cursorHeatmapWidth = 720;
+    private string _cursorHeatmapError = "";
+
+    public bool ShowCursorHeatmap { get => _showCursorHeatmap; private set { _showCursorHeatmap = value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowStatistics)); } }
+    public bool ShowStatistics => !ShowCursorHeatmap;
+    public BitmapSource? CursorHeatmapImage { get => _cursorHeatmapImage; private set { _cursorHeatmapImage = value; OnPropertyChanged(); } }
+    public long CursorSampleSeconds { get => _cursorSampleSeconds; private set { _cursorSampleSeconds = value; OnPropertyChanged(); } }
+    public long CursorMovementVisits { get => _cursorMovementVisits; private set { _cursorMovementVisits = value; OnPropertyChanged(); } }
+    public string CursorLayout { get => _cursorLayout; private set { _cursorLayout = value; OnPropertyChanged(); } }
+    public double CursorHeatmapWidth { get => _cursorHeatmapWidth; private set { _cursorHeatmapWidth = value; OnPropertyChanged(); } }
+    public string CursorHeatmapError { get => _cursorHeatmapError; private set { _cursorHeatmapError = value; OnPropertyChanged(); } }
+    public ICommand ShowStatisticsCommand { get; }
+    public ICommand ShowCursorHeatmapCommand { get; }
+    public ICommand RefreshCursorHeatmapCommand { get; }
+
+    // ── Standard buttons ───────────────────────────────────────────────────
+    public MouseButtonStat LeftButton    { get; } = new((int)MouseButtons.Left,     LocalizationService.Instance["Mouse.LeftButton"]);
+    public MouseButtonStat RightButton   { get; } = new((int)MouseButtons.Right,    LocalizationService.Instance["Mouse.RightButton"]);
+    public MouseButtonStat MiddleButton  { get; } = new((int)MouseButtons.Middle,   LocalizationService.Instance["Mouse.MiddleButton"]);
+    public MouseButtonStat BackButton    { get; } = new((int)MouseButtons.XButton1, LocalizationService.Instance["Mouse.BackButton"]);
+    public MouseButtonStat ForwardButton { get; } = new((int)MouseButtons.XButton2, LocalizationService.Instance["Mouse.ForwardButton"]);
+
+    // ── Custom buttons ────────────────────────────────────────────────────
+    public ObservableCollection<MouseButtonStat> CustomButtons { get; } = new();
+
+    // ── Session deltas (accumulated regardless of active tab) ──────────────
+    // Reset to zero each time LoadDataAsync() is called (fresh DB load).
+    // Display = DB_value + session_delta.
+    private readonly Dictionary<int, long> _sessionClicks = new();
+    private long _sessionScrollUp;
+    private long _sessionScrollDown;
+
+    // ── DB baseline values ─────────────────────────────────────────────────
+    private long _dbScrollUp;
+    private long _dbScrollDown;
+
+    // ── Displayed scroll values ────────────────────────────────────────────
+    private long _scrollUpNotches;
+    private long _scrollDownNotches;
+
+    public long ScrollUpNotches
+    {
+        get => _scrollUpNotches;
+        private set { _scrollUpNotches = value; OnPropertyChanged(); OnPropertyChanged(nameof(ScrollUpRotations)); OnPropertyChanged(nameof(ScrollUpMeters)); }
+    }
+    public long ScrollDownNotches
+    {
+        get => _scrollDownNotches;
+        private set { _scrollDownNotches = value; OnPropertyChanged(); OnPropertyChanged(nameof(ScrollDownRotations)); OnPropertyChanged(nameof(ScrollDownMeters)); }
+    }
+
+    public double ScrollUpRotations   => Math.Round(_scrollUpNotches   / 24.0, 1);
+    public double ScrollDownRotations => Math.Round(_scrollDownNotches / 24.0, 1);
+    public double ScrollUpMeters      => Math.Round(_scrollUpNotches   * 0.0021, 2);
+    public double ScrollDownMeters    => Math.Round(_scrollDownNotches * 0.0021, 2);
+
+    // ── Loading ────────────────────────────────────────────────────────────
+    private bool _isLoading;
+    public bool IsLoading { get => _isLoading; private set { _isLoading = value; OnPropertyChanged(); } }
+
+    // ── Live mode: controls animations only, NOT data accumulation ──────────
+    private bool _isLiveActive;
+    public bool IsLiveActive
+    {
+        get => _isLiveActive;
+        set
+        {
+            if (_isLiveActive == value) return;
+            _isLiveActive = value;
+            OnPropertyChanged();
+            if (!_isLiveActive)
+            {
+                // Cancel any running flash animations
+                foreach (var b in AllButtons) b.IsActive = false;
+                _flashExpiry.Clear();
+                _flashTimer.Stop();
+            }
+        }
+    }
+
+    // ── Flash timer (animations) ────────────────────────────────────────────
+    private readonly DispatcherTimer _flashTimer;
+    private readonly Dictionary<int, DateTime> _flashExpiry = new();
+
+    // ── Commands ───────────────────────────────────────────────────────────
+    public ICommand AddButtonCommand { get; }
+    public ICommand RefreshCommand   { get; }
+
+    // ── Constructor ────────────────────────────────────────────────────────
+    public MouseViewModel(IMouseStatisticsService statisticsService, LiveEventBus liveBus)
+    {
+        _statisticsService = statisticsService;
+        _liveBus           = liveBus;
+
+        _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+        _flashTimer.Tick += OnFlashTick;
+
+        AddButtonCommand = new RelayCommand(_ => OpenAddButtonDialog());
+        RefreshCommand   = new RelayCommand(async _ => await LoadDataAsync());
+        ShowStatisticsCommand = new RelayCommand(_ => ShowCursorHeatmap = false);
+        ShowCursorHeatmapCommand = new RelayCommand(_ => { ShowCursorHeatmap = true; _ = LoadCursorHeatmapAsync(); });
+        RefreshCursorHeatmapCommand = new RelayCommand(_ => _ = LoadCursorHeatmapAsync());
+
+        // Always subscribe to live bus — accumulate session deltas even when tab is closed
+        _liveBus.MouseButtonPressed += OnButtonPressedAlways;
+        _liveBus.MouseScrolled      += OnScrolledAlways;
+
+    }
+
+    // ── DB load ─────────────────────────────────────────────────────────────
+    public async Task LoadDataAsync()
+    {
+        if (ShowCursorHeatmap)
+        {
+            await LoadCursorHeatmapAsync();
+            return;
+        }
+        using var timing = ClickStat.Infrastructure.Diagnostics.PerformanceLog.Measure("mouse.load");
+        IsLoading = true;
+        await Task.Yield();
+        try
+        {
+            var loaded = await Task.Run(async () =>
+            {
+                var buttons = await _statisticsService.GetButtonStatistics();
+                var scroll = await _statisticsService.GetScrollStatistics();
+                return (Buttons: buttons, Scroll: scroll);
+            });
+
+            // Reset session deltas — we now have fresh DB data
+            lock (_sessionClicks) { _sessionClicks.Clear(); }
+            _sessionScrollUp   = 0;
+            _sessionScrollDown = 0;
+
+            var standardCodes = new HashSet<int>
+            {
+                (int)MouseButtons.Left, (int)MouseButtons.Right, (int)MouseButtons.Middle,
+                (int)MouseButtons.XButton1, (int)MouseButtons.XButton2
+            };
+
+            // Set DB baseline for standard buttons
+            foreach (var btn in loaded.Buttons)
+            {
+                var stat = FindButton(btn.ButtonCode);
+                if (stat != null) stat.Count = btn.Count;
+            }
+
+            CustomButtons.Clear();
+            foreach (var btn in loaded.Buttons.Where(b => !standardCodes.Contains(b.ButtonCode) && b.IsRegistered))
+                CustomButtons.Add(new MouseButtonStat(btn.ButtonCode, btn.ButtonName) { Count = btn.Count });
+
+            // DB baseline for scroll
+            _dbScrollUp   = loaded.Scroll?.ScrollUpNotches   ?? 0;
+            _dbScrollDown = loaded.Scroll?.ScrollDownNotches ?? 0;
+            ScrollUpNotches   = _dbScrollUp;
+            ScrollDownNotches = _dbScrollDown;
+        }
+        finally { IsLoading = false; }
+    }
+
+    private async Task LoadCursorHeatmapAsync()
+    {
+        IsLoading = true;
+        CursorHeatmapError = "";
+        try
+        {
+            await _statisticsService.FlushAsync();
+            var map = await _statisticsService.GetCursorHeatmapAsync();
+            CursorHeatmapImage = await Task.Run(() => CursorHeatmapRenderer.Render(map));
+            CursorSampleSeconds = map.TotalSeconds;
+            CursorMovementVisits = map.TotalVisits;
+            CursorLayout = $"{map.Width} × {map.Height}";
+            CursorHeatmapWidth = 650.0 * map.Width / Math.Max(1, map.Height);
+        }
+        catch (Exception ex) { CursorHeatmapError = ex.Message; }
+        finally { IsLoading = false; }
+    }
+
+    public void BeginLoading() => IsLoading = true;
+
+    // ── Always-on live handlers (accumulate session regardless of active tab) ──
+
+    private void OnButtonPressedAlways(int buttonCode)
+    {
+        // Accumulate session delta
+        lock (_sessionClicks)
+            _sessionClicks[buttonCode] = _sessionClicks.GetValueOrDefault(buttonCode) + 1;
+
+        // Update displayed count
+        var stat = FindButton(buttonCode);
+        if (stat != null) stat.Count++;
+
+        // Flash animation only when this tab is open
+        if (_isLiveActive)
+        {
+            stat?.DoActive();
+            _flashExpiry[buttonCode] = DateTime.Now.AddMilliseconds(180);
+            if (!_flashTimer.IsEnabled) _flashTimer.Start();
+        }
+    }
+
+    private void OnScrolledAlways(int notches)
+    {
+        if (notches > 0)
+        {
+            _sessionScrollUp  += notches;
+            ScrollUpNotches    = _dbScrollUp + _sessionScrollUp;
+        }
+        else
+        {
+            var abs = Math.Abs(notches);
+            _sessionScrollDown += abs;
+            ScrollDownNotches   = _dbScrollDown + _sessionScrollDown;
+        }
+    }
+
+    private void OnFlashTick(object? sender, EventArgs e)
+    {
+        var now     = DateTime.Now;
+        var expired = _flashExpiry.Where(kv => kv.Value <= now).Select(kv => kv.Key).ToList();
+        foreach (var code in expired)
+        {
+            _flashExpiry.Remove(code);
+            var b = FindButton(code);
+            if (b != null) b.IsActive = false;
+        }
+        if (_flashExpiry.Count == 0) _flashTimer.Stop();
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    private IEnumerable<MouseButtonStat> AllButtons =>
+        new[] { LeftButton, RightButton, MiddleButton, BackButton, ForwardButton }
+            .Concat(CustomButtons);
+
+    private MouseButtonStat? FindButton(int code)
+    {
+        if (code == (int)MouseButtons.Left)     return LeftButton;
+        if (code == (int)MouseButtons.Right)    return RightButton;
+        if (code == (int)MouseButtons.Middle)   return MiddleButton;
+        if (code == (int)MouseButtons.XButton1) return BackButton;
+        if (code == (int)MouseButtons.XButton2) return ForwardButton;
+        return CustomButtons.FirstOrDefault(b => b.ButtonCode == code);
+    }
+
+    private async void OpenAddButtonDialog()
+    {
+        var dialog = new AddMouseButtonDialog { Owner = System.Windows.Application.Current.MainWindow };
+        if (dialog.ShowDialog() == true && dialog.RegisteredButton.HasValue)
+        {
+            var (code, name) = dialog.RegisteredButton.Value;
+            await _statisticsService.RegisterCustomButton(code, name);
+            await LoadDataAsync();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected void OnPropertyChanged([CallerMemberName] string? n = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}

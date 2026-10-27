@@ -11,6 +11,8 @@ public class TrayService : ITrayService
     
     private NotifyIcon? _notifyIcon;
     private Window? _mainWindow;
+    private string? _notificationAchievementId;
+    public event Action<string>? AchievementNotificationClicked;
 
     public void Initialize(Window window)
     {
@@ -19,14 +21,33 @@ public class TrayService : ITrayService
         _notifyIcon = new NotifyIcon
         {
             Icon = new Icon(Application.GetResourceStream(new Uri("pack://application:,,,/icon.ico")).Stream),
-            Text = "ClickStat - Статистика активности",
-            Visible = false
+            Text = "ClickStat - Input statistics",
+            Visible = true
         };
         _notifyIcon.ContextMenuStrip = new ContextMenuStrip();
-        _notifyIcon.ContextMenuStrip.Items.Add("Показать", null, OnShowClick);
-        _notifyIcon.ContextMenuStrip.Items.Add("Выход", null, OnExitClick);
+        _notifyIcon.ContextMenuStrip.Items.Add("Show", null, OnShowClick);
+        _notifyIcon.ContextMenuStrip.Items.Add("Exit", null, OnExitClick);
 
         _notifyIcon.DoubleClick += (s, e) => OnShowClick(s, e);
+        _notifyIcon.BalloonTipClicked += (_, _) =>
+        {
+            var id = _notificationAchievementId;
+            _notificationAchievementId = null;
+            _ = Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                OnShowClick(null, EventArgs.Empty);
+                if (!string.IsNullOrEmpty(id)) AchievementNotificationClicked?.Invoke(id);
+            });
+        };
+    }
+    public void ShowNotification(string title, string message, string? achievementId = null)
+    {
+        if (_notifyIcon == null) return;
+        _notificationAchievementId = achievementId;
+        _notifyIcon.BalloonTipTitle = title;
+        _notifyIcon.BalloonTipText = message;
+        _notifyIcon.BalloonTipIcon = ToolTipIcon.None;
+        _notifyIcon.ShowBalloonTip(5000);
     }
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
@@ -47,10 +68,6 @@ public class TrayService : ITrayService
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
             
-        if (_notifyIcon != null)
-        {
-            _notifyIcon.Visible = false;
-        }
     }
 
     private void OnExitClick(object? sender, EventArgs e)
