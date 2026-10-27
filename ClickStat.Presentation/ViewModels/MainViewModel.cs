@@ -510,6 +510,8 @@ namespace ClickStat.Presentation.ViewModels
 
         private void OnMouseButtonPressed(MouseButtons button, int buttonCode)
         {
+            // Display the click before inspecting the foreground process or recording statistics.
+            _liveBus.PublishMouseButton(buttonCode);
             if (_mouseStatisticsService.IsRegistered(buttonCode))
             {
                 var name = button switch
@@ -525,13 +527,12 @@ namespace ClickStat.Presentation.ViewModels
                 _mouseStatisticsService.TrackClickPosition();
             }
             _appUsageProcessor.RecordClick();
-            _liveBus.PublishMouseButton(buttonCode);
         }
 
         private void OnMouseScrolled(int notches)
         {
-            _mouseStatisticsService.TrackScroll(notches);
             _liveBus.PublishMouseScroll(notches);
+            _mouseStatisticsService.TrackScroll(notches);
         }
 
         // â”€â”€ Break reminder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
