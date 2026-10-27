@@ -122,6 +122,10 @@
                 <TextBlock Text="{services:Loc Words.LoadFailed}"
                            Visibility="{Binding LoadFailed, Converter={StaticResource BoolToVis}}"
                            Foreground="#D98090" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding ExclusionsError}"
+                           Foreground="#D98090"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,8"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                     <Button Content="{services:Loc Words.Refresh}" Command="{Binding RefreshCommand}"
                             Style="{StaticResource LanguageButton}"/>

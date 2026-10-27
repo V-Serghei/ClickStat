@@ -73,4 +73,22 @@ public class DataContext : DbContext
 
         return builder.ToString();
     }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<WordStatistics>()
+            .HasKey(word => new { word.Word, word.LanguageCode });
+
+        modelBuilder.Entity<WordStatistics>()
+            .Property(word => word.LanguageCode)
+            .HasDefaultValue("UND");
+
+        modelBuilder.Entity<WordPhrase>()
+            .HasKey(phrase => new { phrase.Phrase, phrase.LanguageCode });
+
+        modelBuilder.Entity<WordPhrase>()
+            .Property(phrase => phrase.LanguageCode)
+            .HasDefaultValue("UND");
+    }
 }
