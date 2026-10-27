@@ -1,0 +1,33 @@
+name: ClickStat CI
+
+on:
+  pull_request:
+    branches: [develop, release, master]
+  push:
+    branches: [develop, release, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v7
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore packages
+        run: dotnet restore ClickStat.sln
+
+      - name: Build solution
+        run: dotnet build ClickStat.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ClickStat.Tests/ClickStat.Tests.csproj --configuration Release --no-build

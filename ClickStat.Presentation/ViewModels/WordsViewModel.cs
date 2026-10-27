@@ -19,7 +19,17 @@ public class WordsViewModel : INotifyPropertyChanged
     public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
     private bool _loadFailed;
     public bool LoadFailed { get => _loadFailed; set { _loadFailed = value; OnPropertyChanged(); } }
+    private string? _exclusionsError;
 
+    public string? ExclusionsError
+    {
+        get => _exclusionsError;
+        private set
+        {
+            _exclusionsError = value;
+            OnPropertyChanged();
+        }
+    }
     public ObservableCollection<WordStatistics> TopWords { get; } = new();
     public ObservableCollection<WordPhrase> TopPhrases { get; } = new();
     public ObservableCollection<WordLanguageOption> Languages { get; } = new();
@@ -78,17 +88,22 @@ public class WordsViewModel : INotifyPropertyChanged
         {
             var loaded = await Task.Run(async () =>
             {
+                var exclusionsError = _wordProcessor.ReloadExclusions();
                 await _wordProcessor.FlushAsync();
                 await _wordProcessor.AnalyzeHistoryAsync();
                 var words = await _wordProcessor.GetTopWords(1000);
                 var phrases = await _wordProcessor.GetTopPhrases(300);
-                return (Words: words, Phrases: phrases);
+                return (
+                    Words: words,
+                    Phrases: phrases,
+                    ExclusionsError: exclusionsError);
             });
 
             if (version != _loadVersion || !_wordProcessor.CaptureEnabled) return;
 
             _allWords = loaded.Words;
             _allPhrases = loaded.Phrases;
+            ExclusionsError = loaded.ExclusionsError;
             RefreshLanguageOptions();
             ApplyLanguageFilter();
         }
@@ -139,14 +154,14 @@ public class WordsViewModel : INotifyPropertyChanged
         var words = selected == null
             ? new List<WordStatistics>()
             : _allWords
-                .Where(w => selected.MatchesWord(w.Word))
+                .Where(w => selected.MatchesWord(w))
                 .OrderByDescending(w => w.Count)
                 .ToList();
 
         var phrases = selected == null
             ? new List<WordPhrase>()
             : _allPhrases
-                .Where(p => selected.MatchesPhrase(p.Phrase))
+                .Where(p => selected.MatchesPhrase(p))
                 .OrderByDescending(p => p.Count)
                 .ToList();
 
@@ -191,7 +206,20 @@ public sealed class WordLanguageOption
         WordGroup = Code is "RU" or "UK" or "BG" or "SR" or "BE" ? "RU" : "EN";
     }
 
-    public bool MatchesWord(string word) => WordProcessor.GetWordLanguage(word) == WordGroup;
+    public bool MatchesWord(WordStatistics word)
+    {
+        return string.Equals(
+            word.LanguageCode,
+            Code,
+            StringComparison.OrdinalIgnoreCase);
+    }
 
-    public bool MatchesPhrase(string phrase) => WordProcessor.IsPhraseLanguage(phrase, WordGroup);
+    public bool MatchesPhrase(WordPhrase phrase)
+    {
+        return string.Equals(
+            phrase.LanguageCode,
+            Code,
+            StringComparison.OrdinalIgnoreCase);
+    }
+    
 }
