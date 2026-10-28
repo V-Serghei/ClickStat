@@ -24,7 +24,7 @@ public class MouseMonitor : IDisposable
     private long _latestPosition;
     private int _draining;
     private int _actionWorkerScheduled;
-    private readonly ConcurrentQueue<(MouseButtons button, int notches)> _actions = new();
+    private readonly ConcurrentQueue<(MouseButtons button, int notches, long queuedAt)> _actions = new();
     private readonly ThreadingTimer _movementTimer;
 
     public event Action<MouseButtons, int>? ButtonPressed; // button, button code
@@ -76,7 +76,7 @@ public class MouseMonitor : IDisposable
 
     private void QueueAction(MouseButtons button, int notches)
     {
-        _actions.Enqueue((button, notches));
+        _actions.Enqueue((button, notches, Stopwatch.GetTimestamp()));
         ScheduleActionWorker();
     }
 
@@ -92,6 +92,11 @@ public class MouseMonitor : IDisposable
         {
             while (_actions.TryDequeue(out var action))
             {
+                var startedAt = Stopwatch.GetTimestamp();
+                var queueDelay = Stopwatch.GetElapsedTime(action.queuedAt, startedAt);
+                if (queueDelay.TotalMilliseconds >= 100)
+                    ClickStat.Infrastructure.Diagnostics.PerformanceLog.Record(
+                        "slow", "mouse.action_queue", (long)queueDelay.TotalMilliseconds);
                 try
                 {
                     if (action.button == MouseButtons.None) Scrolled?.Invoke(action.notches);
@@ -100,6 +105,13 @@ public class MouseMonitor : IDisposable
                 catch (Exception ex)
                 {
                     ClickStat.Infrastructure.Diagnostics.PerformanceLog.Record("error", "mouse.action." + ex.GetType().Name);
+                }
+                finally
+                {
+                    var duration = Stopwatch.GetElapsedTime(startedAt);
+                    if (duration.TotalMilliseconds >= 100)
+                        ClickStat.Infrastructure.Diagnostics.PerformanceLog.Record(
+                            "slow", "mouse.action_handler", (long)duration.TotalMilliseconds);
                 }
             }
         }

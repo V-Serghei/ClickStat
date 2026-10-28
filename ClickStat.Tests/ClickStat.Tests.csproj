@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <UseWPF>true</UseWPF>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,10 +17,12 @@
 
     <ItemGroup>
         <Using Include="Xunit"/>
+        <Using Include="System.IO"/>
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ClickStat.Infrastructure\ClickStat.Infrastructure.csproj" />
+      <ProjectReference Include="..\ClickStat.Presentation\ClickStat.Presentation.csproj" />
     </ItemGroup>
 
 </Project>
